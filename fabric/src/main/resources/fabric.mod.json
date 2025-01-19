@@ -16,7 +16,7 @@
     "environment": "*",
     "entrypoints": {
         "main": [
-            "com.holybuckets.orecluster.FoundationMain"
+            "com.holybuckets.orecluster.OreClusterRegenMain"
         ]
     },
     "mixins": [

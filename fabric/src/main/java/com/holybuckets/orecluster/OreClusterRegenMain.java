@@ -2,7 +2,7 @@ package com.holybuckets.orecluster;
 
 import net.fabricmc.api.ModInitializer;
 
-public class FoundationMain implements ModInitializer {
+public class OreClusterRegenMain implements ModInitializer {
     
     @Override
     public void onInitialize() {
