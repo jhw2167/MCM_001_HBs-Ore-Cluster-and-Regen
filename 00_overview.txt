@@ -1,0 +1,92 @@
+Overview
+---
+
+Technologies:
+Jetbrains Intelij 
+Forge 1.20.1 Mod Development Kit
+
+Mod Naming Convention:
+MCM_00#_HBs-Ore-Clusters-and-Regen
+
+Setup
+---
+
+1. Create a repo on github according to the mod naming convention above
+
+2. Clone repo into local repository
+
+3. Copy all files in the 00_Forge-1.20.1_TEMPLATE directory into your cloned empty directory
+	- Dont copy .git and .idea directories
+
+4. Bash into the directory, use ./gradlew to init the directory
+	- run ./gradlew tasks to view list of all gradle tasks you can run
+	- Call gradle on a particular subproject gradlew e.g. fabric:clean
+	- Call a specific group task e.g. forge:build
+
+5. To start Minecraft (by running a client or a Server) your options are:
+	- fabric:runClient
+	- forge:Client
+ 	- fabric:runServer
+
+6. Fill out your mod's basic information in gradle.properties
+	- Mod Name
+	- Mod ID
+	- Mod Version
+	- Mod 
+
+7. Clean directory and setup mixin files
+	- ./gradlew cleanIdea
+	- src/main/resources has two mixin files you must rename after your modId
+
+8. Setup your java code
+	- Determine you package names
+	- Assign the correct mod_id to your ForgeMain method
+	- mods.toml will throw error
+
+9. Add dependencies to your gradle
+	- some fundamental dependencies are included within the build.gradle
+
+Create a linux script that does the following:
+
+1. Takes a github url for a remote repo as its first argument
+2. Clones the repo locally
+3. Copies all files and directories from MCM_-_Multi-Loader-Template/ to the newly cloned dir EXCEPT any directories that start with "."
+
+
+
+
+Appendix
+---
+
+
+#7 Dependency help
+---
+- compileOnly "dependency"
+	Purpose: The dependency is needed during compilation, but it is not included in 
+			the runtime environment because it is provided, like by Minecraft or forge
+
+- compileOnly fg.deobf("dependency")
+	fg.deobf is a Forge specific plugin that deobfuscates a jar according to minecraft mappings
+
+- runtimeOnly "dependency"
+	- Your mod may have "soft dependencies" on another mod, using reflection for example
+	- Good to clarify, not essential
+
+- runtimeOnly fg.deobf("dependency")
+
+
+Java 21
+---
+- Set your JDK to Java 21
+- set your Gradle compat to Java 21
+- Set your toolchain in gradle file to java 21
+- set mixin compat to java 21
+
+A number of errors occur
+
+	- error with the mixin compata of JAVA_21 not being supported
+
+	- [[Unsupported JNI version detected in LWJGL]] - crashes if attempting to debug
+
+	- mods.toml missing metadata for modid
+

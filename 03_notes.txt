@@ -1,0 +1,32 @@
+Notes, Bugs, Freehand edits
+---
+
+Basic MC world info
+---
+Minecraft mc = Minecraft.getInstance()
+
+
+Subscription Events
+---
+https://events.serilum.com/
+
+onLoad - intial game loading, no world instance loaded
+onServerStarting - server is being prepared for a game, should have access to world seed
+
+
+
+Errors
+---
+
+onLoad not a valid
+	- use the correct minecraftforge.level.ChunkEvent
+	- use the correct @EventBusSubscriber(bus = EventBusSubscriber.Bus.FORGE, modid = OreClustersAndRegenMain.MODID)
+	- 
+
+2. .toml config suddenly stopped loading
+	- Forge didnt like solo mod id on the event handlers class
+	- bus = EventBusSubscriber.Bus.FORGE
+	- AllConfigs uses EventBusSubscriber.Bus.mod
+	
+
+3. 
