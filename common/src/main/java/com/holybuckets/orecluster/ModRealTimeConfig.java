@@ -105,7 +105,7 @@ public class ModRealTimeConfig
             if( !defaultConfig.subSeed.equals(0L) ) {
                 CLUSTER_SEED = defaultConfig.subSeed;
             } else {
-                CLUSTER_SEED = GeneralConfig.getInstance().getWORLD_SEED();
+                CLUSTER_SEED = GeneralConfig.getInstance().getWorldSeed();
             }
 
             LoggerProject.logInit("000000", this.getClass().getName());

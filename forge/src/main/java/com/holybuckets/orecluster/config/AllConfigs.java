@@ -73,7 +73,7 @@ public class AllConfigs {
 
 
 
-	//@SubscribeEvent
+	@SubscribeEvent
 	public static void onLoad(ModConfigEvent.Loading event) {
 		for (ConfigBase config : CONFIGS.values())
 			if (config.specification == event.getConfig()
@@ -83,7 +83,7 @@ public class AllConfigs {
 		LoggerProject.logInit( "005001","AllConfigs-onLoad" );
 	}
 
-	//@SubscribeEvent
+	@SubscribeEvent
 	public static void onReload(ModConfigEvent.Reloading event) {
 		for (ConfigBase config : CONFIGS.values())
 			if (config.specification == event.getConfig()
