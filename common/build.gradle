@@ -33,6 +33,14 @@ minecraft {
 dependencies {
      compileOnly group:'org.spongepowered', name:'mixin', version:'0.8.5'
      implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
+
+    implementation ("net.blay09.mods:balm-common:${balm_version}") {
+        changing = true
+    }
+
+    implementation ("com.holybuckets.foundation:HBs_Foundation-common-${minecraft_version}:${foundation_version}") {
+        changing = true
+    }
 }
 
 publishing {

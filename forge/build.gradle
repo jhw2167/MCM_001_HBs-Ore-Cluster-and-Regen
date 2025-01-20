@@ -79,6 +79,14 @@ dependencies {
     compileOnly project(":common")
     annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT:processor")
 
+    implementation fg.deobf("net.blay09.mods:balm-forge:${balm_version}") {
+        changing = true
+    }
+
+    implementation fg.deobf("com.holybuckets.foundation:HBs_Foundation-forge-${minecraft_version}:${foundation_version}") {
+        changing = true
+    }
+
 }
 
 tasks.withType(JavaCompile).configureEach {

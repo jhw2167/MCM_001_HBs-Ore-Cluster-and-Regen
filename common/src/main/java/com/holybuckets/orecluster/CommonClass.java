@@ -7,6 +7,7 @@ import net.minecraft.world.item.Items;
 
 public class CommonClass {
 
+    public static OreClustersAndRegenMain mod = null;
     public static void init()
     {
 
@@ -14,9 +15,10 @@ public class CommonClass {
         Constants.LOG.info("The ID for diamonds is {}", BuiltInRegistries.ITEM.getKey(Items.DIAMOND));
 
         if (Services.PLATFORM.isModLoaded(Constants.MOD_ID)) {
-
             Constants.LOG.info("Hello to " + Constants.MOD_NAME + "!");
         }
+
+        mod = new OreClustersAndRegenMain();
 
     }
 

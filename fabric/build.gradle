@@ -17,6 +17,16 @@ dependencies {
 
     implementation project(":common")
 
+    modImplementation ("net.blay09.mods:balm-fabric:${balm_version}") {
+        transitive = false
+        changing = true
+    }
+
+    modImplementation ("com.holybuckets.foundation:HBs_Foundation-fabric-${minecraft_version}:${foundation_version}") {
+        transitive = false
+        changing = true
+    }
+
 }
 
 loom {
