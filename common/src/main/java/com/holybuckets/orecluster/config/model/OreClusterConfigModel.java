@@ -1,9 +1,8 @@
 package com.holybuckets.orecluster.config.model;
 
-import com.holybuckets.foundation.config.ConfigBase;
-import com.holybuckets.foundation.config.ConfigModelBase;
 import com.holybuckets.foundation.HBUtil.*;
 import com.holybuckets.orecluster.LoggerProject;
+import com.holybuckets.orecluster.config.OreClusterConfigData;
 import net.minecraft.world.level.block.Block;
 import org.antlr.v4.runtime.misc.Triple;
 
@@ -11,7 +10,7 @@ import org.antlr.v4.runtime.misc.Triple;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import com.holybuckets.orecluster.config.COreClusters;
+import com.holybuckets.orecluster.config.OreClusterConfigData.COreClusters;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -52,7 +51,7 @@ public class OreClusterConfigModel extends ConfigModelBase {
         deserialize(oreClusterJson);
     }
 
-    public OreClusterConfigModel( COreClusters cOreClusters )
+    public OreClusterConfigModel( OreClusterConfigData.COreClusters cOreClusters )
     {
 
         if( cOreClusters == null ) {

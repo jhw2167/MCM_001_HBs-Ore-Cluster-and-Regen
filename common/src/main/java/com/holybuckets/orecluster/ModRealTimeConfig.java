@@ -18,7 +18,6 @@ import java.util.function.Function;
 
 //Project imports
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
-import com.holybuckets.orecluster.config.AllConfigs;
 
 
 /**
@@ -68,7 +67,7 @@ public class ModRealTimeConfig
         public ModRealTimeConfig(LevelAccessor level)
         {
 
-            OreClusterConfigData clusterConfig = AllConfigs.server().cOreClusters;
+            OreClusterConfigData.COreClusters clusterConfig = OreClusterConfig.getActive().cOreClusters;
             defaultConfig = new OreClusterConfigModel(clusterConfig);
 
             //Create new oreConfig for each element in cOreClusters list
