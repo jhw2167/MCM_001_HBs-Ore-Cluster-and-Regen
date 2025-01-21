@@ -1,4 +1,455 @@
+General
+---
+OreClusters:
+Class_ID:
+OreClusterJsonConfig: 006
+
 Requirements
 ---
+
+1. Add Config
+---
+
+- Add configBase class to serve as base for different kinds of configs
+- Add sample configs
+- Let aider simplify sample configs 
+
+
+2. Aider Work
+---
+
+- Added CServer, Client and CCommon files
+- Added COreClusters and sample configuration
+- Added AllConfigs class to read in configs from all sources
+
+- Removed all create variables from config classes
+- Added configString and configList types to  ConfigBases array
+
+3. Get Configs to Work and Minecraft to compile again
+---
+
+- Ensured AllConfigs was being registered in Main function
+- Fixed issue where Config was subscribing to config load without loading any data and causing crashes
+
+4. Get Arbitrary array configs to work
+---
+
+- 
+
+5.
+---
+
+- Added defaultConfig and oreConfigs to RealTimeConfig class
+- Initialized real time properties in configModel class
+- Added subseed for configuration
+- Added list of default valid ore cluster blocks
+- Added validation for config values upon deserialization
+- Addded ConfigModelBase and Moved validation core functionality there
+
+6.
+---
+
+- Tested adding custom toml file succesfully
+- For Default configs, these cannot be set until the user starts the world
+- fine tuned property names and validation issues, added min and max to ConfigBase class
+
+
+7.
+---
+  - build OreClusterManager Class and determine its role
+  - test OreClusterManager for determining cluster location and parameters
+  - build OreClusterChunkEditor for handling real time edits to chunks
+  - 
+
+8. Add OreClusterCalculator to calculate Chunk positions and values
+---
+
+ - Added handling for world seed, subscribing to server start event
+ - Ore cluster chunks will be normally distributed according to their spawn rate
+and their Standard deviation is determined by {mean / (log2(mean) * 2)}
+ - RealTimeConfig keeps track of WORLD_SPAWN
+ - NOTE validate STD_DIST formula for error values
+ - Added HolyBucketsUtility class for static utility methods like chunk distances and ids
+ - NOTE validate min/max chunk dist formulas on startup
+
+
+9. Simple commit
+---
+
+	- Cleaned up validation functions
+
+13.
+---
+
+	- Realized that OreClusterManger needs to be an instance class in order to support multiple worlds, will address later
+	- Added thread support to OreClusterManager
+	- Need to resolve difficult issue with overlapping ore areas
+
+14.
+---
+
+	- Address "getBatchedChunkList" not producing correct amount of chunkIds
+	- 
+
+15.
+---
+	- Added logId to all printable console log building statements
+	- Added logId and classId values to all logging statements in actionable classes
+	- fixed bug in MangedChunk.java that failed to check for null value when combining maps
+
+16.
+---
+	- Ensure chunk generation works outside of 256x256 area
+	- Ensure we can write chunk data to file
+	- write chunk data to file based on world name
+	- write chunk data to file based on dimension
+	-
+
+17.
+---
+
+Dependencies are always an issue:
+
+// Add runtime dependencies to jar
+jarJar.fromRuntimeConfiguration()
+
+jarJar {
+    // Include or exclude dependencies here from runtime configuration
+    dependencies {
+        include(dependency("org.xerial:sqlite-jdbc:3.46.1.0"))
+    }
+}
+
+18.
+---
+
+	- Test if chunkloading works in the nether		X Works
+	- Test if chunkloading works in the end			X Works
+	- Add lastBlockChecked field to ManagedOreClusterChunk - NO, we can just keep it in RAM and re-clean it if it exceeds max time
+	- Added special exclude HashSets to loggerbase to deal with logging message overflow
+
+19.
+---
+
+	- handleChunkCleaning checks every block and adds potential cluster blocks to a map
+	- added workerThreadCleanClusters that cleans determined clusters
+	- Need to set reference to ManagedOreChunkCluster in ManagedChunk after determining the cluster
+
+
+20.
+---
+
+	- Test code still compiles
+        - Convert Section Pos to correct world pos for block state replacement
+        - Convert replacement blocks to actual blocks
+        - Check error handling if block state setting fails
+
+
+21.
+---
+
+
+		- create not terrible JSON defaultConfig for multiple ores
+		- test config works for different ores with different configurations
+		- perform speed and accuracy chunk building test by flying with elytra
+
+22.
+---
+
+	- Moved static OreClustersManager Hashmap to OreClustersAndRegenMain
+	- Registered world unload method to general utility, so OreClusters should shutdown its threads when world unloads
+		- shutdown logic needs to be more thorough, and also with startup
+	- Removed reference to levelChunk from ManagedOreClusterChunk so only reference exists within managed chunk
+	- Gold blocks are not generating anymore, for whatever reason
+	- level.setBlock yielded IllegalAccess exception on level.setBlockState()
+	- reworked getStaticInstance methods in IManagedChunkData
+	- Added sampling to logEntry builder
+	- Fixed null pointer exception in chunkCleaning method regarding clusterTypes
+	- Fixed null pointer error when parent ManagedChunk was returned as null
+	- Fixed Index OOB error when gaussian returned negative value.
+	- reworked determinedClusters into chunkPendingCleaning queue
+
+23.
+---
+
+	- Created AllConfigs class in holyBucketsFoundation to support configs in foundations library mod
+	- Created CFoundation class to support implementation config types and support
+	- Created CServer class to establish CFoundation as server side configurations
+	- Registed mod context under OreClustersMain because foundations doesnt have a main yet
+
+
+
+24.
+---
+
+	- Added DataStore class to store ModSavedData objects
+	- Added ModSavedData class to store Mod Saved data mapping mod_id to an arbitrary JSON object
+	- Reworked HBUtil loadJsonConfigs function to accept File instead of level object
+	- Renamed HBUtility to HBUtil for brevity
+	- added json support for reading json configs in and out for DataStore
+
+
+25.  
+---  
+
+	- Added event registrar class
+	- Removed registration elements from config class, renamed to GeneralConfig class
+
+26.  
+---  
+	- cleaned up datastore, added worldSave and levelSave Objects
+	- DataStore reads LevelSave, WorldSave, and ModSave data properties out of file
+	- We can read initialized chunks out of the configs
+	- Fixed error where deserialization was not occuring due to blockStateUpdates not being parsed correctly
+	- Changed delimitter for blockStateUpdates to '=' from ':' which is used for Minecraft block groups
+	- Fixed error where blockStateUpdates was null on deserialization
+	- Updated MANAGED_SUBCLASSES to take a supplier function so the same Managed Subclass chunk was not used to init all new subclasses. A new one is supplied each call.
+	- Removed halt on editManagedChunk that cause the function to auto return
+	- Commented out loggers 002025 and 002028
+	- Fixed issue with DataStore where it did not write out properties on first world load
+	- Altered ChunkUtils.getLevelChunk function to check getChunkNow() before getChunk(... forceLoad==true) because the latter caused circular dependency on world load
+
+
+27.  
+---  
+
+	
+	- Datastore logs error and handles cases where file is empty or returns invalid JSON
+	- Fixed issue where malformedData did not write correctly
+
+28.  
+---  
+
+	- Turn on chunk section parsing and test for speed and accuracy again
+	- Speed is good, lag is minimal, but existent
+	- Consistent issue where blocks are placed but not rendered in the world for the client, will need to reload clients view
+	- Turned off automatic forceloading of chunks and instead makes user pass a boolean to indicate if chunk should be force loaded
+	- Added code to ensure ManagedOreClusterChunks are removed from loadedChunks array when unloaded
+
+
+	- Set realistic ore configs and determine if replacement alg can be used for real game scenarios
+	- Fixed issue where threads were submitted several thousand times because blocking queue was used
+	instead of synchronous queue
+	-
+	
+
+	- Determine if blockStateUpdate array should be deleted after each generation cycle
+
+
+29.  
+---  
+
+	- Finish and test BlockType serialization methods; wired up to blockPlacements and clusterTypes read in/out
+	- Added UpdateAll flags to setBlock methods to update all after last block was placed and update clients
+	- Limited size of blockStateUpdates that may be deserialzed into chunk, there is a limit around 96kb
+
+30.  
+---  
+
+	- Problem: All oreClusterManagedChunks are loaded into memory on startup, especially the initial 65k
+		- they are being redetermined
+		- Determination algorithm is quick, not really a problem
+		- Algorithm may not be accurate after 256x256 chunk area
+		- Large memory spike on startup, especially for large servers
+
+	- Solution
+		- Wait until all chunks are loaded in, deSerialized
+		- Then attempt to determine 
+
+	- Added thread OreClusterManager::threadInitDeserializedChunks to halt chunkDetermination until all initialized chunks were read in
+	- Add method call in loadedChunks to add clusters to existingClustersByType
+	- Fixed bug in initDeserialized chunks where initialized chunks array was comming as null and not being reassigned
+	- Put upper limit on blockStateUpdates of size 512, because otherwise serialization limit for managed chunks was reached
+
+
+31.  
+---  
+
+	- Added command to locate cluster
+	- Added command to spawn cluster
+
+	- Added class core.OreClusterInterface in order to interface with oreClusterManager
+	- Added class model.OreClusterInfo class to wrap relevant OreCluster data
+	- Added distance calculation as part of behavior to OreClusterInfo object
+
+
+32.  
+---  
+
+	- Added Client package to foundations project
+	- Added Messager class to client package for sending feedback to users
+	- Added chunkunload request to forceLoading request to not overwhelm system, but it doesnt work
+	- Added positionToString utility for nicer output
+	- code has trouble saving chunks, glowstone occaisionally isnt placed
+
+33.  
+---  
+
+	- Solve initialized chunks issue by front loading determined clusters into the array
+	- Add array tracking determined clusters
+	- Save array to level save data
+	- Read array in on Manager Initialization
+	- Determine clusters in that order while manager is off
+	- read array into Datastore on shutdown
+	
+34.  
+---  
+
+	- Set chunk unsaved == true after blockStateUpdates are made
+	- removed blockStateUpdates from being written out to NBT data for OreClusterManagedChunk
+	- Skips cleaning chunk if there are no veins to modify
+	- clears blockStateUpdates after successfully updating chunk
+	- Added ConcurrentSet class because I was tired of using HashMap
+
+
+35.  
+---  
+	
+	- Testing cluster generation with NO veins to clean	- did not significantly speed chunkLoading
+	- Testing client level to force update from server	- did not update blocks in client rendering frame
+	- Fixed bug where chunks would continously be loaded because getLevelChunk was pulling from chunk source cache
+	- Fixed bug where client blocks would not update since they need to be explicitly set like serverLevel block
+	
+
+	- Fixed issue that randomized clusterSpawn with hashcode and caused ore clusters to be random between world loads
+	- Chunks are still continuosly being loaded
+	- SOLUTION: We only load chunks that are currently 'LOADED' in ManagedChunks paradigm, unless we are requesting to forceLoad
+	- Removed forceUpdateChunks in ManagedChunk.updateBlockState section
+	- getBatchedChunkIds now takes a String chunkid that it converts to a position, a loaded chunk is not needed
+	- added back determinedClusters LinkedHashSet to track all clusters that have been determined
+
+	- Test above
+
+	TIME TESTING:
+	--------
+	DET	-	13	-	9ms	- 1
+	CLN	-	16k	-	69k ms	- 4.2	- 55ms per chunk that does not take 0 time, up to 722ms later (4000)
+	GEN	-		-		- 1.6
+	MAN	-	2500	-	44k	- 18ms	- 55ms per chunk that does not take 0 time
+	
+	- Cleaning is the most important dimension to fix and we can fix that
+	- Watch the loadedOreClusterChunks size for memory savings
+		- time spent in determined state
+		- time spent since chunk last loaded
+		- 
+
+	- setBlock on the client level causes exception with concurrently modifying chunks at the client level
+	- Determined bottleneck in chunk processing and cluster building as cleaning and editing
+	- There are significant variation in editing and cleaning chunk times
+	- Added Map to OreClusterManager to track processing times
+	- Added thread to track oreClusterChunk lifetimes and kill them after 300s
+
+	- Added a method to save Datastore JSON configs every 30s
+
+
+	Helpful to find ore overlap
+	existingClustersByType.get(Blocks.IRON_ORE).stream().filter( id -> existingClustersByType.get(Blocks.DEEPSLATE_DIAMOND_ORE).contains(id) ).toArray()
+
+	- Block Processing is slow, need to add more threads
+	- Add client Class to HBFoundations, enable it to send stream of blocks to update Client Render
+
+	- Add player tracker to datastore
+	- Check to ensure HARVEST state works
+
+
+36.  Porting over to MultiLoader Template
+---
+
+	- Added OreClusterConfig class
+	- Reworked CCoreClusters to a static subclass
+	- Added OreClusterConfigData class and stored default data as base values
+
+	- Added config sync message for OreClusterConfig data
+	- Added network and message packages
+
+
+37.  
+---  
+
+38.  
+---  
+
+39.  
+---  
+
+40.  
+---  
+
+41.  
+---  
+
+42.  
+---  
+
+43.  
+---  
+
+44.  
+---  
+
+45.  
+---  
+
+46.  
+---  
+
+47.  
+---  
+
+48.  
+---  
+
+49.  
+---  
+
+50.  
+---  
+
+
+
+		- Add an indicator to the param to NOT generate clusters
+
+		- port mod to remote server and test for accuracy and ability
+		- find out how to get chunkUnload to trigger
+
+
+		- Determine "ticksLastRefreshed" parameter on ManagedOreClusterChunk
+		- tickLastRefreshed < LAST_REGEN_TICK then do a refresh, set tickLastRefreshed to LAST_REGEN_TICK
+		- when currentGameTick > NEXT_REGEN_TICK, set LAST_REGEN_TICK == NEXT_REGEN_TICK
+			- calculate NEXT_REGEN_TICK += PERIOD_LENGTH_TICKS
+
+	      - Find way to check if chunk gets unloaded
+		-  THREADS CONTINUE TO RUN AFTER WORLD IS SHUTDOWN, NEEDS TO QUIT
+
+		
+
+
+	Touchups:
+	- Determine Max Size/Lifetime of Managed Chunk in RAM
+	- Add level distinguisher in TOML
+	- Add level JSON property to ore configuration
+	- Alter ManagedOreClusterChunk sourcing algorithm to select valid Regenerating ores by cluster
+	- Move Particular Ore configuration JSON to its own config file and folder
+	- Set TOML config file to read file name where JSON config is stored
+	
+	- Deserialization method should be synchronous, locked on objects to ensure other methods aren't running
+	- Performance isnt excellent, but it is pretty good, could be improved but intersecting noise generating alg to source ores
+	- Improve positions serializer to store in int[], be 8x more memory efficient
+
+			
+TEST CASES
+---
+
+	OreClusterManager
+	---
+	
+	#New Chunks
+	1. New Chunks successfully adedd to queue
+	2. Brand new Chunks trigger batch process
+	3. Old chunks are skipped
+
+	#Threadpool
+	1. onNewlyLoadedChunks successfully runs in background to pickup new chunks
+	2. onNewlyLoadedChunks is shutdown successfully when the class is shutdown
 
 

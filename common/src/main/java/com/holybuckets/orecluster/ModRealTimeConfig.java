@@ -5,7 +5,7 @@ package com.holybuckets.orecluster;
 //Forge Imports
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.orecluster.config.COreClusters;
+import com.holybuckets.orecluster.config.OreClusterConfigData;
 import com.holybuckets.orecluster.config.model.OreClusterJsonConfig;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
@@ -40,7 +40,7 @@ public class ModRealTimeConfig
 
     /** We will batch checks for which chunks have clusters by the next CHUNK_NORMALIZATION_TOTAL chunks at a time
      thus the spawnrate is normalized to 256 chunks */
-    public static final Integer CHUNK_NORMALIZATION_TOTAL = COreClusters.DEF_ORE_CLUSTER_SPAWNRATE_AREA;
+    public static final Integer CHUNK_NORMALIZATION_TOTAL = OreClusterConfigData.COreClusters.ORE_CLUSTER_SPAWNRATE_AREA;
     public static final Function<Integer, Double> CHUNK_DISTRIBUTION_STDV_FUNC = (mean ) -> {
         if( mean < 8 )
             return mean / 2.0;
@@ -67,7 +67,7 @@ public class ModRealTimeConfig
         public ModRealTimeConfig(LevelAccessor level)
         {
 
-            COreClusters clusterConfig = AllConfigs.server().cOreClusters;
+            OreClusterConfigData clusterConfig = AllConfigs.server().cOreClusters;
             defaultConfig = new OreClusterConfigModel(clusterConfig);
 
             //Create new oreConfig for each element in cOreClusters list
