@@ -5,7 +5,7 @@ import com.holybuckets.orecluster.command.CommandList;
 
 import com.holybuckets.orecluster.core.OreClusterInterface;
 import com.holybuckets.orecluster.core.OreClusterManager;
-import com.holybuckets.orecluster.model.ManagedOreClusterChunk;
+import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import net.blay09.mods.balm.api.event.LevelEvent;
 import net.minecraft.world.level.LevelAccessor;
 

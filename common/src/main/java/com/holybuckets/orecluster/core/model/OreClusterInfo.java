@@ -1,4 +1,4 @@
-package com.holybuckets.orecluster.model;
+package com.holybuckets.orecluster.core.model;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;

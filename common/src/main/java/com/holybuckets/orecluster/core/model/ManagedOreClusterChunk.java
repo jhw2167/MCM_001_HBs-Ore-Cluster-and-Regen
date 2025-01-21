@@ -1,4 +1,4 @@
-package com.holybuckets.orecluster.model;
+package com.holybuckets.orecluster.core.model;
 
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.HBUtil.ChunkUtil;

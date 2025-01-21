@@ -1,16 +1,13 @@
 package com.holybuckets.orecluster.core;
 
 
-import com.holybuckets.orecluster.model.ManagedOreClusterChunk;
-import com.holybuckets.orecluster.model.OreClusterInfo;
+import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
+import com.holybuckets.orecluster.core.model.OreClusterInfo;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 
-import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
 
 /**
  * Description: Class designed for interfacing with OreClusterManager and perform lookup operations such as:

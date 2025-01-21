@@ -15,7 +15,7 @@ import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
-import com.holybuckets.orecluster.model.ManagedOreClusterChunk;
+import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
@@ -35,8 +35,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static com.holybuckets.orecluster.model.ManagedOreClusterChunk.TEST_ID;
-import static com.holybuckets.orecluster.model.ManagedOreClusterChunk.isLoaded;
+import static com.holybuckets.orecluster.core.model.ManagedOreClusterChunk.TEST_ID;
+import static com.holybuckets.orecluster.core.model.ManagedOreClusterChunk.isLoaded;
 import static java.lang.Thread.sleep;
 
 /**

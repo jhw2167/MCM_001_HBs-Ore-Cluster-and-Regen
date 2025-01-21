@@ -7,7 +7,7 @@ import com.holybuckets.foundation.client.Messager;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.core.OreClusterInterface;
-import com.holybuckets.orecluster.model.OreClusterInfo;
+import com.holybuckets.orecluster.core.model.OreClusterInfo;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
