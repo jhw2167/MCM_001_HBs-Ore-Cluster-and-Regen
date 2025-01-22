@@ -16,6 +16,7 @@ import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
+import net.blay09.mods.balm.api.event.ChunkEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
@@ -23,7 +24,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraftforge.event.level.ChunkEvent;
 import org.apache.commons.lang3.tuple.Pair;
 import oshi.annotation.concurrent.ThreadSafe;
 
@@ -205,7 +205,7 @@ public class OreClusterManager {
     {
 
         if (ModRealTimeConfig.CLUSTER_SEED == null)
-            ModRealTimeConfig.CLUSTER_SEED = GENERAL_CONFIG.getWORLD_SEED();
+            ModRealTimeConfig.CLUSTER_SEED = GENERAL_CONFIG.getWorldSeed();
         long seed = ModRealTimeConfig.CLUSTER_SEED;
         this.randSeqClusterPositionGen = new Random(seed);
         //this.randSeqClusterBuildGen = new Random(seed);
@@ -227,7 +227,7 @@ public class OreClusterManager {
     {
         this.managerRunning = false;
         this.initializing = true;
-        DataStore ds = DataStore.getInstance();
+        DataStore ds = GeneralConfig.getInstance().getDataStore();
         LevelSaveData levelData = ds.getOrCreateLevelSaveData(OreClustersAndRegenMain.MODID, level);
 
         if( levelData.get("determinedSourceChunks") == null ) {
@@ -310,7 +310,7 @@ public class OreClusterManager {
 
     /**
      * Description: Handles newly loaded chunks
-     * @param chunk
+     * @param managedChunk
      */
     public void handleChunkLoaded(ManagedOreClusterChunk managedChunk)
     {
@@ -1103,7 +1103,7 @@ public class OreClusterManager {
     {
         //Create new Mod Datastore, if one does not exist for this mod,
         //read determinedSourceChunks into an array and save it to levelSavedata
-        DataStore ds = DataStore.getInstance();
+        DataStore ds = GeneralConfig.getInstance().getDataStore();
         if (ds == null)
             return;
         LevelSaveData levelData = ds.getOrCreateLevelSaveData(OreClustersAndRegenMain.MODID, level);

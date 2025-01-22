@@ -3,7 +3,7 @@ package com.holybuckets.orecluster.command;
 //Project imports
 
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.client.Messager;
+import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.core.OreClusterInterface;

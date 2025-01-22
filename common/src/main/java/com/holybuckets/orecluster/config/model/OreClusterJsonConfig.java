@@ -4,12 +4,11 @@ package com.holybuckets.orecluster.config.model;
 import com.google.gson.*;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import com.holybuckets.orecluster.LoggerProject;
-import com.holybuckets.orecluster.config.COreClusters;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
+/*
  *  Represents the JSON configuration values for Mod
  *  - Each datatype is a primitive, List, or JsonObject
  *  - JSON configurations consist of config values that would not fit well into the .toml config file, like
@@ -28,7 +27,7 @@ public class OreClusterJsonConfig implements IStringSerializable
     private List<JsonObject> oreClusterConfigs;
 
 
-    /** Constructors **/
+    /* Constructors **/
 
     /**
      * Private constructor to set default value
@@ -37,14 +36,6 @@ public class OreClusterJsonConfig implements IStringSerializable
     {
         super();
 
-        this.oreClusterConfigs = new ArrayList<>()
-        {{
-            add( JsonParser.parseString(OreClusterConfigModel.serialize(COreClusters.defaultIronOreClusterConfig)
-                ).getAsJsonObject());
-            add( JsonParser.parseString(OreClusterConfigModel.serialize(COreClusters.defaultDiamondOreClusterConfig)
-                ).getAsJsonObject());
-        }};
-
     }
 
     public OreClusterJsonConfig(String jsonString) {
@@ -52,7 +43,7 @@ public class OreClusterJsonConfig implements IStringSerializable
         deserialize(jsonString);
     }
 
-    /** ################ **/
+    /* ################ **/
     /** END CONSTRUCTORS **/
     /** ################ **/
 
