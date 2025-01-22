@@ -5,7 +5,7 @@ out1.txt
 **/build/*
 **/run/*
 .idea/
-
+.aider*
 
 # From https://github.com/github/gitignore/blob/master/Gradle.gitignore
 .gradle

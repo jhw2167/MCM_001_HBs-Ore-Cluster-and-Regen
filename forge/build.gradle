@@ -5,6 +5,7 @@ plugins {
     id 'org.spongepowered.mixin'
 }
 base {
+    version="${mod_version}"
     archivesName = "${mod_name}-forge-${minecraft_version}"
 }
 mixin {
