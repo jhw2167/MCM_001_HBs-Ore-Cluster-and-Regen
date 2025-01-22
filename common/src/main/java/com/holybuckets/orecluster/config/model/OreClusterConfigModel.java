@@ -4,7 +4,6 @@ import com.holybuckets.foundation.HBUtil.*;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.config.OreClusterConfigData;
 import net.minecraft.world.level.block.Block;
-import org.antlr.v4.runtime.misc.Triple;
 
 //Java
 import java.util.*;
@@ -17,24 +16,24 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-public class OreClusterConfigModel extends ConfigModelBase {
+public class OreClusterConfigModel {
 
     public static final String CLASS_ID = "004";
 
     public Long subSeed = null;
     public Block oreClusterType = null;
     public HashSet<Block> validOreClusterOreBlocks; //defaultConfigOnly
-    public Integer oreClusterSpawnRate = COreClusters.DEF_ORE_CLUSTER_SPAWN_RATE;
+    public Integer oreClusterSpawnRate = COreClusters.DEF_ORE_CLUSTER_SPAWN_RATE.get();
     public TripleInt oreClusterVolume = processVolume( COreClusters.DEF_ORE_CLUSTER_VOLUME);
-    public Float oreClusterDensity = COreClusters.DEF_ORE_CLUSTER_DENSITY;
+    public Float oreClusterDensity = COreClusters.DEF_ORE_CLUSTER_DENSITY.get();
     public String oreClusterShape = COreClusters.DEF_ORE_CLUSTER_SHAPE;
-    public Integer oreClusterMaxYLevelSpawn = COreClusters.ORE_CLUSTER_MAX_Y_LEVEL_SPAWN;
-    public Integer minChunksBetweenOreClusters = COreClusters.MIN_CHUNKS_BETWEEN_ORE_CLUSTERS;
-    public Integer maxChunksBetweenOreClusters = COreClusters.MAX_CHUNKS_BETWEEN_ORE_CLUSTERS;
-    public Float oreVeinModifier = COreClusters.DEF_ORE_VEIN_MODIFIER;
-    public HashSet<Block> oreClusterNonReplaceableBlocks = processStringIntoBlockHashSet(COreClusters.ORE_CLUSTER_NONREPLACEABLE_BLOCKS);
-    public HashSet<Block> oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(COreClusters.ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS);
-    public Boolean oreClusterDoesRegenerate = COreClusters.REGENERATE_ORE_CLUSTERS;
+    public Integer oreClusterMaxYLevelSpawn = COreClusters.DEF_ORE_CLUSTER_MAX_Y_LEVEL_SPAWN.get();
+    public Integer minChunksBetweenOreClusters = COreClusters.DEF_MIN_CHUNKS_BETWEEN_ORE_CLUSTERS.get();
+    public Integer maxChunksBetweenOreClusters = COreClusters.DEF_MAX_CHUNKS_BETWEEN_ORE_CLUSTERS.get();
+    public Float oreVeinModifier = COreClusters.DEF_ORE_VEIN_MODIFIER.get();
+    public HashSet<Block> oreClusterNonReplaceableBlocks = processStringIntoBlockHashSet(COreClusters.DEF_ORE_CLUSTER_NONREPLACEABLE_BLOCKS);
+    public HashSet<Block> oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(COreClusters.DEF_ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS);
+    public Boolean oreClusterDoesRegenerate = COreClusters.DEF_REGENERATE_ORE_CLUSTERS;
     public Map<String, Integer> oreClusterRegenPeriods; //defaultConfigOnly
 
     private static final Gson gson = new GsonBuilder().create();
@@ -57,45 +56,48 @@ public class OreClusterConfigModel extends ConfigModelBase {
         if( cOreClusters == null ) {
             return;
         }
-        if( cOreClusters.subSeed.get() != null || !cOreClusters.subSeed.get().isEmpty() )
-            this.subSeed = (long) cOreClusters.subSeed.get().hashCode();  //initialized to null
+        if( cOreClusters.subSeed != null && !cOreClusters.subSeed.isEmpty() )
+            this.subSeed = (long) cOreClusters.subSeed.hashCode();
         else
             this.subSeed = null;
 
         this.validOreClusterOreBlocks = new HashSet<Block>(
-            processValidOreClusterOreBlocks(cOreClusters.validOreClusterOreBlocks.get()));
-        this.oreClusterSpawnRate = cOreClusters.defaultOreClusterSpawnRate.get();
-        this.oreClusterVolume = processVolume(cOreClusters.defaultOreClusterVolume.get());
-        this.oreClusterDensity = cOreClusters.defaultOreClusterDensity.getF();
-        this.oreClusterShape = cOreClusters.defaultOreClusterShape.get();
-        this.oreClusterMaxYLevelSpawn = cOreClusters.oreClusterMaxYLevelSpawn.get();
-        this.minChunksBetweenOreClusters = cOreClusters.minChunksBetweenOreClusters.get();
-        //this.maxChunksBetweenOreClusters = cOreClusters.maxChunksBetweenOreClusters.get();
-        this.oreVeinModifier = cOreClusters.defaultOreVeinModifier.getF();
-        this.oreClusterNonReplaceableBlocks = processStringIntoBlockHashSet(cOreClusters.defaultOreClusterNonReplaceableBlocks.get());
-        this.oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(cOreClusters.defaultOreClusterReplaceableEmptyBlocks.get());
-        this.oreClusterDoesRegenerate = cOreClusters.regenerateOreClusters.get();
+            processValidOreClusterOreBlocks(cOreClusters.validOreClusterOreBlocks));
+        this.oreClusterSpawnRate = cOreClusters.oreClusterSpawnRate;
+        this.oreClusterVolume = processVolume(cOreClusters.oreClusterVolume);
+        this.oreClusterDensity = cOreClusters.oreClusterDensity;
+        this.oreClusterShape = cOreClusters.oreClusterShape;
+        this.oreClusterMaxYLevelSpawn = cOreClusters.oreClusterMaxYLevelSpawn;
+        this.minChunksBetweenOreClusters = cOreClusters.minChunksBetweenOreClusters;
+        //this.maxChunksBetweenOreClusters = cOreClusters.maxChunksBetweenOreClusters;
+        this.oreVeinModifier = cOreClusters.oreVeinModifier;
+        this.oreClusterNonReplaceableBlocks = processStringIntoBlockHashSet(cOreClusters.oreClusterNonreplaceableBlocks );
+        this.oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(cOreClusters.oreClusterReplaceableEmptyBlocks);
+        this.oreClusterDoesRegenerate = cOreClusters.regenerateOreClusters;
 
         //Iterate through the oreClusterRegenPeriods and add them to the map
         oreClusterRegenPeriods = new HashMap<>();
         this.oreClusterRegenPeriods = processRegenPeriods(
-            cOreClusters.regenerateOreClusterUpgradeItems.get().split(","),
-            cOreClusters.regenerateOreClusterPeriodLengths.get().split(","));
+            cOreClusters.regenerateOreClusterUpgradeItems.split(","),
+            cOreClusters.regenerateOreClusterPeriodLengths.split(","));
 
         }
     //END CONSTRUCTOR
 
+    private static Block blockNameToBlock(String blockName) {
+        return BlockUtil.blockNameToBlock("minecraft", blockName);
+    }
 
     public static List<Block> processValidOreClusterOreBlocks(String validOreClusterOreBlocks) {
         List<String> ores = Arrays.asList(validOreClusterOreBlocks.split(","));
-        return ores.stream().map(BlockUtil::blockNameToBlock).collect(Collectors.toList());
+        return ores.stream().map(OreClusterConfigModel::blockNameToBlock).collect(Collectors.toList());
     }
 
     //Setup static methods to process oreClusterReplaceableBlocks and oreClusterReplaceableEmptyBlock
     public static HashSet<Block> processStringIntoBlockHashSet(String replaceableBlocks) {
 
         return Arrays.stream(replaceableBlocks.split(",")) //Split the string by commas
-                .map(BlockUtil::blockNameToBlock)
+                .map(OreClusterConfigModel::blockNameToBlock)
                 .collect(Collectors.toCollection(HashSet::new));
     }
 
@@ -109,7 +111,7 @@ public class OreClusterConfigModel extends ConfigModelBase {
             blocks.remove(null);
 
         if( blocks.isEmpty() )
-            blocks.add(BlockUtil.blockNameToBlock("minecraft:air"));
+            blocks.add(BlockUtil.blockNameToBlock("minecraft", "air"));
 
         return blocks;
     }
@@ -137,8 +139,8 @@ public class OreClusterConfigModel extends ConfigModelBase {
             logPropertyWarning(volumeNotParsedCorrectlyError.toString(), this.oreClusterType, null, volumeArray.toString() );
         }
 
-        String[] mins = COreClusters.MIN_ORE_CLUSTER_VOLUME.split("x");
-        String[] maxs = COreClusters.MAX_ORE_CLUSTER_VOLUME.split("x");
+        String[] mins = COreClusters.DEF_MIN_ORE_CLUSTER_VOLUME.split("x");
+        String[] maxs = COreClusters.DEF_MAX_ORE_CLUSTER_VOLUME.split("x");
 
         //Validate we are within MIN and MAX
         for (int i = 0; i < 3; i++) {
@@ -182,8 +184,8 @@ public class OreClusterConfigModel extends ConfigModelBase {
         catch (NumberFormatException e) {
             //Reset map to default values given error
             oreClusterRegenPeriods = new HashMap<>();
-            upgrades = COreClusters.REGENERATE_ORE_CLUSTER_UPGRADE_ITEMS.split(",");
-            oreClusterRegenPeriodArray = COreClusters.REGENERATE_ORE_CLUSTER_PERIOD_LENGTHS.split(",");
+            upgrades = COreClusters.DEF_REGENERATE_ORE_CLUSTER_UPGRADE_ITEMS.split(",");
+            oreClusterRegenPeriodArray = COreClusters.DEF_REGENERATE_ORE_CLUSTER_PERIOD_LENGTHS.split(",");
             i = 0;
             for (String item : upgrades) {
                 oreClusterRegenPeriods.put(item, Integer.parseInt(oreClusterRegenPeriodArray[i]));
@@ -211,8 +213,9 @@ public class OreClusterConfigModel extends ConfigModelBase {
     }
 
     public void setOreClusterSpawnRate(Integer oreClusterSpawnRate) {
-        Boolean validConfig = validateInteger(oreClusterSpawnRate, oreClusterDefaultConfigs.defaultOreClusterSpawnRate,
-        "for ore: " + this.oreClusterType);
+        Boolean validConfig = Validator.validateNumber( oreClusterSpawnRate,
+            oreClusterDefaultConfigs.DEF_ORE_CLUSTER_SPAWN_RATE,
+            "for ore: " + this.oreClusterType );
 
         if( validConfig )
             this.oreClusterSpawnRate = oreClusterSpawnRate;
@@ -230,7 +233,7 @@ public class OreClusterConfigModel extends ConfigModelBase {
         if( oreClusterShape == null || oreClusterShape.isEmpty() )
             oreClusterShape = COreClusters.DEF_ORE_CLUSTER_SHAPE;
 
-        if( !COreClusters.ORE_CLUSTER_VALID_SHAPES.contains( oreClusterShape ) ) {
+        if( !COreClusters.DEF_ORE_CLUSTER_VALID_SHAPES.contains( oreClusterShape ) ) {
             oreClusterShape = COreClusters.DEF_ORE_CLUSTER_SHAPE;
             logPropertyWarning(error, this.oreClusterType, null, oreClusterShape);
         }
@@ -240,17 +243,20 @@ public class OreClusterConfigModel extends ConfigModelBase {
 
     public void setOreClusterDensity(Float oreClusterDensity)
     {
-        Boolean validConfig = validateFloat(oreClusterDensity, oreClusterDefaultConfigs.defaultOreClusterDensity,
-         "for ore: " + this.oreClusterType);
+        Boolean validConfig = Validator.validateNumber(oreClusterDensity,
+            oreClusterDefaultConfigs.DEF_ORE_CLUSTER_DENSITY,
+            "for ore: " + this.oreClusterType);
 
         if( validConfig )
             this.oreClusterDensity = oreClusterDensity;
 
     }
 
-    public void setOreClusterMaxYLevelSpawn(Integer oreClusterMaxYLevelSpawn) {
-        Boolean validConfig = validateInteger(oreClusterMaxYLevelSpawn, oreClusterDefaultConfigs.oreClusterMaxYLevelSpawn,
-        "for ore: " + this.oreClusterType);
+    public void setOreClusterMaxYLevelSpawn(Integer oreClusterMaxYLevelSpawn)
+    {
+        Boolean validConfig = Validator.validateNumber(oreClusterMaxYLevelSpawn,
+            oreClusterDefaultConfigs.DEF_ORE_CLUSTER_MAX_Y_LEVEL_SPAWN,
+            "for ore: " + this.oreClusterType);
 
         if( validConfig )
             this.oreClusterMaxYLevelSpawn = oreClusterMaxYLevelSpawn;
@@ -260,8 +266,10 @@ public class OreClusterConfigModel extends ConfigModelBase {
     {
         String minChunksLogicError = "minChunksBetweenOreClusters is too high for the spawnrate of the cluster";
 
-        Boolean validConfig = validateInteger(minChunksBetweenOreClusters, oreClusterDefaultConfigs.minChunksBetweenOreClusters,
-        "for ore: " + this.oreClusterType);
+        Boolean validConfig = Validator.validateNumber( minChunksBetweenOreClusters,
+            oreClusterDefaultConfigs.DEF_MIN_CHUNKS_BETWEEN_ORE_CLUSTERS,
+            "for ore: " + this.oreClusterType
+        );
 
         if( validConfig )
         {
@@ -276,7 +284,8 @@ public class OreClusterConfigModel extends ConfigModelBase {
              */
             if ( expectedAreaPerCluster < mandatoryReservedAreaPerCluster  )
             {
-                this.oreClusterSpawnRate = (int) (COreClusters.DEF_ORE_CLUSTER_SPAWN_RATE / mandatoryReservedAreaPerCluster);
+                int defaultSpawnRate = COreClusters.DEF_ORE_CLUSTER_SPAWN_RATE.get();
+                this.oreClusterSpawnRate = (int) ( defaultSpawnRate / mandatoryReservedAreaPerCluster);
                 logPropertyWarning(minChunksLogicError, this.oreClusterType,
                 "scaling down oreClusterSpawnrate to ", this.oreClusterSpawnRate.toString());
             }
@@ -290,18 +299,14 @@ public class OreClusterConfigModel extends ConfigModelBase {
     public void setMaxChunksBetweenOreClusters(Integer maxChunksBetweenOreClusters)
     {
         String maxChunksLogicError = "maxChunksBetweenOreClusters is too low for the spawnrate of the cluster ";
-        ConfigBase.ConfigInt config = oreClusterDefaultConfigs.maxChunksBetweenOreClusters;
 
-        if( config.isDisabled() )
-            return;
-
-        Boolean validConfig = validateInteger(maxChunksBetweenOreClusters, config,
+        Boolean validConfig = Validator.validateNumber(maxChunksBetweenOreClusters,
+        oreClusterDefaultConfigs.DEF_MAX_CHUNKS_BETWEEN_ORE_CLUSTERS,
         "for ore: " + this.oreClusterType);
 
         if( validConfig )
         {
             //Validate there is enough cluster space to meet expected chunks per cluster
-
             double minimumClustersPerArea = COreClusters.DEF_ORE_CLUSTER_SPAWNRATE_AREA /
                  Math.pow( 2*maxChunksBetweenOreClusters + 1, 2) ;
 
@@ -318,9 +323,11 @@ public class OreClusterConfigModel extends ConfigModelBase {
 
     }
 
-    public void setOreVeinModifier(Float oreVeinModifier) {
-        Boolean validConfig = validateFloat(oreVeinModifier, oreClusterDefaultConfigs.defaultOreVeinModifier,
-        "for ore: " + this.oreClusterType);
+    public void setOreVeinModifier(Float oreVeinModifier)
+    {
+        Boolean validConfig = Validator.validateNumber(oreVeinModifier,
+            oreClusterDefaultConfigs.DEF_ORE_VEIN_MODIFIER,
+            "for ore: " + this.oreClusterType);
 
         if( validConfig )
             this.oreVeinModifier = oreVeinModifier;
@@ -335,7 +342,7 @@ public class OreClusterConfigModel extends ConfigModelBase {
     }
 
     public void setOreClusterDoesRegenerate(String oreClusterDoesRegenerate) {
-        this.oreClusterDoesRegenerate = parseBoolean(oreClusterDoesRegenerate);
+        this.oreClusterDoesRegenerate = Validator.parseBoolean(oreClusterDoesRegenerate);
     }
 
 
