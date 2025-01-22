@@ -102,7 +102,7 @@ public class ModRealTimeConfig
             validateClusterSpacingAndMinBlocks();
 
 
-            if( !defaultConfig.subSeed.equals(0L) ) {
+            if( defaultConfig.subSeed != null ) {
                 CLUSTER_SEED = defaultConfig.subSeed;
             } else {
                 CLUSTER_SEED = GeneralConfig.getInstance().getWorldSeed();

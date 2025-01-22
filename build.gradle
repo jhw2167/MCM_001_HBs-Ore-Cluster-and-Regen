@@ -5,7 +5,14 @@ plugins {
     id("org.spongepowered.mixin") version "0.7-SNAPSHOT" apply(false)
 }
 
-allprojects { apply plugin: "idea" }
+allprojects {
+    apply plugin: "idea"
+
+    tasks.withType(Javadoc).configureEach {
+        options.addStringOption('Xdoclint:none', '-quiet') // Suppress all warnings
+        options.encoding = 'UTF-8' // Set proper encoding
+    }
+}
 
 subprojects {
     apply plugin: 'java'

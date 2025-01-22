@@ -15,6 +15,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import net.minecraft.world.level.block.Blocks;
 
 public class OreClusterConfigModel {
 
@@ -84,8 +85,19 @@ public class OreClusterConfigModel {
         }
     //END CONSTRUCTOR
 
-    private static Block blockNameToBlock(String blockName) {
-        return BlockUtil.blockNameToBlock("minecraft", blockName);
+    private static Block blockNameToBlock(String blockName)
+    {
+        if( blockName == null || blockName.isEmpty() )
+            return Blocks.AIR;
+
+        if( blockName.contains(":") ) {
+            String[] split = blockName.split(":");
+            return BlockUtil.blockNameToBlock(split[0], split[1]);
+        }
+        else {
+            return BlockUtil.blockNameToBlock("minecraft", blockName);
+        }
+
     }
 
     public static List<Block> processValidOreClusterOreBlocks(String validOreClusterOreBlocks) {
@@ -111,7 +123,7 @@ public class OreClusterConfigModel {
             blocks.remove(null);
 
         if( blocks.isEmpty() )
-            blocks.add(BlockUtil.blockNameToBlock("minecraft", "air"));
+            blocks.add( blockNameToBlock("air"));
 
         return blocks;
     }
@@ -209,7 +221,7 @@ public class OreClusterConfigModel {
      }
 
     public void setOreClusterType(String oreClusterTypeString) {
-        this.oreClusterType = BlockUtil.blockNameToBlock(oreClusterTypeString);
+        this.oreClusterType = this.blockNameToBlock(oreClusterTypeString);
     }
 
     public void setOreClusterSpawnRate(Integer oreClusterSpawnRate) {

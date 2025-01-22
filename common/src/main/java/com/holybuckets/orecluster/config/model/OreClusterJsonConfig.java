@@ -2,8 +2,11 @@ package com.holybuckets.orecluster.config.model;
 
 
 import com.google.gson.*;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import com.holybuckets.orecluster.LoggerProject;
+import com.holybuckets.orecluster.config.OreClusterConfigData;
+import net.minecraft.world.level.block.Blocks;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +38,17 @@ public class OreClusterJsonConfig implements IStringSerializable
     private OreClusterJsonConfig()
     {
         super();
+        final OreClusterConfigModel IRON = new OreClusterConfigModel(Blocks.IRON_ORE);
+        final OreClusterConfigModel DPSLT_DIAMOND = new OreClusterConfigModel(Blocks.DEEPSLATE_DIAMOND_ORE);
+            DPSLT_DIAMOND.oreClusterSpawnRate = OreClusterConfigData.COreClusters.DEF_ORE_CLUSTER_SPAWNRATE_AREA / 64;
+            DPSLT_DIAMOND.oreClusterVolume = new HBUtil.TripleInt(8, 4, 8);
+            DPSLT_DIAMOND.oreClusterDensity = 0.75f;
+
+        this.oreClusterConfigs = new ArrayList<>()
+        {{
+            add( JsonParser.parseString(OreClusterConfigModel.serialize(IRON)).getAsJsonObject());
+            add( JsonParser.parseString(OreClusterConfigModel.serialize(DPSLT_DIAMOND)).getAsJsonObject());
+        }};
 
     }
 
@@ -88,6 +102,9 @@ public class OreClusterJsonConfig implements IStringSerializable
 
         try {
             this.oreClusterConfigs = new ArrayList<>();
+            if( !jsonObject.has("oreClusterConfigs") )
+                return;
+
             JsonArray clusterConfigs = jsonObject.getAsJsonArray("oreClusterConfigs");
 
             for (int i = 0; i < clusterConfigs.size(); i++)

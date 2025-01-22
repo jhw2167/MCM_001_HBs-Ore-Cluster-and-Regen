@@ -1,6 +1,5 @@
 package com.holybuckets.orecluster.config;
 
-import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.HBUtil.Validator.ConfigNumber;
 import com.holybuckets.orecluster.Constants;
 import net.blay09.mods.balm.api.config.BalmConfigData;
@@ -18,10 +17,10 @@ public class OreClusterConfigData implements BalmConfigData {
     {
 
         //Units of area that denominates ORE_CLUSTER_SPAWN_RATE
-        public static Integer DEF_ORE_CLUSTER_SPAWNRATE_AREA = 256;
+        public static final int DEF_ORE_CLUSTER_SPAWNRATE_AREA = 256;
 
         //Defaults
-        public static String DEF_SUB_SEED = "";
+        public static final String DEF_SUB_SEED = "";
 
         public static final String DEF_VALID_ORE_CLUSTER_ORE_BLOCKS = "minecraft:iron_ore,minecraft:diamond_ore,minecraft:gold_ore,minecraft:coal_ore";
 

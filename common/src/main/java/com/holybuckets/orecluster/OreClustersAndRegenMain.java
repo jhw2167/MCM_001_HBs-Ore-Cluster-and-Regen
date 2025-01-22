@@ -3,9 +3,12 @@ package com.holybuckets.orecluster;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.orecluster.command.CommandList;
 
+import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.core.OreClusterInterface;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
+import com.holybuckets.orecluster.network.ModNetworking;
+import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.LevelEvent;
 import net.minecraft.world.level.LevelAccessor;
 
@@ -46,6 +49,21 @@ public class OreClustersAndRegenMain
 
         CommandList.register();
         ManagedOreClusterChunk.registerManagedChunkData();
+
+        OreClusterConfig.initialize();
+
+        /*
+        WaystonesConfig.initialize();
+        ModStats.initialize();
+        ModEventHandlers.initialize();
+        ModBlocks.initialize(Balm.getBlocks());
+        ModBlockEntities.initialize(Balm.getBlockEntities()); */
+        //ModNetworking.initialize(Balm.getNetworking());
+        /* ModItems.initialize(Balm.getItems());
+        ModMenus.initialize(Balm.getMenus());
+        ModWorldGen.initialize(Balm.getWorldGen());
+        ModRecipes.initialize(Balm.getRecipes());
+        */
 
     }
 

@@ -10,7 +10,7 @@ public class OreClusterConfig {
     }
 
     public static void initialize() {
-        Balm.getConfig().registerConfig(OreClusterConfigData.class, SyncOreClusterConfigMessage::new);
+        Balm.getConfig().registerConfig(OreClusterConfigData.class, null);
     }
 }
 

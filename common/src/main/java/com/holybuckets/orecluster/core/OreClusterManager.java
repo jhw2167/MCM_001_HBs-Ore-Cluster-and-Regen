@@ -951,7 +951,7 @@ public class OreClusterManager {
      */
     private void handleChunkManifestation(ManagedOreClusterChunk chunk)
     {
-        LoggerProject.logDebug("002033","Editing chunk: " + chunk.getId());
+        //LoggerProject.logDebug("002033","Editing chunk: " + chunk.getId());
 
         if( chunk.getId().equals(TEST_ID) ) {
             int i = 0;
