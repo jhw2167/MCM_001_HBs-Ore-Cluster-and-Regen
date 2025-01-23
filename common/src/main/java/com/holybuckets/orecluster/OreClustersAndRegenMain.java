@@ -1,6 +1,8 @@
 package com.holybuckets.orecluster;
 
+import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.orecluster.command.CommandList;
 
 import com.holybuckets.orecluster.config.OreClusterConfig;
@@ -42,12 +44,13 @@ public class OreClustersAndRegenMain
         LoggerProject.logInit( "001000", this.getClass().getName() );
     }
 
-    private void init() {
+    private void init()
+    {
         EventRegistrar eventRegistrar = EventRegistrar.getInstance();
-        eventRegistrar.registerOnLevelLoad( this::onLoadWorld );
-        eventRegistrar.registerOnLevelUnload( this::onUnloadWorld );
+        eventRegistrar.registerOnLevelLoad( this::onLoadWorld, true );
+        eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, false );
 
-        CommandList.register();
+        //CommandList.register();
         ManagedOreClusterChunk.registerManagedChunkData();
 
         OreClusterConfig.initialize();

@@ -5,6 +5,7 @@ import com.holybuckets.orecluster.Constants;
 import net.blay09.mods.balm.api.config.BalmConfigData;
 import net.blay09.mods.balm.api.config.Comment;
 import net.blay09.mods.balm.api.config.Config;
+import net.blay09.mods.balm.api.config.IgnoreConfig;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -17,6 +18,7 @@ public class OreClusterConfigData implements BalmConfigData {
     {
 
         //Units of area that denominates ORE_CLUSTER_SPAWN_RATE
+        @IgnoreConfig("Constant")
         public static final int DEF_ORE_CLUSTER_SPAWNRATE_AREA = 256;
 
         //Defaults

@@ -1,18 +1,18 @@
 package com.holybuckets.orecluster;
 
+import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.orecluster.platform.Services;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.world.item.Items;
 
 
 public class CommonClass {
 
     public static OreClustersAndRegenMain mod = null;
+    public static boolean isInitialized = false;
     public static void init()
     {
+        //Initialize Foundations
+        com.holybuckets.foundation.CommonClass.init();
 
-        Constants.LOG.info("Hello from Common init on {}! we are currently in a {} environment!", Services.PLATFORM.getPlatformName(), Services.PLATFORM.getEnvironmentName());
-        Constants.LOG.info("The ID for diamonds is {}", BuiltInRegistries.ITEM.getKey(Items.DIAMOND));
 
         if (Services.PLATFORM.isModLoaded(Constants.MOD_ID)) {
             Constants.LOG.info("Hello to " + Constants.MOD_NAME + "!");
@@ -20,6 +20,10 @@ public class CommonClass {
 
         mod = new OreClustersAndRegenMain();
 
+        //ReInitialize balm events after each mod is loaded
+        BalmEventRegister.registerEvents();
+
+        isInitialized = true;
     }
 
     /**
