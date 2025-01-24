@@ -878,7 +878,7 @@ public class OreClusterManager {
             chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.CLEANED);
             chunksPendingCleaning.remove(chunk.getId());
 
-            LoggerProject.logError("002027", "Cleaning chunk: " + chunk.getId() + " complete");
+            LoggerProject.logInfo("002027", "Cleaning chunk: " + chunk.getId() + " complete");
     }
     catch(Exception e) {
         StringBuilder error = new StringBuilder();

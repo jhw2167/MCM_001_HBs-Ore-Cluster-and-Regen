@@ -1,16 +1,11 @@
 package com.holybuckets.orecluster;
 
-import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.event.EventRegistrar;
-import com.holybuckets.foundation.model.ManagedChunk;
-import com.holybuckets.orecluster.command.CommandList;
 
 import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.core.OreClusterInterface;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
-import com.holybuckets.orecluster.network.ModNetworking;
-import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.LevelEvent;
 import net.minecraft.world.level.LevelAccessor;
 
@@ -79,7 +74,7 @@ public class OreClustersAndRegenMain
 
         if( modRealTimeConfig == null )
         {
-            modRealTimeConfig = new ModRealTimeConfig( level );
+            modRealTimeConfig = new ModRealTimeConfig();
         }
 
         if( !ORE_CLUSTER_MANAGER_BY_LEVEL.containsKey( level ) )

@@ -8,7 +8,6 @@ import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.config.OreClusterConfigData;
 import com.holybuckets.orecluster.config.model.OreClusterJsonConfig;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 
 //Java Imports
@@ -64,14 +63,14 @@ public class ModRealTimeConfig
     public static Long CLUSTER_SEED = null;
 
         //Constructor initializes the defaultConfigs and oreConfigs from forge properties
-        public ModRealTimeConfig(LevelAccessor level)
+        public ModRealTimeConfig()
         {
 
             OreClusterConfigData.COreClusters clusterConfig = OreClusterConfig.getActive().cOreClusters;
-            defaultConfig = new OreClusterConfigModel(clusterConfig);
+            this.defaultConfig = new OreClusterConfigModel(clusterConfig);
 
             //Create new oreConfig for each element in cOreClusters list
-            oreConfigs = new HashMap<Block, OreClusterConfigModel>();
+            this.oreConfigs = new HashMap<Block, OreClusterConfigModel>();
 
             //File configFile = new File(clusterConfig.oreClusters.get());
             //File defaultConfigFile = new File(clusterConfig.oreClusters.getDefault());

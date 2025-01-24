@@ -173,13 +173,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     public boolean isReady() { return isReady; }
 
-    public Random getChunkRandom()
-    {
-      ManagedChunk parent = ManagedOreClusterChunk.getParent(level, id);
-        if(parent == null)
-            return null;
-
-        return parent.getChunkRandom();
+    public Random getChunkRandom() {
+        return ManagedChunk.getChunkRandom(this.pos);
     }
 
     public synchronized ReentrantLock getLock() {
@@ -319,6 +314,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     @Override
     public void handleChunkLoaded(ChunkEvent.Load event) {
         this.level = event.getLevel();
+        this.pos = event.getChunkPos();
         OreClusterManager.onChunkLoad(event, this);
     }
 
@@ -494,6 +490,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
             return;
 
         this.id = tag.getString("id");
+        this.pos = ChunkUtil.getPos( this.id );
         this.status = ClusterStatus.valueOf( tag.getString("status") );
 
         if( this.id.equals(TEST_ID)) {
