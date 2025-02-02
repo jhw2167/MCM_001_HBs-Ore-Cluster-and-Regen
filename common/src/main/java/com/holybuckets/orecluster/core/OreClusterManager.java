@@ -16,12 +16,14 @@ import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
-import net.blay09.mods.balm.api.event.ChunkEvent;
+import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.apache.commons.lang3.tuple.Pair;
@@ -309,19 +311,33 @@ public class OreClusterManager {
 
 
     /**
-     * Description: Handles newly loaded chunks
+     * Description: Adds a chunk to the loadedOreClusterChunks map if it does not exist, called when a chunk is deserialized or chunkLoaded.
+     * Called before handleLoadedChunkId
      * @param managedChunk
      */
-    public void handleChunkLoaded(ManagedOreClusterChunk managedChunk)
+    public void addToLoadedChunksIfAbsent(ManagedOreClusterChunk managedChunk)
     {
-        this.LOADS++;
-        loadedOreClusterChunks.put(managedChunk.getId(), managedChunk);
+        String chunkId = managedChunk.getId();
+        loadedOreClusterChunks.putIfAbsent(chunkId, managedChunk);
         chunksPendingHandling.add(managedChunk.getId());
         threadPoolLoadedChunks.submit(this::workerThreadLoadedChunk);
         threadPoolChunkEditing.submit(this::workerThreadEditChunk);
 
         //LoggerProject.logInfo("002001", "Chunk " + chunkId + " added to queue size " + chunksPendingHandling.size());
+    }
 
+    /**
+     * Description: Handles the id of any recently loaded chunk. If the chunkId has not had a ManagedOreClusterChunk created for it, one is created.
+     * Otherwise, the chunk is processed according to its status.
+     * @param chunkId
+     */
+    public void handleLoadedChunkId(String chunkId)
+    {
+        this.LOADS++;
+        loadedOreClusterChunks.putIfAbsent(chunkId, ManagedOreClusterChunk.getInstance(this.level, chunkId));
+        chunksPendingHandling.add(chunkId);
+        threadPoolLoadedChunks.submit(this::workerThreadLoadedChunk);
+        threadPoolChunkEditing.submit(this::workerThreadEditChunk);
     }
 
     /**
@@ -625,10 +641,6 @@ public class OreClusterManager {
 
         try
         {
-            if( true ) {
-                //sleep(10000);
-                //return;
-            }
 
             while( managerRunning )
             {
@@ -868,6 +880,15 @@ public class OreClusterManager {
                 this.threadPoolClusterGenerating.submit(this::workerThreadGenerateClusters);
             }
 
+            if( chunk.hasClusters() ) {
+                if( chunk.getClusterTypes() != null && chunk.getClusterTypes().size() > 0 ) {
+                    if( chunk.getClusterTypes().values().stream().anyMatch( v -> v == null) ) {
+                        LoggerProject.logError("0020027.2", "Error cleaning chunk: " + chunk.getId() + " clusterTypes: " + chunk.getClusterTypes().toString());
+
+                    }
+                }
+            }
+
             //3. Determine which Ore Vertices need to be cleaned
             oreClusterCalculator.cleanChunkDetermineBlockPosToClean(chunk, CLEANABLE_ORES);
 
@@ -875,6 +896,7 @@ public class OreClusterManager {
             chunk.setOriginalOres(null);
 
             //5. Set the chunk status to CLEANED
+
             chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.CLEANED);
             chunksPendingCleaning.remove(chunk.getId());
 
@@ -948,6 +970,8 @@ public class OreClusterManager {
      * @param chunk
      * doEdit
      * editChunk
+     * updateChunkBlocks
+     * updateBlockStates
      */
     private void handleChunkManifestation(ManagedOreClusterChunk chunk)
     {
@@ -957,6 +981,8 @@ public class OreClusterManager {
             int i = 0;
         }
 
+        BalmNetworking n;
+
         boolean isSuccessful = false;
         if( !chunk.hasBlockUpdates() ) {
             isSuccessful = true;
@@ -964,7 +990,9 @@ public class OreClusterManager {
         else
         {
             LevelChunk levelChunk = chunk.getChunk(false);
-            isSuccessful = ManagedChunk.updateChunkBlocks(levelChunk, chunk.getBlockStateUpdates());
+            if (levelChunk == null) return;
+            Queue<Pair<Block, BlockPos>> updates = chunk.getBlockStateUpdates();
+            isSuccessful = ManagedChunk.updateChunkBlocks(levelChunk.getLevel(), updates.stream().toList() );
         }
 
         if( isSuccessful )
@@ -1114,27 +1142,28 @@ public class OreClusterManager {
 
     /** STATIC METHODS **/
 
-    public static void onChunkLoad(ChunkEvent.Load event, ManagedOreClusterChunk managedChunk)
+    public static void onChunkLoad(ChunkLoadingEvent.Load event)
     {
         LevelAccessor level = event.getLevel();
-        if( level !=null && level.isClientSide() ) {
-            //Client side
-        }
-        else {
-          onChunkLoad(level, managedChunk);
+        if( level == null || level.isClientSide() )
+            return;
+
+        OreClusterManager manager = OreClustersAndRegenMain.ORE_CLUSTER_MANAGER_BY_LEVEL.get( level );
+        if( manager != null ) {
+            manager.handleLoadedChunkId( HBUtil.ChunkUtil.getId(event.getChunk())  );
         }
     }
     //END onChunkLoad
 
-    public static void onChunkLoad(LevelAccessor level, ManagedOreClusterChunk managedChunk)
+    public static void addManagedOreClusterChunk(ManagedOreClusterChunk managedChunk )
     {
-        OreClusterManager manager = OreClustersAndRegenMain.ORE_CLUSTER_MANAGER_BY_LEVEL.get( level );
+        OreClusterManager manager = OreClustersAndRegenMain.ORE_CLUSTER_MANAGER_BY_LEVEL.get( managedChunk.getLevel() );
         if( manager != null ) {
-            manager.handleChunkLoaded(managedChunk);
+            manager.addToLoadedChunksIfAbsent(managedChunk);
         }
     }
 
-    public static void onChunkUnload(ChunkEvent.Unload event)
+    public static void onChunkUnload(ChunkLoadingEvent.Unload event)
     {
         LevelAccessor level = event.getLevel();
         if( level !=null && level.isClientSide() ) {

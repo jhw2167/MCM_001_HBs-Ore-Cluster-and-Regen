@@ -19,7 +19,7 @@ Errors
 ---
 
 onLoad not a valid
-	- use the correct minecraftforge.level.ChunkEvent
+	- use the correct minecraftforge.level.ChunkLoadingEvent
 	- use the correct @EventBusSubscriber(bus = EventBusSubscriber.Bus.FORGE, modid = OreClustersAndRegenMain.MODID)
 	- 
 

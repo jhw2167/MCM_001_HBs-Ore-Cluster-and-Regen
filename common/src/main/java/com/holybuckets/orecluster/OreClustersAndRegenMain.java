@@ -6,7 +6,7 @@ import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.core.OreClusterInterface;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
-import net.blay09.mods.balm.api.event.LevelEvent;
+import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.world.level.LevelAccessor;
 
 import java.util.HashMap;
@@ -65,7 +65,7 @@ public class OreClustersAndRegenMain
 
     }
 
-    public void onLoadWorld( LevelEvent.Load event )
+    public void onLoadWorld( LevelLoadingEvent.Load event )
     {
         LoggerProject.logDebug("001003", "**** WORLD LOAD EVENT ****");
         LevelAccessor level = event.getLevel();
@@ -84,7 +84,7 @@ public class OreClustersAndRegenMain
 
     }
 
-    public void onUnloadWorld(LevelEvent.Unload event)
+    public void onUnloadWorld(LevelLoadingEvent.Unload event)
     {
         LoggerProject.logDebug("001004", "**** WORLD UNLOAD EVENT ****");
 

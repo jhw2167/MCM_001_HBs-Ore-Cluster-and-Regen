@@ -19,15 +19,15 @@ public class OreClusterConfigData implements BalmConfigData {
 
         //Units of area that denominates ORE_CLUSTER_SPAWN_RATE
         @IgnoreConfig("Constant")
-        public static final int DEF_ORE_CLUSTER_SPAWNRATE_AREA = 256;
+        public static final int DEF_ORE_CLUSTER_SPAWNRATE_AREA = 1000;
 
         //Defaults
         public static final String DEF_SUB_SEED = "";
 
         public static final String DEF_VALID_ORE_CLUSTER_ORE_BLOCKS = "minecraft:iron_ore,minecraft:diamond_ore,minecraft:gold_ore,minecraft:coal_ore";
 
-        public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_SPAWN_RATE = new ConfigNumber<>("oreClusterSpawnrate", 16, 1, 256);
-        public static final String DEF_ORE_CLUSTER_VOLUME = "16x16x16";
+        public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_SPAWN_RATE = new ConfigNumber<>("oreClusterSpawnrate", 16, 1, DEF_ORE_CLUSTER_SPAWNRATE_AREA);
+        public static final String DEF_ORE_CLUSTER_VOLUME = "8x8x4";
         public static final ConfigNumber<Float> DEF_ORE_CLUSTER_DENSITY = new ConfigNumber<>("oreClusterDensity", 1f, 0f, 1f);
         public static final String DEF_ORE_CLUSTER_SHAPE = "any";
         public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_MAX_Y_LEVEL_SPAWN = new ConfigNumber<>("oreClusterMaxYLevelSpawn", 256, 0, 512);
@@ -56,7 +56,7 @@ public class OreClusterConfigData implements BalmConfigData {
         @Comment("List of blocks that the mod will attempt to create clusters for upon chunk load. Clusters created from these blocks will take all default ore cluster parameters unless overridden. If you are going to override the default parameters for an ore anyways, you don't need to include it in this list")
         public String validOreClusterOreBlocks = DEF_VALID_ORE_CLUSTER_ORE_BLOCKS;
 
-        @Comment("Defines the default frequency of ore clusters. Takes an integer as the number of expected ore clusters per 256 chunks")
+        @Comment("Defines the default frequency of ore clusters. Takes an integer as the number of expected ore clusters per 1000 chunks")
         public int oreClusterSpawnRate = DEF_ORE_CLUSTER_SPAWN_RATE.get();
 
         @Comment("Specifies the default dimensions of a cluster. <X>x<Y>x<Z>. The true cluster will always be smaller than this box because it will choose a shape that roughly fits inside it, max 64x64x64 else it will revert to the default 16x16x16")

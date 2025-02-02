@@ -40,8 +40,8 @@ public class OreClusterJsonConfig implements IStringSerializable
         super();
         final OreClusterConfigModel IRON = new OreClusterConfigModel(Blocks.IRON_ORE);
         final OreClusterConfigModel DPSLT_DIAMOND = new OreClusterConfigModel(Blocks.DEEPSLATE_DIAMOND_ORE);
-            DPSLT_DIAMOND.oreClusterSpawnRate = OreClusterConfigData.COreClusters.DEF_ORE_CLUSTER_SPAWNRATE_AREA / 64;
-            DPSLT_DIAMOND.oreClusterVolume = new HBUtil.TripleInt(8, 4, 8);
+            DPSLT_DIAMOND.oreClusterSpawnRate = 10;
+            DPSLT_DIAMOND.oreClusterVolume = new HBUtil.TripleInt(6, 4, 6);
             DPSLT_DIAMOND.oreClusterDensity = 0.75f;
 
         this.oreClusterConfigs = new ArrayList<>()

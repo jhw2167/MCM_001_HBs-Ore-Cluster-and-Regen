@@ -3,11 +3,12 @@ package com.holybuckets.orecluster.core.model;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.HBUtil.ChunkUtil;
 import com.holybuckets.foundation.model.ManagedChunk;
+import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.core.OreClusterManager;
-import net.blay09.mods.balm.api.event.ChunkEvent;
+import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 
@@ -174,7 +175,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     public boolean isReady() { return isReady; }
 
     public Random getChunkRandom() {
-        return ManagedChunk.getChunkRandom(this.pos);
+        return ManagedChunkUtilityAccessor.getChunkRandom(this.pos);
     }
 
     public synchronized ReentrantLock getLock() {
@@ -312,18 +313,15 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     @Override
-    public void handleChunkLoaded(ChunkEvent.Load event) {
+    public void handleChunkLoaded(ChunkLoadingEvent.Load event) {
         this.level = event.getLevel();
         this.pos = event.getChunkPos();
-        OreClusterManager.onChunkLoad(event, this);
+        OreClusterManager.onChunkLoad(event);
     }
 
-        public void handleChunkLoaded() {
-            OreClusterManager.onChunkLoad( level, this);
-        }
 
     @Override
-    public void handleChunkUnloaded(ChunkEvent.Unload event)
+    public void handleChunkUnloaded(ChunkLoadingEvent.Unload event)
     {
         OreClusterManager.onChunkUnload(event);
     }
@@ -361,7 +359,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public static ManagedChunk getParent(LevelAccessor level, String id) {
-        return ManagedChunk.getManagedChunk(level, id);
+        return ManagedChunkUtilityAccessor.getManagedChunk(level, id);
     }
 
     public  static boolean isNoStatus(ManagedOreClusterChunk chunk) {
@@ -401,7 +399,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public static boolean isLoaded(ManagedOreClusterChunk chunk) {
-        return ManagedChunk.isLoaded( chunk.getLevel(), chunk.getId() );
+        return ManagedChunkUtilityAccessor.isLoaded( chunk.getLevel(), chunk.getId() );
     }
 
 
@@ -550,8 +548,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         }
         */
 
-        this.handleChunkLoaded();
-
+        OreClusterManager.addManagedOreClusterChunk( this );
     }
 
 
