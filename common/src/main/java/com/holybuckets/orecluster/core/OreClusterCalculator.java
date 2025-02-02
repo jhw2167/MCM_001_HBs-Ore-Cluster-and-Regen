@@ -465,11 +465,15 @@ public class OreClusterCalculator {
         final Random randSeqClusterBuildGen = chunk.getChunkRandom();
 
         //Save BlockPos to generate CLUSTER_TYPES on to ManagedOreClusterChunk
-        for (Block b : CLUSTER_TYPES.keySet())
+        List<Block> blocksCopy = new ArrayList<>(CLUSTER_TYPES.keySet());
+        for (Block b : blocksCopy)
         {
             HBUtil.Fast3DArray oreVertices = oreVerticesByBlock.get(b);
-            if (oreVertices == null)
+            if (oreVertices == null || oreVertices.size == 0) {
+                LoggerProject.logWarning("002029", "No ores found in chunk " + chunk.getId() + " for ore " + b );
+                CLUSTER_TYPES.remove(b);
                 continue;
+            }
 
             OreClusterConfigModel oreConfig = ORE_CONFIGS.get(b);
 

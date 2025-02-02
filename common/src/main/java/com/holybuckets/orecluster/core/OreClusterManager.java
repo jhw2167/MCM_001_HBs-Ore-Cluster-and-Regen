@@ -17,6 +17,7 @@ import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
@@ -221,7 +222,7 @@ public class OreClusterManager {
        this.threadInitSerializedChunks.start();
        this.threadWatchManagedOreChunkLifetime.start();
 
-        EventRegistrar.getInstance().registerOnDataSave(this::save, true);
+        EventRegistrar.getInstance().registerOnDataSave(this::save, EventPriority.High);
 
     }
 
@@ -611,9 +612,8 @@ public class OreClusterManager {
                     THREAD_TIMES.get("handleChunkClusterPreGeneration").add((end - start) / 1_000_000);
 
                     if( ManagedOreClusterChunk.isPregenerated(chunk) ) {
-
-                    }
                         chunksPendingPreGeneration.remove(chunk.getId());
+                    }
                 }
 
 
@@ -878,15 +878,6 @@ public class OreClusterManager {
                 oreClusterCalculator.cleanChunkSelectClusterPosition(chunk);
                 this.chunksPendingPreGeneration.put(chunk.getId(), chunk);
                 this.threadPoolClusterGenerating.submit(this::workerThreadGenerateClusters);
-            }
-
-            if( chunk.hasClusters() ) {
-                if( chunk.getClusterTypes() != null && chunk.getClusterTypes().size() > 0 ) {
-                    if( chunk.getClusterTypes().values().stream().anyMatch( v -> v == null) ) {
-                        LoggerProject.logError("0020027.2", "Error cleaning chunk: " + chunk.getId() + " clusterTypes: " + chunk.getClusterTypes().toString());
-
-                    }
-                }
             }
 
             //3. Determine which Ore Vertices need to be cleaned

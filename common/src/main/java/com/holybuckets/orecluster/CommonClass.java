@@ -11,18 +11,13 @@ public class CommonClass {
     public static void init()
     {
         //Initialize Foundations
-        com.holybuckets.foundation.CommonClass.init();
-
+        com.holybuckets.foundation.FoundationInitializers.commonInitialize();
 
         if (Services.PLATFORM.isModLoaded(Constants.MOD_ID)) {
             Constants.LOG.info("Hello to " + Constants.MOD_NAME + "!");
         }
-
         mod = new OreClustersAndRegenMain();
-
-        //ReInitialize balm events after each mod is loaded
         BalmEventRegister.registerEvents();
-
         isInitialized = true;
     }
 

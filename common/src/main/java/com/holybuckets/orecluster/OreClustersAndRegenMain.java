@@ -6,6 +6,7 @@ import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.core.OreClusterInterface;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
+import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.world.level.LevelAccessor;
 
@@ -42,8 +43,8 @@ public class OreClustersAndRegenMain
     private void init()
     {
         EventRegistrar eventRegistrar = EventRegistrar.getInstance();
-        eventRegistrar.registerOnLevelLoad( this::onLoadWorld, true );
-        eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, false );
+        eventRegistrar.registerOnLevelLoad( this::onLoadWorld, EventPriority.High );
+        eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );
 
         //CommandList.register();
         ManagedOreClusterChunk.registerManagedChunkData();
