@@ -24,7 +24,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.apache.commons.lang3.tuple.Pair;
@@ -847,7 +846,12 @@ public class OreClusterManager {
                 LevelChunk c = chunk.getChunk(false);
                 if( c == null ) return;
                 BlockPos pos = c.getPos().getWorldPosition();
+                final BlockPos constPos = pos.offset(0, 128, 0);
                 chunk.addBlockStateUpdate(Blocks.GOLD_BLOCK, new BlockPos(pos.getX(), 128, pos.getZ()));
+                Map<Block, BlockPos> clusterTypes = chunk.getClusterTypes();
+                clusterTypes.replaceAll((oreType, sourcePos) -> {
+                    return new BlockPos(constPos.getX(), 128, constPos.getZ());
+                });
             }
 
             final Map<Block, OreClusterConfigModel> ORE_CONFIGS = config.getOreConfigs();
@@ -857,6 +861,7 @@ public class OreClusterManager {
                 return ORE_CONFIGS.get(oreName).oreVeinModifier < 1.0f;
             }).collect(Collectors.toSet());
 
+            //No ores to clean, no clusters to build
             if( CLEANABLE_ORES.isEmpty() && !chunk.hasClusters() )
             {
                 chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.CLEANED);
@@ -880,8 +885,8 @@ public class OreClusterManager {
                 this.threadPoolClusterGenerating.submit(this::workerThreadGenerateClusters);
             }
 
-            //3. Determine which Ore Vertices need to be cleaned
-            oreClusterCalculator.cleanChunkDetermineBlockPosToClean(chunk, CLEANABLE_ORES);
+            //3. Cleans chunk of all ores discovered in the findAllOres method and stored in chunk.getOriginalOres()
+            //oreClusterCalculator.cleanChunkOres(chunk, CLEANABLE_ORES);
 
             //4. Set the originalOres array to null to free up memory
             chunk.setOriginalOres(null);

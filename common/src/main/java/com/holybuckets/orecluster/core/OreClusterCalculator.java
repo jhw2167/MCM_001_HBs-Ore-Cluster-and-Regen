@@ -402,7 +402,7 @@ public class OreClusterCalculator {
         int count = 0;
         int outerCount = 0;
         //loop in reverse, top, down
-        final boolean TURN_OFF = false;
+        final boolean TURN_OFF = true;
         for (int i = sections.length - 1; i >= 0; i--)
         {
             LevelChunkSection section = sections[i];
@@ -468,6 +468,9 @@ public class OreClusterCalculator {
         List<Block> blocksCopy = new ArrayList<>(CLUSTER_TYPES.keySet());
         for (Block b : blocksCopy)
         {
+            //if cluster_types already contains a block position, skip cluster
+            if( CLUSTER_TYPES.get(b) != null ) continue;
+
             HBUtil.Fast3DArray oreVertices = oreVerticesByBlock.get(b);
             if (oreVertices == null || oreVertices.size == 0) {
                 LoggerProject.logWarning("002029", "No ores found in chunk " + chunk.getId() + " for ore " + b );
@@ -496,7 +499,7 @@ public class OreClusterCalculator {
      * @param chunk
      * @param CLEANABLE_ORES
      */
-    public void cleanChunkDetermineBlockPosToClean(ManagedOreClusterChunk chunk, Set<Block> CLEANABLE_ORES)
+    public void cleanChunkOres(ManagedOreClusterChunk chunk, Set<Block> CLEANABLE_ORES)
     {
 
         final Map<Block, OreClusterConfigModel> ORE_CONFIGS = C.getOreConfigs();

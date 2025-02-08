@@ -48,14 +48,14 @@ public class ModRealTimeConfig
         };
 
     /** As the player explores the world, we will batch new cluster spawns in
-     * sizes of 1024. Each chunk will determine the clusters it owns extenting spirally from worldspawn.
+     * sizes of 1000. Each chunk will determine the clusters it owns extenting spirally from worldspawn.
      * This is not efficient, but ensures consistently between world seeds.
      *
      * Once a player loads a chunk more than 256 chunks from the worldspawn,
      * this method becomes inefficient and we will load chunks spirally considering this
      * new chunk as the center.
      */
-    public static final Integer ORE_CLUSTER_DTRM_BATCH_SIZE_TOTAL = 256; //chunks per batch
+    public static final Integer ORE_CLUSTER_DTRM_BATCH_SIZE_TOTAL = OreClusterConfigData.COreClusters.DEF_ORE_CLUSTER_SPAWNRATE_AREA; //chunks per batch
     public static final Integer ORE_CLUSTER_DTRM_RADIUS_STRATEGY_CHANGE = 256;  //square chunks
 
 
