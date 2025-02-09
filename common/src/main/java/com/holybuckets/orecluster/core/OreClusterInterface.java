@@ -98,7 +98,7 @@ public class OreClusterInterface {
         List<OreClusterInfo> clusterInfo = new ArrayList<>();
         for(String chunkId : validClusterChunkIds)
         {
-            ManagedOreClusterChunk cluster = manager.getManagedChunk(chunkId);
+            ManagedOreClusterChunk cluster = manager.getManagedOreClusterChunk(chunkId);
             if(cluster != null && cluster.hasClusters()) {
                 cluster.getClusterTypes().forEach((k,v) -> {
                 if(v == null)

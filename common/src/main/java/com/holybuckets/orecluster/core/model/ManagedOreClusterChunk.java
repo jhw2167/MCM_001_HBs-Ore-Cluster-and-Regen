@@ -15,6 +15,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -199,6 +200,17 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     public void setOriginalOres(Map<Block, HBUtil.Fast3DArray> originalOres) {
         this.originalOres = originalOres;
+    }
+
+    public void addOre(BlockState state, int x, int y, int z) {
+        if(this.originalOres == null)
+            this.originalOres = new HashMap<>();
+
+        Block block = state.getBlock();
+        if(!this.originalOres.containsKey(block))
+            this.originalOres.put(block, new HBUtil.Fast3DArray(256) );
+
+        this.originalOres.get(block).add(x, y, z);
     }
 
     public void setReady(boolean ready) {

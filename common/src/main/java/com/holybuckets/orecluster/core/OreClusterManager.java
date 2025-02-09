@@ -1173,10 +1173,32 @@ public class OreClusterManager {
         }
     }
 
-    public ManagedOreClusterChunk getManagedChunk(String chunkId) {
-        return loadedOreClusterChunks.get(chunkId);
+    public static ManagedOreClusterChunk getManagedOreClusterChunk(LevelAccessor level, LevelChunk chunk) {
+        OreClusterManager manager = OreClustersAndRegenMain.ORE_CLUSTER_MANAGER_BY_LEVEL.get(level);
+        if( manager == null ) return null;
+        return manager.getManagedOreClusterChunk(chunk);
     }
 
+    public static OreClusterManager getManager(LevelAccessor level) {
+        return OreClustersAndRegenMain.ORE_CLUSTER_MANAGER_BY_LEVEL.get(level);
+    }
+
+
+    public ManagedOreClusterChunk getManagedOreClusterChunk(ChunkAccess chunk) {
+        return this.getManagedOreClusterChunk(ChunkUtil.getId(chunk));
+    }
+
+    public ManagedOreClusterChunk getManagedOreClusterChunk(String chunkId) {
+        return this.loadedOreClusterChunks.get(chunkId);
+    }
+
+    public ManagedOreClusterChunk getDeterminedOreClusterChunk(ChunkAccess chunk) {
+        return this.getDeterminedOreClusterChunk(ChunkUtil.getId(chunk));
+    }
+
+    public ManagedOreClusterChunk getDeterminedOreClusterChunk(String chunkId) {
+        return this.chunksPendingCleaning.get(chunkId);
+    }
 
     /** ############### **/
 
