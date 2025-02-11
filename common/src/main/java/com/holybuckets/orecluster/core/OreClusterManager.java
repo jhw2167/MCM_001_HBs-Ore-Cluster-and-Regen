@@ -221,8 +221,8 @@ public class OreClusterManager {
        this.threadInitSerializedChunks.start();
        this.threadWatchManagedOreChunkLifetime.start();
 
-        EventRegistrar.getInstance().registerOnDataSave(this::save, EventPriority.High);
-
+       EventRegistrar.getInstance().registerOnDataSave(this::save, EventPriority.High);
+       handleLoadedChunkId("0,0");
     }
 
     private void threadInitSerializedChunks()
@@ -399,13 +399,8 @@ public class OreClusterManager {
             int i = 0;
         }
 
-        ChunkPos pos1 = HBUtil.ChunkUtil.getPos(chunkId);
-        if( Math.abs( pos1.x ) > 25 ||  Math.abs( pos1.z ) > 25 ) {
-            int i = 0;
-        }
-
         ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
-        if( chunk == null || chunk.getStatus() == ManagedOreClusterChunk.ClusterStatus.NONE )
+        if( chunk == null || ManagedOreClusterChunk.isNoStatus(chunk) )
         {
             /** Determine Chunk **/
             //LoggerProject.logDebug("002006","Chunk " + chunkId + " has not been explored");
@@ -524,7 +519,6 @@ public class OreClusterManager {
             while( managerRunning )
             {
 
-                ManagedOreClusterChunk.ClusterStatus DETERMINED = ManagedOreClusterChunk.ClusterStatus.DETERMINED;
                 Queue<ManagedOreClusterChunk> chunksToClean = chunksPendingCleaning.values().stream()
                     .filter(ManagedOreClusterChunk::isDetermined)
                     .filter(c -> c.hasChunk())
@@ -862,7 +856,7 @@ public class OreClusterManager {
             }).collect(Collectors.toSet());
 
             //No ores to clean, no clusters to build
-            if( CLEANABLE_ORES.isEmpty() && !chunk.hasClusters() )
+            if( COUNTABLE_ORES.isEmpty() && !chunk.hasClusters() )
             {
                 chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.CLEANED);
                 chunksPendingCleaning.remove(chunk.getId());
@@ -871,6 +865,7 @@ public class OreClusterManager {
 
 
             //1. Scan chunk for all cleanable ores, testing each block
+            if( chunk.getOriginalOres() == null )
             {
                 boolean isSuccessful = oreClusterCalculator.cleanChunkFindAllOres(chunk, COUNTABLE_ORES);
                 if( !isSuccessful )
@@ -976,8 +971,6 @@ public class OreClusterManager {
         if( chunk.getId().equals(TEST_ID) ) {
             int i = 0;
         }
-
-        BalmNetworking n;
 
         boolean isSuccessful = false;
         if( !chunk.hasBlockUpdates() ) {

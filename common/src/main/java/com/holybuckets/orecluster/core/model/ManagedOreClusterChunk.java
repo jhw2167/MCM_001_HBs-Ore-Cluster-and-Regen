@@ -202,6 +202,10 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.originalOres = originalOres;
     }
 
+    public void addOre(BlockState state, BlockPos pos) {
+        this.addOre(state, pos.getX(), pos.getY(), pos.getZ());
+    }
+
     public void addOre(BlockState state, int x, int y, int z) {
         if(this.originalOres == null)
             this.originalOres = new HashMap<>();

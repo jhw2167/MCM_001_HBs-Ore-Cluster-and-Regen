@@ -402,7 +402,7 @@ public class OreClusterCalculator {
         int count = 0;
         int outerCount = 0;
         //loop in reverse, top, down
-        final boolean TURN_OFF = true;
+        final boolean TURN_OFF = false;
         for (int i = sections.length - 1; i >= 0; i--)
         {
             LevelChunkSection section = sections[i];

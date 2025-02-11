@@ -34,11 +34,13 @@ public class PlacedFeatureMixin {
             PlacedFeature f = placementContext.topFeature().orElse(null);
             if(f == null ) return;
 
-            LoggerProject.logInfo("099002", "PlacedFeatureMixin feature: " + f );
+            //LoggerProject.logInfo("099002", "PlacedFeatureMixin feature: " + f );
 
+            //This is valid, non blocking way to get chunk, in BulkSectionAccess class
             ChunkAccess c = placementContext.getLevel().getChunk(blockPos);
             ServerLevel l = placementContext.getLevel().getLevel();
-            //OreClusterBlockStateTracker.setTrackingChunk( l, c );
+            OreClusterBlockStateTracker.setTrackingChunk( l, c, blockPos );
+            //use BlockPos to get ChunkPos, proto chunks will all be 0,0
         }
     }
 
