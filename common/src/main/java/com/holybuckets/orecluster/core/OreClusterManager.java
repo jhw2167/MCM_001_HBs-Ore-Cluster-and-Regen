@@ -825,13 +825,15 @@ public class OreClusterManager {
      * handleChunkCleaning
      * @param chunk
      */
+     private static int totalCleaned = 0;
+     private static int missingOriginalsCleaned = 0;
     private void handleChunkCleaning(ManagedOreClusterChunk chunk)
     {
 
         if( chunk == null|| chunk.getChunk(false) == null )
             return;
 
-        if( !chunk.testChunkStatusOrAfter(ChunkStatus.FULL) ) return;
+        if( !chunk.testChunkStatusOrAfter(ChunkStatus.FEATURES) ) return;
 
         LoggerProject.logDebug("002025", "Cleaning chunk: " + chunk.getId());
 
@@ -873,7 +875,9 @@ public class OreClusterManager {
                 boolean isSuccessful = oreClusterCalculator.cleanChunkFindAllOres(chunk, COUNTABLE_ORES);
                 if( !isSuccessful )
                     return;
+                missingOriginalsCleaned++;
             }
+            totalCleaned++;
 
             //2. Determine the cluster position for each ore in the managed chunk
             if( chunk.hasClusters() )

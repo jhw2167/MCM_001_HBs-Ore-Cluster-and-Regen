@@ -122,7 +122,12 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return parent.getChunk(forceLoad);
     }
 
-    public boolean testChunkStatusOrAfter(ChunkStatus status) {
+    public LevelChunk getChunk() {
+        return getChunk(false);
+    }
+
+    public boolean testChunkStatusOrAfter(ChunkStatus status)
+    {
         ManagedChunk parent = ManagedOreClusterChunk.getParent(level, id);
         if(parent == null) return false;
 
