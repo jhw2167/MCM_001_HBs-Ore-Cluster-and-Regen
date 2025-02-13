@@ -19,6 +19,6 @@ public abstract class MixinLevelChunkSection {
     private void interceptBlockState(int x, int y, int z, BlockState state, boolean flag, CallbackInfoReturnable<BlockState> cir) {
         //LoggerProject.logInfo("099001", "MixinLevelChunkSection setBlock");
         LevelChunkSection section = (LevelChunkSection) (Object) this;
-        OreClusterBlockStateTracker.trackBlockState( section, state, x, y, z);
+        OreClusterBlockStateTracker.enqueueBlockState( section, state, x, y, z);
     }
 }

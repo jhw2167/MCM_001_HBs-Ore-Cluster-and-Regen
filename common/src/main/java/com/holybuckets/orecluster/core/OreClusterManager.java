@@ -20,11 +20,13 @@ import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.apache.commons.lang3.tuple.Pair;
 import oshi.annotation.concurrent.ThreadSafe;
@@ -827,8 +829,9 @@ public class OreClusterManager {
     private void handleChunkCleaning(ManagedOreClusterChunk chunk)
     {
 
-        if( chunk == null|| chunk.getChunk(false) == null )
-            return;
+        if( chunk == null|| chunk.getChunk(false) == null ) return;
+
+        if( !chunk.testChunkStatusOrAfter(ChunkStatus.FULL) ) return;
 
         LoggerProject.logDebug("002025", "Cleaning chunk: " + chunk.getId());
 
@@ -867,9 +870,9 @@ public class OreClusterManager {
             //1. Scan chunk for all cleanable ores, testing each block
             if( chunk.getOriginalOres() == null )
             {
-                boolean isSuccessful = oreClusterCalculator.cleanChunkFindAllOres(chunk, COUNTABLE_ORES);
-                if( !isSuccessful )
-                    return;
+                return;
+                //boolean isSuccessful = oreClusterCalculator.cleanChunkFindAllOres(chunk, COUNTABLE_ORES);
+                //if( !isSuccessful ) return;
             }
 
             //2. Determine the cluster position for each ore in the managed chunk

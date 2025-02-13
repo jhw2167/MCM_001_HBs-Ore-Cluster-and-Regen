@@ -16,6 +16,8 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -119,6 +121,17 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         if(parent == null)
             return null;
         return parent.getChunk(forceLoad);
+    }
+
+    public boolean testChunkStatusOrAfter(ChunkStatus status) {
+        ManagedChunk parent = ManagedOreClusterChunk.getParent(level, id);
+        if(parent == null) return false;
+
+        ChunkAccess chunk = parent.getChunk(false);
+        if(chunk == null) return false;
+
+        try { return chunk.getStatus().isOrAfter(status); }
+        catch(Exception e) { return false; }
     }
 
     public boolean hasChunk() {
