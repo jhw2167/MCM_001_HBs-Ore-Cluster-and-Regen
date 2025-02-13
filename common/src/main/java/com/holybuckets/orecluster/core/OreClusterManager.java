@@ -25,6 +25,7 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.apache.commons.lang3.tuple.Pair;
 import oshi.annotation.concurrent.ThreadSafe;
@@ -829,6 +830,8 @@ public class OreClusterManager {
 
         if( chunk == null|| chunk.getChunk(false) == null )
             return;
+
+        if( !chunk.testChunkStatusOrAfter(ChunkStatus.FULL) ) return;
 
         LoggerProject.logDebug("002025", "Cleaning chunk: " + chunk.getId());
 
