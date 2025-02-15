@@ -76,7 +76,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private String id;
     private ChunkPos pos;
     private ClusterStatus status;
-    private long timeLoaded;
+    private long timeUnloaded;
     private long tickLoaded;
     private boolean isReady;
 
@@ -98,7 +98,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.id = null;
         this.pos = null;
         this.status = ClusterStatus.NONE;
-        this.timeLoaded = System.currentTimeMillis();
+        this.timeUnloaded = -1;
         this.tickLoaded = GeneralConfig.getInstance().getTotalTickCount();
         this.isReady = false;
         this.clusterTypes = null;
@@ -191,7 +191,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     public LevelAccessor getLevel() { return level; }
 
-    public Long getTimeLoaded() { return timeLoaded; }
+    public Long getTimeUnloaded() { return timeUnloaded; }
 
     public Long getTickLoaded() { return tickLoaded; }
 
@@ -207,18 +207,21 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     /** Setters **/
 
-    public void setPos(ChunkPos pos) {
-        this.pos = pos;
-    }
-
+    @Override
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public void setLevel(LevelAccessor level) { this.level = level; }
+
+    public void setPos(ChunkPos pos) {
+        this.pos = pos;
     }
 
     public void setStatus(ClusterStatus status) {
         this.status = status;
     }
-
 
     public void setOriginalOres(Map<Block, HBUtil.Fast3DArray> originalOres) {
         this.originalOres = originalOres;
@@ -246,8 +249,9 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     /**
      * Updates time loaded with the current system time in milliseconds
      */
-    public void updateTimeLoaded() {
-        this.timeLoaded = System.currentTimeMillis();
+    public void setTimeUnloaded()
+    {
+        this.timeUnloaded = System.currentTimeMillis();
     }
 
     /** Other Methods **/
@@ -360,9 +364,11 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     @Override
-    public void handleChunkLoaded(ChunkLoadingEvent.Load event) {
+    public void handleChunkLoaded(ChunkLoadingEvent.Load event)
+    {
         this.level = event.getLevel();
         this.pos = event.getChunkPos();
+        this.timeUnloaded = -1;
         OreClusterManager.onChunkLoad(event);
     }
 
@@ -538,7 +544,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.id = tag.getString("id");
         this.pos = ChunkUtil.getPos( this.id );
         this.tickLoaded = tag.getLong("tickLoaded");
-        this.timeLoaded = System.currentTimeMillis();
+        this.timeUnloaded = -1;
         this.status = ClusterStatus.valueOf( tag.getString("status") );
 
         if( this.id.equals(TEST_ID)) {

@@ -82,8 +82,7 @@ public class OreClustersAndRegenMain
             modRealTimeConfig = new ModRealTimeConfig();
         }
 
-        if( !ORE_CLUSTER_MANAGER_BY_LEVEL.containsKey( level ) )
-        {
+        if( !ORE_CLUSTER_MANAGER_BY_LEVEL.containsKey( level ) ) {
             ORE_CLUSTER_MANAGER_BY_LEVEL.put( level, new OreClusterManager( level,  modRealTimeConfig ) );
         }
 
@@ -92,11 +91,11 @@ public class OreClustersAndRegenMain
     public void onUnloadWorld(LevelLoadingEvent.Unload event)
     {
         LoggerProject.logDebug("001004", "**** WORLD UNLOAD EVENT ****");
+        LevelAccessor level = event.getLevel();
+        if( level.isClientSide() ) return;
 
-        for( OreClusterManager manager : ORE_CLUSTER_MANAGER_BY_LEVEL.values() ) {
-            manager.shutdown();
-        }
-
+        OreClusterManager m = ORE_CLUSTER_MANAGER_BY_LEVEL.remove( level );
+        if( m != null ) m.shutdown();
     }
 
 

@@ -221,7 +221,7 @@ public class OreClusterManager {
         );
 
        this.threadInitSerializedChunks.start();
-       //this.threadWatchManagedOreChunkLifetime.start();
+       this.threadWatchManagedOreChunkLifetime.start();
 
        EventRegistrar.getInstance().registerOnDataSave(this::save, EventPriority.High);
     }
@@ -247,20 +247,15 @@ public class OreClusterManager {
                     continue;
                 }
 
-                //1. Update time loaded for all currently loaded chunks
-                loadedOreClusterChunks.values().stream()
-                    .filter(ManagedOreClusterChunk::isLoaded)
-                    .forEach(ManagedOreClusterChunk::updateTimeLoaded);
-
-
-                Long time = System.currentTimeMillis();
+                Long systemTime = System.currentTimeMillis();
                 List<String> expired_chunks = new ArrayList<>();
                 loadedOreClusterChunks.values().stream()
-                    .filter(c -> !isLoaded(c))
-                    .filter(c -> time - c.getTickLoaded() > MAX_DETERMINED_CHUNK_LIFETIME_MILLIS)
+                    .filter(c -> c.getTimeUnloaded() > -1 )
+                    .filter(c -> systemTime - c.getTimeUnloaded() > MAX_DETERMINED_CHUNK_LIFETIME_MILLIS)
                     .forEach(c -> expired_chunks.add(c.getId()));
 
                 for( String id : expired_chunks ) {
+                    LoggerProject.logDebug("002004", "Chunk " + id + " has expired");
                     loadedOreClusterChunks.remove(id);
                 }
 
@@ -311,6 +306,8 @@ public class OreClusterManager {
     public void handleChunkUnloaded(ChunkAccess chunk)
     {
         String chunkId = ChunkUtil.getId(chunk);
+        ManagedOreClusterChunk managedChunk = loadedOreClusterChunks.get(chunkId);
+        if( managedChunk != null ) managedChunk.setTimeUnloaded();
         this.UNLOADS++;
     }
 
