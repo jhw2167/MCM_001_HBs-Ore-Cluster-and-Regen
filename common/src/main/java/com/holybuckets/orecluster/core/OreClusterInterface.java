@@ -6,6 +6,7 @@ import com.holybuckets.orecluster.core.model.OreClusterInfo;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 
 import java.util.*;
 
@@ -101,8 +102,8 @@ public class OreClusterInterface {
             ManagedOreClusterChunk cluster = manager.getManagedOreClusterChunk(chunkId);
             if(cluster != null && cluster.hasClusters()) {
                 cluster.getClusterTypes().forEach((k,v) -> {
-                if(v == null)
-                    return;
+                if(v == null)  return;
+                if( oreType != null && !k.equals(oreType) ) return;
                 clusterInfo.add(new OreClusterInfo(cluster, k));
                 });
             }

@@ -27,7 +27,7 @@ public class OreClusterCalculator {
 
     private OreClusterManager manager;
     private ModRealTimeConfig C;
-    private Map<String, ManagedOreClusterChunk> loadedChunks;
+    private Set<String> determinedChunks;
     private ConcurrentHashMap<Block, Set<String>> existingClustersByType;
 
 
@@ -37,7 +37,7 @@ public class OreClusterCalculator {
     {
         this.manager = manager;
         this.C = manager.getConfig();
-        this.loadedChunks = manager.getLoadedOreClusterChunks();
+        this.determinedChunks = manager.getDeterminedChunks();
         this.existingClustersByType = manager.getExistingClustersByType();
     }
 
@@ -89,7 +89,7 @@ public class OreClusterCalculator {
         *   all existing clusters instead of calculating the area around each chunk
         *   If the spacing is small, we will have many cluster chunks, better to check the radius
          */
-         final int MIN_SPACING_VALIDATOR_CUTOFF_RADIUS = Math.min( loadedChunks.size(), (int) Math.pow(minSpacing, 2) );
+         final int MIN_SPACING_VALIDATOR_CUTOFF_RADIUS = Math.min( determinedChunks.size(), (int) Math.pow(minSpacing, 2) );
          LinkedHashSet<String> chunksInRadiusOfStart = getChunkIdsInRadius(startChunk,
           Math.min( minSpacing, MIN_SPACING_VALIDATOR_CUTOFF_RADIUS ));
          String closestToCenter = chunksInRadiusOfStart.stream().min(Comparator.comparingInt( c ->
@@ -157,7 +157,7 @@ public class OreClusterCalculator {
                  */
 
                 String chunkId = chunks.get(chunkIndex++);
-                if( loadedChunks.containsKey(chunkId) )
+                if( determinedChunks.contains(chunkId) )
                     continue;
 
                 /**
@@ -277,8 +277,8 @@ public class OreClusterCalculator {
                      {
                          candidateChunkId = chunksToBePopulatedSpecificCopy.removeFirst();
 
-                        //Tacitly accept any previously determined chunks and discard later
-                         if (loadedChunks.containsKey(candidateChunkId))
+                        //No clusters added to chunks that already exist, discarded
+                         if (determinedChunks.contains(candidateChunkId))
                              break;
 
                          //Check if the chunk is within the radius of a chunk with the same cluster type
@@ -341,7 +341,7 @@ public class OreClusterCalculator {
         Iterator<String> clusterPos =  clusterPositions.keySet().iterator();
         while( clusterPos.hasNext() ) {
             String chunkId = clusterPos.next();
-            if( loadedChunks.containsKey(chunkId) )
+            if( determinedChunks.contains(chunkId) )
                 clusterPos.remove();
         }
         long step5Time = System.nanoTime();

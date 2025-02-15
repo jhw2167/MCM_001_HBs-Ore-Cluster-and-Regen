@@ -18,7 +18,6 @@ import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
-import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
@@ -122,14 +121,15 @@ public class OreClusterManager {
     private final ConcurrentLinkedSet<String> determinedSourceChunks;
     private final ConcurrentSet<String> determinedChunks;
     private final ConcurrentHashMap<String, ManagedOreClusterChunk> loadedOreClusterChunks;
+    private final Set<String> initializedOreClusterChunks;
 
     private final ConcurrentHashMap<Block, Set<String> > existingClustersByType;
     private final ChunkGenerationOrderHandler mainSpiral;
     private OreClusterCalculator oreClusterCalculator;
 
     //Threads
-    private boolean managerRunning = false;
-    private boolean initializing = false;
+    private volatile boolean managerRunning = false;
+    private volatile boolean initializing = false;
     private final ConcurrentHashMap<String, Long> threadstarts = new ConcurrentHashMap<>();
     private final Thread threadInitSerializedChunks = new Thread(this::threadInitSerializedChunks);
     private final Thread threadWatchManagedOreChunkLifetime = new Thread(this::threadWatchManagedOreChunkLifetime);
@@ -157,6 +157,7 @@ public class OreClusterManager {
         this.chunksPendingCleaning = new ConcurrentHashMap<>();
         this.chunksPendingPreGeneration = new ConcurrentHashMap<>();
 
+        this.initializedOreClusterChunks = new ConcurrentSet<>();
         //this.chunksPendingManifestation = new ConcurrentHashMap<>();
 
         this.mainSpiral = new ChunkGenerationOrderHandler(null);
@@ -220,47 +221,9 @@ public class OreClusterManager {
         );
 
        this.threadInitSerializedChunks.start();
-       this.threadWatchManagedOreChunkLifetime.start();
+       //this.threadWatchManagedOreChunkLifetime.start();
 
        EventRegistrar.getInstance().registerOnDataSave(this::save, EventPriority.High);
-       handleLoadedChunkId("0,0");
-    }
-
-    private void threadInitSerializedChunks()
-    {
-        this.managerRunning = false;
-        this.initializing = true;
-        DataStore ds = GeneralConfig.getInstance().getDataStore();
-        LevelSaveData levelData = ds.getOrCreateLevelSaveData(OreClustersAndRegenMain.MODID, level);
-
-        if( levelData.get("determinedSourceChunks") == null ) {
-            this.initializing = false;
-            this.managerRunning = true;
-            return;
-        }
-
-        //HERE
-        JsonArray ids = levelData.get("determinedSourceChunks").getAsJsonArray();
-        List<String> chunkIds = ids.asList().stream().map(JsonElement::getAsString).toList();
-        for( String id : chunkIds)
-        {
-            ChunkPos pos = HBUtil.ChunkUtil.getPos(id);
-            HBUtil.ChunkUtil.getLevelChunk(level, pos.x, pos.z, true);
-            try {
-                while( !this.determinedChunks.contains(id) ) {
-                    Long start = System.nanoTime();
-                    handleChunkDetermination(ModRealTimeConfig.ORE_CLUSTER_DTRM_BATCH_SIZE_TOTAL, id);
-                    Long end = System.nanoTime();
-                    THREAD_TIMES.get("handleChunkDetermination").add((end - start) / 1_000_000); // Convert to milliseconds
-                }
-            } catch (Exception e) {
-                LoggerProject.logError("002001.1", "Error in threadInitSerializedChunks, continuing: " + e.getMessage());
-            }
-
-        }
-
-        this.initializing = false;
-        this.managerRunning = true;
     }
 
     /**
@@ -294,7 +257,7 @@ public class OreClusterManager {
                 List<String> expired_chunks = new ArrayList<>();
                 loadedOreClusterChunks.values().stream()
                     .filter(c -> !isLoaded(c))
-                    .filter(c -> time - c.getTimeLoaded() > MAX_DETERMINED_CHUNK_LIFETIME_MILLIS)
+                    .filter(c -> time - c.getTickLoaded() > MAX_DETERMINED_CHUNK_LIFETIME_MILLIS)
                     .forEach(c -> expired_chunks.add(c.getId()));
 
                 for( String id : expired_chunks ) {
@@ -316,10 +279,10 @@ public class OreClusterManager {
      * Called before handleLoadedChunkId
      * @param managedChunk
      */
-    public void addToLoadedChunksIfAbsent(ManagedOreClusterChunk managedChunk)
+    public void addOrUpdatedLoadedChunk(ManagedOreClusterChunk managedChunk)
     {
         String chunkId = managedChunk.getId();
-        loadedOreClusterChunks.putIfAbsent(chunkId, managedChunk);
+        loadedOreClusterChunks.put(chunkId, managedChunk.getEarliest(loadedOreClusterChunks));
         chunksPendingHandling.add(managedChunk.getId());
         threadPoolLoadedChunks.submit(this::workerThreadLoadedChunk);
         threadPoolChunkEditing.submit(this::workerThreadEditChunk);
@@ -348,7 +311,6 @@ public class OreClusterManager {
     public void handleChunkUnloaded(ChunkAccess chunk)
     {
         String chunkId = ChunkUtil.getId(chunk);
-        //loadedOreClusterChunks.remove(chunkId);
         this.UNLOADS++;
     }
 
@@ -366,6 +328,11 @@ public class OreClusterManager {
         {
             while( !chunksPendingHandling.isEmpty() )
             {
+                if( this.initializing ) {
+                    sleep(10);
+                    continue;
+                }
+
                 String chunkId = chunksPendingHandling.poll(1, TimeUnit.SECONDS);
 
                 if( chunkId == null )
@@ -401,10 +368,22 @@ public class OreClusterManager {
         }
 
         ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
-        if( chunk == null || ManagedOreClusterChunk.isNoStatus(chunk) )
+        if( chunk == null )
         {
-            /** Determine Chunk **/
-            //LoggerProject.logDebug("002006","Chunk " + chunkId + " has not been explored");
+            chunk = ManagedOreClusterChunk.getInstance(this.level, chunkId);
+            loadedOreClusterChunks.put(chunkId, chunk);
+            if( determinedChunks.contains(chunkId) ) {
+                chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.DETERMINED);
+            }
+            handleLoadedChunk(chunkId);
+        }
+        else if( ManagedOreClusterChunk.isNoStatus(chunk) )
+        {
+            if(determinedChunks.contains(chunkId)) {
+                chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.DETERMINED);
+                handleLoadedChunk(chunkId);
+                return;
+            }
             chunksPendingDeterminations.add(chunkId);
             this.threadPoolClusterDetermination.submit(this::workerThreadDetermineClusters);
         }
@@ -521,7 +500,6 @@ public class OreClusterManager {
             {
 
                 Queue<ManagedOreClusterChunk> chunksToClean = chunksPendingCleaning.values().stream()
-                    .filter(ManagedOreClusterChunk::isDetermined)
                     .filter(c -> c.hasChunk())
                     .collect(Collectors.toCollection(LinkedList::new));
 
@@ -771,12 +749,7 @@ public class OreClusterManager {
         LoggerProject.logDebug("002008", "Queued " + chunkId + " for cluster determination");
         determinedSourceChunks.add(chunkId);
         LinkedHashSet<String> chunkIds = getBatchedChunkList(batchSize, chunkId);
-        long step1Time = System.nanoTime();
-        //LoggerProject.logDebug("002008", "Queued " + chunkIds.size() + " chunks for cluster determination");
-
-
-        //LoggerProject.logDebug("handlePrepareNewCluster #1  " + LoggerProject.getTime(start, step1Time) + " ms");
-
+        //long step1Time = System.nanoTime();
 
         //Map<ChunkId, Clusters>
         Map<String, List<Block>> clusters;
@@ -833,7 +806,7 @@ public class OreClusterManager {
         if( chunk == null|| chunk.getChunk(false) == null )
             return;
 
-        if( !chunk.testChunkStatusOrAfter(ChunkStatus.FEATURES) ) return;
+        if( !chunk.testChunkStatusOrAfter(ChunkStatus.FULL ) ) return;
 
         LoggerProject.logDebug("002025", "Cleaning chunk: " + chunk.getId());
 
@@ -897,6 +870,8 @@ public class OreClusterManager {
 
             chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.CLEANED);
             chunksPendingCleaning.remove(chunk.getId());
+            //initializedOreClusterChunks.add(chunk.getId());
+
 
             LoggerProject.logInfo("002027", "Cleaning chunk: " + chunk.getId() + " complete");
     }
@@ -995,6 +970,7 @@ public class OreClusterManager {
         {
             chunk.setReady(false);
             chunk.getBlockStateUpdates().clear();
+            chunk.setOriginalOres(null);
 
             if( chunk.hasClusters() ) {
                 chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.GENERATED);
@@ -1005,6 +981,77 @@ public class OreClusterManager {
             }
         }
     }
+
+
+    private void threadInitSerializedChunks()
+    {
+        this.managerRunning = false;
+        this.initializing = true;
+        DataStore ds = GeneralConfig.getInstance().getDataStore();
+        LevelSaveData levelData = ds.getOrCreateLevelSaveData(OreClustersAndRegenMain.MODID, level);
+
+        if( levelData.get("determinedSourceChunks") == null ) {
+            this.initializing = false;
+            this.managerRunning = true;
+            return;
+        }
+
+        //initializedOreClusterChunks.addAll(ManagedChunkUtilityAccessor.getInitializedChunks(level));
+
+        JsonArray ids = levelData.get("determinedSourceChunks").getAsJsonArray();
+        List<String> chunkIds = ids.asList().stream().map(JsonElement::getAsString).toList();
+        Long start = System.nanoTime();
+        for( String id : chunkIds)
+        {
+            ChunkPos pos = HBUtil.ChunkUtil.getPos(id);
+            HBUtil.ChunkUtil.getLevelChunk(level, pos.x, pos.z, true);
+            while( !this.determinedChunks.contains(id) )
+            {
+                try {
+                    handleChunkInitialization(id);
+                } catch (Exception e) {
+                    LoggerProject.logError("002001.1", "Error in threadInitSerializedChunks, continuing: " + e.getMessage());
+                }
+            }
+
+        }
+        Long end = System.nanoTime();
+        THREAD_TIMES.get("handleChunkDetermination").add((end - start) / 1_000_000); // Convert to milliseconds
+
+        this.loadedOreClusterChunks.clear();
+
+        this.initializing = false;
+        this.managerRunning = true;
+    }
+
+    /**
+     * Initializes chunks on server RESTART - does not trigger when world first loaded.
+     * essentially redetermines all chunks in the same order there were originally
+     * @param chunkId
+     */
+    private void handleChunkInitialization(String chunkId)
+    {
+        int batchSize = ModRealTimeConfig.ORE_CLUSTER_DTRM_BATCH_SIZE_TOTAL;
+        determinedSourceChunks.add(chunkId);
+        LinkedHashSet<String> chunkIds = getBatchedChunkList(batchSize, chunkId);
+
+        //Map<ChunkId, Clusters>
+        Map<String, List<Block>> clusters;
+        clusters = oreClusterCalculator.calculateClusterLocations(chunkIds.stream().toList() , randSeqClusterPositionGen);
+
+        // #3. Add clusters to determinedClusters
+        for( String id: chunkIds) {
+            this.determinedChunks.add(id);
+        }
+
+        // #4. Add clusters to existingClustersByType
+        for( Map.Entry<String, List<Block>> clusterChunk : clusters.entrySet()) {
+            for( Block clusterOreType : clusterChunk.getValue() ) {
+                existingClustersByType.get(clusterOreType).add(clusterChunk.getKey());
+            }
+        }
+    }
+
 
 
     /**
@@ -1154,8 +1201,9 @@ public class OreClusterManager {
     public static void addManagedOreClusterChunk(ManagedOreClusterChunk managedChunk )
     {
         OreClusterManager manager = OreClustersAndRegenMain.ORE_CLUSTER_MANAGER_BY_LEVEL.get( managedChunk.getLevel() );
-        if( manager != null ) {
-            manager.addToLoadedChunksIfAbsent(managedChunk);
+        if( manager != null )
+        {
+            manager.addOrUpdatedLoadedChunk(managedChunk);
         }
     }
 
@@ -1183,6 +1231,9 @@ public class OreClusterManager {
         return OreClustersAndRegenMain.ORE_CLUSTER_MANAGER_BY_LEVEL.get(level);
     }
 
+    public Set<String> getDeterminedChunks() {
+        return this.determinedChunks;
+    }
 
     public ManagedOreClusterChunk getManagedOreClusterChunk(ChunkAccess chunk) {
         return this.getManagedOreClusterChunk(ChunkUtil.getId(chunk));
@@ -1199,6 +1250,7 @@ public class OreClusterManager {
     public ManagedOreClusterChunk getDeterminedOreClusterChunk(String chunkId) {
         return this.chunksPendingCleaning.get(chunkId);
     }
+
 
     /** ############### **/
 

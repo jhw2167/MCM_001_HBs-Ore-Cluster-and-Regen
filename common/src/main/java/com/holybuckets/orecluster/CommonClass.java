@@ -18,6 +18,7 @@ public class CommonClass {
         }
         mod = new OreClustersAndRegenMain();
         BalmEventRegister.registerEvents();
+        BalmEventRegister.registerCommands();
         isInitialized = true;
     }
 

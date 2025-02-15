@@ -1,5 +1,6 @@
 package com.holybuckets.orecluster.core.model;
 
+import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.HBUtil.ChunkUtil;
 import com.holybuckets.foundation.model.ManagedChunk;
@@ -76,6 +77,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private ChunkPos pos;
     private ClusterStatus status;
     private long timeLoaded;
+    private long tickLoaded;
     private boolean isReady;
 
     private HashMap<Block, BlockPos> clusterTypes;
@@ -97,6 +99,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.pos = null;
         this.status = ClusterStatus.NONE;
         this.timeLoaded = System.currentTimeMillis();
+        this.tickLoaded = GeneralConfig.getInstance().getTotalTickCount();
         this.isReady = false;
         this.clusterTypes = null;
         this.blockStateUpdates = new ConcurrentLinkedQueue<>();
@@ -189,6 +192,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     public LevelAccessor getLevel() { return level; }
 
     public Long getTimeLoaded() { return timeLoaded; }
+
+    public Long getTickLoaded() { return tickLoaded; }
 
     public boolean isReady() { return isReady; }
 
@@ -319,7 +324,16 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return this.blockStateUpdates != null && this.blockStateUpdates.size() > 0;
     }
 
+    public ManagedOreClusterChunk getEarliest(Map<String, ManagedOreClusterChunk> loadedChunks) {
+        ManagedOreClusterChunk existing = loadedChunks.get(this.id);
+        if(existing == null)
+            return this;
 
+        if(existing.getTickLoaded() < this.getTickLoaded())
+            return existing;
+        else
+            return this;
+    }
 
     /** OVERRIDES **/
 
@@ -445,6 +459,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
         CompoundTag details = new CompoundTag();
         details.putString("id", this.id);
+        details.putLong("tickLoaded", this.tickLoaded);
 
         if( this.id.equals(TEST_ID)) {
             int i = 0;
@@ -522,6 +537,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
         this.id = tag.getString("id");
         this.pos = ChunkUtil.getPos( this.id );
+        this.tickLoaded = tag.getLong("tickLoaded");
+        this.timeLoaded = System.currentTimeMillis();
         this.status = ClusterStatus.valueOf( tag.getString("status") );
 
         if( this.id.equals(TEST_ID)) {
