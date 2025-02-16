@@ -571,7 +571,9 @@ public class OreClusterCalculator {
 
        //2. Generate Cube
        final TripleInt VOL = config.oreClusterVolume;
-       Fast3DArray positions = ShapeUtil.getCube(VOL.x, VOL.z, VOL.y);
+       //Fast3DArray positions = ShapeUtil.getCube(VOL.x, VOL.z, VOL.y);
+        Fast3DArray positions = ShapeUtil.getCircle(VOL.x);
+
 
        //3. Convert cube to BlockPos
         List<BlockPos> blockPositions = new ArrayList<>();

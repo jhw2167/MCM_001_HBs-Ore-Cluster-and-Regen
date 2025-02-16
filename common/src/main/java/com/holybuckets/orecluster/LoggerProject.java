@@ -10,7 +10,7 @@ public class LoggerProject extends LoggerBase {
 
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final String PREFIX = Constants.MOD_NAME;
-    public static final Boolean DEBUG_MODE = true;
+    public static final Boolean DEBUG_MODE = false;
 
     public static void logInfo(String logId, String message) {
         LoggerBase.logInfo(PREFIX, logId, message);

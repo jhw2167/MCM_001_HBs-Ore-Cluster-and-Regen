@@ -38,7 +38,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.holybuckets.orecluster.core.model.ManagedOreClusterChunk.TEST_ID;
-import static com.holybuckets.orecluster.core.model.ManagedOreClusterChunk.isLoaded;
 import static java.lang.Thread.sleep;
 
 /**
@@ -345,7 +344,7 @@ public class OreClusterManager {
                     continue;
 
                 long start = System.nanoTime();
-                handleLoadedChunk(chunkId);
+                handleChunkLoaded(chunkId);
                 long end = System.nanoTime();
                 //Remove duplicates
                 chunksPendingHandling.remove(chunkId);
@@ -367,7 +366,7 @@ public class OreClusterManager {
      * 3. If the chunkId does not exist in exploredChunks, queue a batch
      *
      */
-    private void handleLoadedChunk(String chunkId)
+    private void handleChunkLoaded(String chunkId)
     {
         if( chunkId.equals(TEST_ID) ) {
             int i = 0;
@@ -383,14 +382,14 @@ public class OreClusterManager {
 
             if( determinedChunks.contains(chunkId) )
                 chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.DETERMINED);
-            handleLoadedChunk(chunkId);
+            handleChunkLoaded(chunkId);
             return;
         }
         else if( ManagedOreClusterChunk.isNoStatus(chunk) )
         {
             if(determinedChunks.contains(chunkId)) {
                 chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.DETERMINED);
-                handleLoadedChunk(chunkId);
+                handleChunkLoaded(chunkId);
                 return;
             }
             chunksPendingDeterminations.add(chunkId);
@@ -831,9 +830,9 @@ public class OreClusterManager {
                 final BlockPos constPos = pos.offset(0, 128, 0);
                 chunk.addBlockStateUpdate(Blocks.GOLD_BLOCK, new BlockPos(pos.getX(), 128, pos.getZ()));
                 Map<Block, BlockPos> clusterTypes = chunk.getClusterTypes();
-                clusterTypes.replaceAll((oreType, sourcePos) -> {
+                /*clusterTypes.replaceAll((oreType, sourcePos) -> {
                     return new BlockPos(constPos.getX(), 128, constPos.getZ());
-                });
+                });*/
             }
 
             final Map<Block, OreClusterConfigModel> ORE_CONFIGS = config.getOreConfigs();
@@ -961,7 +960,7 @@ public class OreClusterManager {
         //LoggerProject.logDebug("002033","Editing chunk: " + chunk.getId());
 
         if( chunk.getId().equals(TEST_ID) ) {
-            int i = 0;
+        int i = 0;
         }
 
         boolean isSuccessful = false;

@@ -50,12 +50,13 @@ public class OreClusterBlockStateTracker
     public static void trackBlockState(LevelChunkSection section, BlockState state, int x, int y, int z)
     {
         if( currentManagedOreClusterChunk == null ) return;
+        ManagedOreClusterChunk chunk = currentManagedOreClusterChunk;
         if( !trackingOres.containsKey(state) ) return;
 
         HBUtil.TripleInt relativePos = new HBUtil.TripleInt(x, y, z);
         int sectionNum = Arrays.stream(currentChunk.getSections()).toList().indexOf(section);
         HBUtil.WorldPos pos = new HBUtil.WorldPos( relativePos, sectionNum, currentChunk );
-        currentManagedOreClusterChunk.addOre(state, pos.getWorldPos());
+        chunk.addOre(state, pos.getWorldPos());
     }
 
 
