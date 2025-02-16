@@ -8,6 +8,7 @@ import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
+import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.minecraft.core.BlockPos;
@@ -20,6 +21,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
@@ -56,6 +58,9 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     
     public static final String TEST_ID = "3,-1";
 
+
+
+
     public static enum ClusterStatus {
         NONE,
         DETERMINED,
@@ -66,6 +71,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         HARVESTED,
         COMPLETE
     }
+
+    public static final int MAX_ORIGINAL_ORES = 8;
 
     public static void registerManagedChunkData() {
         ManagedChunk.registerManagedChunkData(ManagedOreClusterChunk.class, () -> new ManagedOreClusterChunk(null) );
@@ -81,9 +88,10 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private boolean isReady;
 
     private HashMap<Block, BlockPos> clusterTypes;
-    private Map<Block, HBUtil.Fast3DArray> originalOres;
+    private Map<BlockState, Pair<BlockPos, MutableInt>> originalOres;
     private ConcurrentLinkedQueue<Pair<Block, BlockPos>> blockStateUpdates;
 
+    private Random managedRandom;
     private ReentrantLock lock = new ReentrantLock();
 
     //private List<Pair<String, Vec3i>> clusters;
@@ -103,6 +111,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.isReady = false;
         this.clusterTypes = null;
         this.blockStateUpdates = new ConcurrentLinkedQueue<>();
+        this.originalOres = new HashMap<>();
 
     }
 
@@ -110,7 +119,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private ManagedOreClusterChunk(LevelAccessor level, String id)
      {
         this(level);
-        this.id = id;
+        this.setId(id);
         this.pos = ChunkUtil.getPos( id );
     }
 
@@ -185,7 +194,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return blockStateUpdates;
     }
 
-    public Map<Block, HBUtil.Fast3DArray> getOriginalOres() {
+    public Map<BlockState, Pair<BlockPos, MutableInt>> getOriginalOres() {
         return originalOres;
     }
 
@@ -209,38 +218,76 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     @Override
     public void setId(String id) {
+        if(id == null) return;
         this.id = id;
+        this.pos = ChunkUtil.getPos(id);
+        this.managedRandom = ManagedChunkUtilityAccessor.getChunkRandom(this.pos);
     }
 
     @Override
     public void setLevel(LevelAccessor level) { this.level = level; }
 
-    public void setPos(ChunkPos pos) {
-        this.pos = pos;
-    }
-
     public void setStatus(ClusterStatus status) {
         this.status = status;
     }
 
-    public void setOriginalOres(Map<Block, HBUtil.Fast3DArray> originalOres) {
-        this.originalOres = originalOres;
+    /**
+     * Applies resevoir sampling to determine which single ore should server as cluster position
+     * for the cluster type. Does not consider ore Height when sampling
+     * @param state
+     * @return
+     */
+    public boolean sampleAddOre(BlockState state)
+    {
+        if(!this.originalOres.containsKey(state)) {
+            this.originalOres.put(state, Pair.of(null, new MutableInt(1)));
+            return true;
+        }
+
+        MutableInt count = this.originalOres.get(state).getRight();
+        if (this.managedRandom.nextFloat() <= (1.0f / count.getAndAdd(1) )) {
+            return true;
+        }
+
+        return false;
     }
 
-    public void addOre(BlockState state, BlockPos pos) {
-        this.addOre(state, pos.getX(), pos.getY(), pos.getZ());
+    public void addOre(BlockState state, BlockPos pos, boolean force)
+    {
+        //1. Get the pair
+        Pair<BlockPos, MutableInt> pair = this.originalOres.get(state);
+
+        if(pair == null) {
+            pair = Pair.of(pos, new MutableInt(1));
+            this.originalOres.put(state, pair);
+            return;
+        }
+
+        //Count was incremented by the previous call to sampleAddOre or this one
+        if(force || sampleAddOre(state)) {
+            pair = Pair.of(pos, pair.getRight());
+            this.originalOres.put(state, pair);
+        }
+
     }
 
-    public void addOre(BlockState state, int x, int y, int z) {
-        if(this.originalOres == null)
-            this.originalOres = new HashMap<>();
-
-        Block block = state.getBlock();
-        if(!this.originalOres.containsKey(block))
-            this.originalOres.put(block, new HBUtil.Fast3DArray(256) );
-
-        this.originalOres.get(block).add(x, y, z);
+    public boolean hasOreClusterSourcePos(BlockState b) {
+        if(this.originalOres == null) return false;
+        return this.originalOres.containsKey(b);
     }
+
+    public BlockPos getOreClusterSourcePos(BlockState b) {
+        if(this.originalOres == null) return null;
+        if(!this.originalOres.containsKey(b)) return null;
+        return this.originalOres.get(b).getLeft();
+    }
+
+    public void clearOriginalOres() {
+        if(this.originalOres == null) return;
+        this.originalOres.clear();
+        this.originalOres = null;
+    }
+
 
     public void setReady(boolean ready) {
         this.isReady = ready;

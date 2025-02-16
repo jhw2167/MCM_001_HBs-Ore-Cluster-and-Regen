@@ -812,7 +812,7 @@ public class OreClusterManager {
     private void handleChunkCleaning(ManagedOreClusterChunk chunk)
     {
 
-        if( chunk == null|| chunk.getChunk(false) == null )
+        if( chunk == null|| chunk.getChunk() == null )
             return;
 
         if( !chunk.testChunkStatusOrAfter(ChunkStatus.FULL ) ) return;
@@ -873,16 +873,17 @@ public class OreClusterManager {
             //oreClusterCalculator.cleanChunkOres(chunk, CLEANABLE_ORES);
 
             //4. Set the originalOres array to null to free up memory
-            chunk.setOriginalOres(null);
+            chunk.clearOriginalOres();
 
             //5. Set the chunk status to CLEANED
-
             chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.CLEANED);
             chunksPendingCleaning.remove(chunk.getId());
             //initializedOreClusterChunks.add(chunk.getId());
 
 
-            LoggerProject.logInfo("002027", "Cleaning chunk: " + chunk.getId() + " complete");
+            LoggerProject.logInfo("002027", "Cleaning chunk: " + chunk.getId() + " complete. " +
+                "Total cleaned: " + totalCleaned + " Missing originals cleaned: " + missingOriginalsCleaned);
+
     }
     catch(Exception e) {
         StringBuilder error = new StringBuilder();
@@ -979,7 +980,7 @@ public class OreClusterManager {
         {
             chunk.setReady(false);
             chunk.getBlockStateUpdates().clear();
-            chunk.setOriginalOres(null);
+            chunk.clearOriginalOres();
             completeChunks.add(chunk.getId());
 
             if( chunk.hasClusters() ) {

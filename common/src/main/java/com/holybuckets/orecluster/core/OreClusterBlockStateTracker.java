@@ -9,7 +9,6 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 
 import java.util.Arrays;
@@ -26,7 +25,7 @@ public class OreClusterBlockStateTracker
     static String chunkId;
     static LevelAccessor currentLevel;
     static ManagedOreClusterChunk currentManagedOreClusterChunk;
-    static Map<BlockState, OreClusterConfigModel> trackingOres;
+    static Map<BlockState, OreClusterConfigModel> trackingOreConfig;
 
     public static void setTrackingChunk(ServerLevel level, ChunkAccess chunk, BlockPos pos) {
         currentChunk = chunk;
@@ -34,9 +33,9 @@ public class OreClusterBlockStateTracker
         OreClusterManager manager = OreClusterManager.getManager(level);
         chunkId = HBUtil.ChunkUtil.getId(currentChunk);
         currentManagedOreClusterChunk = manager.getDeterminedOreClusterChunk( chunkId );
-        if( trackingOres == null ) {
+        if( trackingOreConfig == null ) {
             Map<Block, OreClusterConfigModel> map = manager.getConfig().getOreConfigs();
-            trackingOres = map.entrySet().stream().collect(
+            trackingOreConfig = map.entrySet().stream().collect(
                     java.util.stream.Collectors.toMap(
                             e -> e.getKey().defaultBlockState(),
                             e -> e.getValue()
@@ -49,14 +48,21 @@ public class OreClusterBlockStateTracker
     //This will be called before features start being placed, (before there is a chunk to track)
     public static void trackBlockState(LevelChunkSection section, BlockState state, int x, int y, int z)
     {
+        if( trackingOreConfig == null ) return;
         if( currentManagedOreClusterChunk == null ) return;
+        if( !trackingOreConfig.containsKey(state) ) return;
         ManagedOreClusterChunk chunk = currentManagedOreClusterChunk;
-        if( !trackingOres.containsKey(state) ) return;
+
+        if( !chunk.sampleAddOre(state) ) return;
 
         HBUtil.TripleInt relativePos = new HBUtil.TripleInt(x, y, z);
         int sectionNum = Arrays.stream(currentChunk.getSections()).toList().indexOf(section);
         HBUtil.WorldPos pos = new HBUtil.WorldPos( relativePos, sectionNum, currentChunk );
-        chunk.addOre(state, pos.getWorldPos());
+
+        if(pos.getWorldPos().getY() > trackingOreConfig.get(state).oreClusterMaxYLevelSpawn)
+            return;
+
+        chunk.addOre(state, pos.getWorldPos(), true);
     }
 
 

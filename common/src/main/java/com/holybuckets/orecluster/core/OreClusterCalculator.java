@@ -396,7 +396,6 @@ public class OreClusterCalculator {
         final int NEGATIVE_Y_RANGE = 64;
 
         Map<Block, HBUtil.Fast3DArray> oreVerticesByBlock = new HashMap<>();
-        chunk.setOriginalOres(oreVerticesByBlock);
 
         BlockPos chunkWorldPos = levelChunk.getPos().getWorldPosition();
         int count = 0;
@@ -422,21 +421,14 @@ public class OreClusterCalculator {
                     {
                         outerCount++;
                         Block block = states.get(x, y, z).getBlock();
-                        if (COUNTABLE_ORES.contains(block))
-                        {
-                            count++;
-                            HBUtil.Fast3DArray vertices = oreVerticesByBlock.getOrDefault(block,
-                                new HBUtil.Fast3DArray(MAX_ORES));
+                        if (COUNTABLE_ORES.contains(block)) {
+                          BlockState s = states.get(x, y, z);
+                          if( chunk.sampleAddOre(s) ) {
+                            HBUtil.TripleInt relativePos = new HBUtil.TripleInt(x, y, z);
+                              HBUtil.WorldPos pos = new HBUtil.WorldPos(relativePos, i, levelChunk);
+                              chunk.addOre(s, pos.getWorldPos(), true);
+                          }
 
-                            vertices.add(
-                                chunkWorldPos.getX() + x,
-                                y + ((SECTION_SZ * i) - NEGATIVE_Y_RANGE),
-                                chunkWorldPos.getZ() + z);
-
-                            if (oreVerticesByBlock.containsKey(block))
-                                continue;
-
-                            oreVerticesByBlock.put(block, vertices);
                         }
                         //Else nothing
                     }
@@ -460,50 +452,27 @@ public class OreClusterCalculator {
     {
 
         final Map<Block, BlockPos> CLUSTER_TYPES = chunk.getClusterTypes();
-        final Map<Block, OreClusterConfigModel> ORE_CONFIGS = C.getOreConfigs();
-        final Map<Block, HBUtil.Fast3DArray> oreVerticesByBlock = chunk.getOriginalOres();
-        final Random randSeqClusterBuildGen = chunk.getChunkRandom();
 
-        //Save BlockPos to generate CLUSTER_TYPES on to ManagedOreClusterChunk
         List<Block> blocksCopy = new ArrayList<>(CLUSTER_TYPES.keySet());
         for (Block b : blocksCopy)
         {
-            //if cluster_types already contains a block position, skip cluster
             if( CLUSTER_TYPES.get(b) != null ) continue;
-
-            HBUtil.Fast3DArray oreVertices = oreVerticesByBlock.get(b);
-            if (oreVertices == null || oreVertices.size == 0) {
-                LoggerProject.logWarning("002029", "No ores found in chunk " + chunk.getId() + " for ore " + b );
-                CLUSTER_TYPES.remove(b);
-                continue;
-            }
-
-            OreClusterConfigModel oreConfig = ORE_CONFIGS.get(b);
-
-            int[] validOreVerticesIndex = new int[oreVertices.size];
-            int j = 0;
-            for (int i = 0; i < oreVertices.size; i++) {
-                if (oreVertices.getY(i) < oreConfig.oreClusterMaxYLevelSpawn)
-                    validOreVerticesIndex[j++] = i;
-            }
-
-            int randPos = randSeqClusterBuildGen.nextInt(validOreVerticesIndex.length);
-            CLUSTER_TYPES.put(b, new BlockPos(oreVertices.getX(randPos), oreVertices.getY(randPos), oreVertices.getZ(randPos)));
+            BlockPos orePos = chunk.getOreClusterSourcePos(b.defaultBlockState());
+            if( orePos != null ) CLUSTER_TYPES.put(b, orePos);
         }
 
     }
 
-    /**
+    /*/*
      * Clean the necessary ores in the chunk by replacing the blocks at the specified position
      * with the first ore provided in the oreClusterReplaceableEmptyBlocks array (for the particular ore config)
      * @param chunk
      * @param CLEANABLE_ORES
-     */
+     *
     public void cleanChunkOres(ManagedOreClusterChunk chunk, Set<Block> CLEANABLE_ORES)
     {
 
         final Map<Block, OreClusterConfigModel> ORE_CONFIGS = C.getOreConfigs();
-        final Map<Block, HBUtil.Fast3DArray> oreVerticesByBlock = chunk.getOriginalOres();
         final Random randSeqClusterBuildGen = chunk.getChunkRandom();
 
         for (Block b : CLEANABLE_ORES)
@@ -527,6 +496,7 @@ public class OreClusterCalculator {
         }
 
     }
+    */
 
 
     /** ######################
