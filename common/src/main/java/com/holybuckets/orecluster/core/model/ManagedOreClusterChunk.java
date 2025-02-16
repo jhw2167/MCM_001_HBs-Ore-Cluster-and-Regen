@@ -54,7 +54,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private static final String CLASS_ID = "003";
     private static final String NBT_KEY_HEADER = "managedOreClusterChunk";
     
-    public static final String TEST_ID = "14,-6";
+    public static final String TEST_ID = "3,-1";
 
     public static enum ClusterStatus {
         NONE,
@@ -363,9 +363,11 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return subClass.equals(ManagedOreClusterChunk.class.getName()) && this.id != null;
     }
 
+    private static Set<String> loadedIds = new HashSet<>();
     @Override
     public void handleChunkLoaded(ChunkLoadingEvent.Load event)
     {
+        loadedIds.add(this.id);
         this.level = event.getLevel();
         this.pos = event.getChunkPos();
         this.timeUnloaded = -1;
@@ -534,6 +536,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return details;
     }
 
+    private static Set<String> deserializedIds = new HashSet<>();
     @Override
     public void deserializeNBT(CompoundTag tag)
     {
@@ -541,7 +544,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         if(tag == null || tag.isEmpty())
             return;
 
-        this.id = tag.getString("id");
+        deserializedIds.add(this.id);
         this.pos = ChunkUtil.getPos( this.id );
         this.tickLoaded = tag.getLong("tickLoaded");
         this.timeUnloaded = -1;

@@ -120,6 +120,7 @@ public class OreClusterManager {
 
     private final ConcurrentLinkedSet<String> determinedSourceChunks;
     private final ConcurrentSet<String> determinedChunks;
+    private final ConcurrentSet<String> completeChunks;
     private final ConcurrentHashMap<String, ManagedOreClusterChunk> loadedOreClusterChunks;
     private final Set<String> initializedOreClusterChunks;
 
@@ -152,6 +153,7 @@ public class OreClusterManager {
         this.loadedOreClusterChunks = new ConcurrentHashMap<>();
         this.determinedSourceChunks = new ConcurrentLinkedSet<>();
         this.determinedChunks = new ConcurrentSet<>();
+        this.completeChunks = new ConcurrentSet<>();
         this.chunksPendingHandling = new LinkedBlockingQueue<>();
         this.chunksPendingDeterminations = new LinkedBlockingQueue<>();
         this.chunksPendingCleaning = new ConcurrentHashMap<>();
@@ -254,6 +256,10 @@ public class OreClusterManager {
                     .filter(c -> systemTime - c.getTimeUnloaded() > MAX_DETERMINED_CHUNK_LIFETIME_MILLIS)
                     .forEach(c -> expired_chunks.add(c.getId()));
 
+                if(expired_chunks.contains(TEST_ID)) {
+                    int i = 0;
+                }
+
                 for( String id : expired_chunks ) {
                     LoggerProject.logDebug("002004", "Chunk " + id + " has expired");
                     loadedOreClusterChunks.remove(id);
@@ -277,6 +283,10 @@ public class OreClusterManager {
     public void addOrUpdatedLoadedChunk(ManagedOreClusterChunk managedChunk)
     {
         String chunkId = managedChunk.getId();
+        if(chunkId.equals(TEST_ID)) {
+            int i = 0;
+        }
+
         loadedOreClusterChunks.put(chunkId, managedChunk.getEarliest(loadedOreClusterChunks));
         chunksPendingHandling.add(managedChunk.getId());
         threadPoolLoadedChunks.submit(this::workerThreadLoadedChunk);
@@ -293,7 +303,6 @@ public class OreClusterManager {
     public void handleLoadedChunkId(String chunkId)
     {
         this.LOADS++;
-        loadedOreClusterChunks.putIfAbsent(chunkId, ManagedOreClusterChunk.getInstance(this.level, chunkId));
         chunksPendingHandling.add(chunkId);
         threadPoolLoadedChunks.submit(this::workerThreadLoadedChunk);
         threadPoolChunkEditing.submit(this::workerThreadEditChunk);
@@ -367,12 +376,15 @@ public class OreClusterManager {
         ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
         if( chunk == null )
         {
+            if( completeChunks.contains(chunkId) )
+                return;
             chunk = ManagedOreClusterChunk.getInstance(this.level, chunkId);
             loadedOreClusterChunks.put(chunkId, chunk);
-            if( determinedChunks.contains(chunkId) ) {
+
+            if( determinedChunks.contains(chunkId) )
                 chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.DETERMINED);
-            }
             handleLoadedChunk(chunkId);
+            return;
         }
         else if( ManagedOreClusterChunk.isNoStatus(chunk) )
         {
@@ -420,6 +432,7 @@ public class OreClusterManager {
         else if( ManagedOreClusterChunk.isComplete(chunk) )
         {
             //LoggerProject.logDebug("002009","Chunk " + chunkId + " is complete");
+            completeChunks.add(chunkId);
             loadedOreClusterChunks.remove(chunkId);
         }
 
@@ -968,6 +981,7 @@ public class OreClusterManager {
             chunk.setReady(false);
             chunk.getBlockStateUpdates().clear();
             chunk.setOriginalOres(null);
+            completeChunks.add(chunk.getId());
 
             if( chunk.hasClusters() ) {
                 chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.GENERATED);
@@ -1014,8 +1028,6 @@ public class OreClusterManager {
         }
         Long end = System.nanoTime();
         THREAD_TIMES.get("handleChunkDetermination").add((end - start) / 1_000_000); // Convert to milliseconds
-
-        this.loadedOreClusterChunks.clear();
 
         this.initializing = false;
         this.managerRunning = true;
