@@ -46,12 +46,32 @@ public class OreClusterBlockStateTracker
     }
 
     //This will be called before features start being placed, (before there is a chunk to track)
+
+    /**
+     *
+     * @param section
+     * @param state
+     * @param x
+     * @param y
+     * @param z
+     */
+    public static void mapBlockState(LevelChunkSection section, BlockState state, int x, int y, int z)
+    {
+        if( trackingOreConfig == null ) return;
+        if( currentManagedOreClusterChunk == null ) return;
+        ManagedOreClusterChunk chunk = currentManagedOreClusterChunk;
+        if( !trackingOreConfig.containsKey(state) ) return;
+
+        state = chunk.mapBlockState(state);
+    }
+
+    //This will be called before features start being placed, (before there is a chunk to track)
     public static void trackBlockState(LevelChunkSection section, BlockState state, int x, int y, int z)
     {
         if( trackingOreConfig == null ) return;
         if( currentManagedOreClusterChunk == null ) return;
-        if( !trackingOreConfig.containsKey(state) ) return;
         ManagedOreClusterChunk chunk = currentManagedOreClusterChunk;
+        if( !trackingOreConfig.containsKey(state) ) return;
 
         if( !chunk.sampleAddOre(state) ) return;
 

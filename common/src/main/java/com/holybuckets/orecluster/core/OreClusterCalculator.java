@@ -451,13 +451,13 @@ public class OreClusterCalculator {
     public void cleanChunkSelectClusterPosition(ManagedOreClusterChunk chunk)
     {
 
-        final Map<Block, BlockPos> CLUSTER_TYPES = chunk.getClusterTypes();
+        final Map<BlockState, BlockPos> CLUSTER_TYPES = chunk.getClusterTypes();
 
-        List<Block> blocksCopy = new ArrayList<>(CLUSTER_TYPES.keySet());
-        for (Block b : blocksCopy)
+        List<BlockState> blocksCopy = new ArrayList<>(CLUSTER_TYPES.keySet());
+        for (BlockState b : blocksCopy)
         {
             if( CLUSTER_TYPES.get(b) != null ) continue;
-            BlockPos orePos = chunk.getOreClusterSourcePos(b.defaultBlockState());
+            BlockPos orePos = chunk.getOreClusterSourcePos(b);
             if( orePos != null ) CLUSTER_TYPES.put(b, orePos);
         }
 
@@ -529,13 +529,13 @@ public class OreClusterCalculator {
      * @param source
      * @return List of BlockPos that make up the ore cluster
      */
-    public List<BlockPos> generateCluster(Pair<Block, BlockPos> source)
+    public List<BlockPos> generateCluster(Pair<BlockState, BlockPos> source)
     {
 
         //1. Determine the cluster size and shape
         //HBUtil.TripleInt volume = config.oreClusterVolume;
         //String shape = config.oreClusterShape;
-        Block oreType = source.getLeft();
+        BlockState oreType = source.getLeft();
         BlockPos sPos = source.getRight();
         final OreClusterConfigModel config = C.getOreConfigs().get(oreType);
 

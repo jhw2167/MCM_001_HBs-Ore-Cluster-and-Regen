@@ -23,6 +23,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -828,8 +829,8 @@ public class OreClusterManager {
                 if( c == null ) return;
                 BlockPos pos = c.getPos().getWorldPosition();
                 final BlockPos constPos = pos.offset(0, 128, 0);
-                chunk.addBlockStateUpdate(Blocks.GOLD_BLOCK, new BlockPos(pos.getX(), 128, pos.getZ()));
-                Map<Block, BlockPos> clusterTypes = chunk.getClusterTypes();
+                chunk.addBlockStateUpdate(Blocks.GOLD_BLOCK.defaultBlockState(), new BlockPos(pos.getX(), 128, pos.getZ()));
+                Map<BlockState, BlockPos> clusterTypes = chunk.getClusterTypes();
                 /*clusterTypes.replaceAll((oreType, sourcePos) -> {
                     return new BlockPos(constPos.getX(), 128, constPos.getZ());
                 });*/
@@ -852,7 +853,8 @@ public class OreClusterManager {
 
 
             //1. Scan chunk for all cleanable ores, testing each block
-            if( chunk.getOriginalOres() == null )
+            final Set<BlockState> oreClusterTypes = chunk.getClusterTypes().keySet();
+            if( oreClusterTypes.stream().anyMatch(o -> !chunk.hasOreClusterSourcePos(o)) )
             {
                 boolean isSuccessful = oreClusterCalculator.cleanChunkFindAllOres(chunk, COUNTABLE_ORES);
                 if( !isSuccessful )
@@ -927,14 +929,14 @@ public class OreClusterManager {
         LoggerProject.logDebug("002015","Generating clusters for chunk: " + chunk.getId());
 
         String SKIPPED = null;
-        for( Block oreType : chunk.getClusterTypes().keySet() )
+        for( BlockState oreType : chunk.getClusterTypes().keySet() )
         {
             //1. Get the cluster config
 
             BlockPos sourcePos = chunk.getClusterTypes().get(oreType);
             if( sourcePos == null ) {
                 LoggerProject.logDebug("002016","No source position for oreType: " + oreType);
-                SKIPPED = BlockUtil.blockToString(oreType);
+                SKIPPED = BlockUtil.blockToString(oreType.getBlock());
                 continue;
             }
 
@@ -972,8 +974,8 @@ public class OreClusterManager {
         {
             LevelChunk levelChunk = chunk.getChunk(false);
             if (levelChunk == null) return;
-            Queue<Pair<Block, BlockPos>> updates = chunk.getBlockStateUpdates();
-            isSuccessful = ManagedChunk.updateChunkBlocks(levelChunk.getLevel(), updates.stream().toList() );
+            List<Pair<BlockState, BlockPos>> updates = chunk.getBlockStateUpdates().stream().toList();
+            isSuccessful = ManagedChunk.updateChunkBlockStates(level, updates);
         }
 
         if( isSuccessful )

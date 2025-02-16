@@ -8,6 +8,7 @@ import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
+import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
@@ -87,9 +88,9 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private long tickLoaded;
     private boolean isReady;
 
-    private HashMap<Block, BlockPos> clusterTypes;
+    private HashMap<BlockState, BlockPos> clusterTypes;
     private Map<BlockState, Pair<BlockPos, MutableInt>> originalOres;
-    private ConcurrentLinkedQueue<Pair<Block, BlockPos>> blockStateUpdates;
+    private ConcurrentLinkedQueue<Pair<BlockState, BlockPos>> blockStateUpdates;
 
     private Random managedRandom;
     private ReentrantLock lock = new ReentrantLock();
@@ -110,7 +111,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.tickLoaded = GeneralConfig.getInstance().getTotalTickCount();
         this.isReady = false;
         this.clusterTypes = null;
-        this.blockStateUpdates = new ConcurrentLinkedQueue<>();
+        this.blockStateUpdates = new ConcurrentLinkedQueue<Pair<BlockState, BlockPos>>();
         this.originalOres = new HashMap<>();
 
     }
@@ -166,8 +167,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return status;
     }
 
-    @NotNull
-    public HashMap<Block, BlockPos> getClusterTypes() {
+    public HashMap<BlockState, BlockPos> getClusterTypes() {
     if(this.clusterTypes == null)
         return new HashMap<>();
         return clusterTypes;
@@ -190,7 +190,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return ready;
     }
 
-    public Queue<Pair<Block, BlockPos>> getBlockStateUpdates() {
+    public Queue<Pair<BlockState, BlockPos>> getBlockStateUpdates() {
         return blockStateUpdates;
     }
 
@@ -306,14 +306,14 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     {
         if( clusters == null )
             return;
-        Map<Block, BlockPos> clusterMap = new HashMap<>();
+        Map<BlockState, BlockPos> clusterMap = new HashMap<>();
         for(Block block : clusters) {
-            clusterMap.put(block, null);
+            clusterMap.put(block.defaultBlockState(), null);
         }
         this.addClusterTypes(clusterMap);
     }
 
-    public void addClusterTypes(Map<Block, BlockPos> clusterMap)
+    public void addClusterTypes(Map<BlockState, BlockPos> clusterMap)
     {
         if( clusterMap == null )
             return;
@@ -322,13 +322,13 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
             return;
 
         if( this.clusterTypes == null )
-            this.clusterTypes = new HashMap<>();
+            this.clusterTypes = new HashMap<BlockState, BlockPos>();
 
         this.clusterTypes.putAll( clusterMap );
         //LoggerProject.logDebug("003010", "Adding clusterTypes: " + this.clusterTypes);
     }
 
-    public void addBlockStateUpdate(Block block, BlockPos pos) {
+    public void addBlockStateUpdate(BlockState block, BlockPos pos) {
         this.blockStateUpdates.add( Pair.of(block, pos) );
     }
 
@@ -355,9 +355,9 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
 
         //If any block in the chunk does not equal a block in block state updates, set the chunk as harvested
-        for(Pair<Block, BlockPos> pair : this.blockStateUpdates)
+        for(Pair<BlockState, BlockPos> pair : this.blockStateUpdates)
         {
-            Block block = pair.getLeft();
+            BlockState block = pair.getLeft();
             BlockPos pos = pair.getRight();
             if(!chunk.getBlockState(pos).getBlock().equals( block ))
             {
@@ -384,6 +384,22 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
             return existing;
         else
             return this;
+    }
+
+
+    public BlockState mapBlockState(BlockState state)
+    {
+        Map<Block, OreClusterConfigModel> ORE_CONFIGS = OreClusterManager.getManager(level).getConfig().getOreConfigs();
+
+        Block[] replacements = ORE_CONFIGS.get(state.getBlock()).oreClusterReplaceableEmptyBlocks.toArray(new Block[0]);
+        Float modifier = ORE_CONFIGS.get(state.getBlock()).oreVeinModifier;
+
+        //If we want mod ~ 0.8 (80% of ore to spawn) then 20% of the time we will replace the block
+        if (managedRandom.nextFloat() > modifier) {
+            return replacements[managedRandom.nextInt(replacements.length)].defaultBlockState();
+        }
+
+        return state;
     }
 
     /** OVERRIDES **/
@@ -535,10 +551,10 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
             else
             {
                 Map<Block, List<BlockPos>> clusters = new HashMap<>();
-                this.clusterTypes.keySet().forEach((k) -> clusters.put(k, new ArrayList<>()));
-                for(Map.Entry<Block, BlockPos> entry : this.clusterTypes.entrySet())
+                this.clusterTypes.keySet().forEach((k) -> clusters.put(k.getBlock(), new ArrayList<>()));
+                for(Map.Entry<BlockState, BlockPos> entry : this.clusterTypes.entrySet())
                 {
-                    Block block = entry.getKey();
+                    BlockState block = entry.getKey();
                     BlockPos pos = entry.getValue();
                     if(pos != null)
                         clusters.get(block).add(pos);
@@ -612,18 +628,18 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
             else
             {
                 Map<Block,List<BlockPos>> clusters =  BlockUtil.deserializeBlockPairs(clusterTypes);
-                this.clusterTypes = new HashMap<>();
+                this.clusterTypes = new HashMap<BlockState, BlockPos>();
                 for(Map.Entry<Block, List<BlockPos>> entry : clusters.entrySet())
                 {
-                    Block block = entry.getKey();
+                    BlockState blockState = entry.getKey().defaultBlockState();
                     List<BlockPos> positions = entry.getValue();
                     for(BlockPos pos : positions)
                     {
-                        this.clusterTypes.put(block, pos);
+                        this.clusterTypes.put(blockState, pos);
                     }
 
                     if(this.clusterTypes.size() == 0)
-                        this.clusterTypes.put(block, null);
+                        this.clusterTypes.put(blockState, null);
                 }
             }
 
