@@ -48,10 +48,7 @@ public class OreClustersAndRegenMain
         eventRegistrar.registerOnLevelLoad( this::onLoadWorld, EventPriority.High );
         eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );
 
-        //Commands
         CommandList.register();
-
-        //CommandList.register();
         ManagedOreClusterChunk.registerManagedChunkData();
         OreClusterConfig.initialize();
 

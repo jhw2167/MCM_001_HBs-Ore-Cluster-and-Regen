@@ -15,9 +15,12 @@ import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
 
@@ -84,10 +87,12 @@ public class CommandList {
         private static int execute(CommandSourceStack source, int count, String blockType)
         {
             OreClusterInterface interfacer = OreClusterInterface.getInstance();
-            if(interfacer == null)
+            if(interfacer == null) {
+                source.sendFailure(Component.literal("OreClusterInterface not initialized at this time"));
                 return 1;
+            }
 
-            Messager messager = Messager.getInstance();
+
 
             if(count == -1)
                 count = 5;
@@ -96,7 +101,7 @@ public class CommandList {
             if(blockType != null && !blockType.isEmpty()) {
                 block = HBUtil.BlockUtil.blockNameToBlock(blockType);
                 if(block == null || block.equals(Blocks.AIR) ) {
-                    messager.sendChat(source.getPlayer(), "Block type not found: " + blockType);
+                    source.sendFailure(Component.literal("Invalid block type: " + blockType));
                     return 1;
                 }
             }
@@ -104,12 +109,16 @@ public class CommandList {
             try {
                 ServerPlayer player = source.getPlayerOrException();
                 BlockPos playerPos = player.blockPosition();
+                BlockState bs = (block == null) ? null : block.defaultBlockState();
                 List<OreClusterInfo> data = interfacer.locateOreClusters(
-                    player.level(), playerPos, block, count);
+                    player.level(), playerPos, bs, count);
 
+                MutableComponent response = Component.literal("Found Clusters: ");
                 for(OreClusterInfo cluster : data) {
-                    messager.sendChat(player, formatClusterMessage(cluster));
+                    response.append(formatClusterMessage(cluster));
                 }
+
+                source.sendSuccess(() -> response, true);
             }
             catch (Exception e) {
                 LoggerProject.logError("010002", "Locate Clusters Command exception: ", e.getMessage());
@@ -122,10 +131,10 @@ public class CommandList {
 
         private static String formatClusterMessage(OreClusterInfo cluster)
         {
-            String ore = HBUtil.BlockUtil.blockToString(cluster.oreType);
+            String ore = HBUtil.BlockUtil.blockToString(cluster.oreType.getBlock());
                 ore = ore.substring( ore.lastIndexOf(":") + 1 );
             String pos = HBUtil.BlockUtil.positionToString( cluster.position );
-            return "Cluster: " + ore + " at " + pos;
+            return "\n" + ore + " at " + pos;
         }
 
         private static Object getArgument(CommandContext<CommandSourceStack> context, String name, Class<?> type)

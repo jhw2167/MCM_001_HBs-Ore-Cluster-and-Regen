@@ -227,8 +227,13 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     @Override
     public void setLevel(LevelAccessor level) { this.level = level; }
 
+    private static final ClusterStatus current = ClusterStatus.CLEANED;
+    private static final ClusterStatus delinquent = ClusterStatus.DETERMINED;
     public void setStatus(ClusterStatus status) {
-        this.status = status;
+        if(this.status == current && status == delinquent) {
+            LoggerProject.logInfo("003012", "Chunk " + this.id + " attempted to set delinquent status" + status);
+        }
+    this.status = status;
     }
 
     /**
@@ -283,6 +288,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public void clearOriginalOres() {
+        if(isNoStatus(this) || isDetermined(this) ) return;
         if(this.originalOres == null) return;
         this.originalOres.clear();
         this.originalOres = null;
@@ -302,13 +308,13 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     /** Other Methods **/
-    public void addClusterTypes(List<Block> clusters)
+    public void addClusterTypes(List<BlockState> clusters)
     {
         if( clusters == null )
             return;
         Map<BlockState, BlockPos> clusterMap = new HashMap<>();
-        for(Block block : clusters) {
-            clusterMap.put(block.defaultBlockState(), null);
+        for(BlockState state : clusters) {
+            clusterMap.put(state, null);
         }
         this.addClusterTypes(clusterMap);
     }
@@ -389,10 +395,10 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     public BlockState mapBlockState(BlockState state)
     {
-        Map<Block, OreClusterConfigModel> ORE_CONFIGS = OreClusterManager.getManager(level).getConfig().getOreConfigs();
+        Map<BlockState, OreClusterConfigModel> ORE_CONFIGS = OreClusterManager.getManager(level).getConfig().getOreConfigs();
 
-        Block[] replacements = ORE_CONFIGS.get(state.getBlock()).oreClusterReplaceableEmptyBlocks.toArray(new Block[0]);
-        Float modifier = ORE_CONFIGS.get(state.getBlock()).oreVeinModifier;
+        Block[] replacements = ORE_CONFIGS.get(state).oreClusterReplaceableEmptyBlocks.toArray(new Block[0]);
+        Float modifier = ORE_CONFIGS.get(state).oreVeinModifier;
 
         //If we want mod ~ 0.8 (80% of ore to spawn) then 20% of the time we will replace the block
         if (managedRandom.nextFloat() > modifier) {

@@ -28,7 +28,7 @@ public class OreClusterCalculator {
     private OreClusterManager manager;
     private ModRealTimeConfig C;
     private Set<String> determinedChunks;
-    private ConcurrentHashMap<Block, Set<String>> existingClustersByType;
+    private ConcurrentHashMap<BlockState, Set<String>> existingClustersByType;
 
 
 
@@ -41,21 +41,19 @@ public class OreClusterCalculator {
         this.existingClustersByType = manager.getExistingClustersByType();
     }
 
-    public Map<String, List<Block>> calculateClusterLocations(List<String> chunks, Random rng)
+    public Map<String, List<BlockState>> calculateClusterLocations(List<String> chunks, Random rng)
     {
         //long startTime = System.nanoTime();
 
         // Get list of all ore cluster types
-        Map<Block, OreClusterConfigModel> clusterConfigs = C.getOreConfigs();
-        List<Block> oreClusterTypes = new ArrayList<>(clusterConfigs.keySet());
+        Map<BlockState, OreClusterConfigModel> clusterConfigs = C.getOreConfigs();
+        List<BlockState> oreClusterTypes = new ArrayList<>(clusterConfigs.keySet());
 
-        HashMap<Block, Integer> clusterCounts = new HashMap<>();
-        //LoggerBase.logDebug("1. Obtained cluster configs for ores: ");
-        //LoggerBase.logDebug(clusterConfigs.toString());
+        HashMap<BlockState, Integer> clusterCounts = new HashMap<>();
 
         //Determine the expected total for each cluster type for this MAX_CLUSTERS batch
         // Use a normal distribution to determine the number of clusters for each type
-        for (Block oreType : oreClusterTypes)
+        for (BlockState oreType : oreClusterTypes)
         {
             int normalizedSpawnRate = clusterConfigs.get(oreType).oreClusterSpawnRate;
             double sigma = ModRealTimeConfig.CHUNK_DISTRIBUTION_STDV_FUNC.apply(normalizedSpawnRate);
@@ -63,11 +61,8 @@ public class OreClusterCalculator {
 
             clusterCounts.put(oreType, numClusters);
         }
-        //LoggerBase.logDebug("2. Determined cluster counts for each ore type: ");
-        //LoggerBase.logDebug(clusterCounts.toString());
 
         long step1Time = System.nanoTime();
-        //LoggerBase.logDebug("Step 1 (Get configs and determine cluster counts) took " + LoggerBase.getTime(startTime, step1Time) + " ms");
 
         /** Add all clusters, distributing one cluster type at a time
         *
@@ -209,7 +204,7 @@ public class OreClusterCalculator {
         //4. Using the Map of aggregate clusters, pick chunks for each cluster type
 
         // Maps <ChunkId, <OreType, BlockPos>>
-        HashMap<String, List<Block>> clusterPositions = new HashMap<>();
+        HashMap<String, List<BlockState>> clusterPositions = new HashMap<>();
 
         //Order OreCluster types by spawnRate ascending
         oreClusterTypes.sort(Comparator.comparingInt( o -> -1*clusterConfigs.get(o).oreClusterSpawnRate ));
@@ -235,7 +230,7 @@ public class OreClusterCalculator {
          try {
 
 
-             for (Block oreType : oreClusterTypes)
+             for (BlockState oreType : oreClusterTypes)
              {
                  OreClusterConfigModel config = clusterConfigs.get(oreType);
                  HashSet<String> allChunksWithClusterType = existingClustersByType.get(oreType).stream().collect(Collectors.toCollection(HashSet::new));
@@ -313,7 +308,7 @@ public class OreClusterCalculator {
                          }
                          else
                          {
-                             LinkedList<Block> clusterMap = new LinkedList<>();
+                             LinkedList<BlockState> clusterMap = new LinkedList<>();
                              clusterMap.add(oreType);
                              clusterPositions.put(candidateChunkId, clusterMap);
                          }
@@ -384,7 +379,7 @@ public class OreClusterCalculator {
      * CLEAN CLUSTERS
      * @return boolean false if cleaning failed
      */
-    public boolean cleanChunkFindAllOres(ManagedOreClusterChunk chunk, final Set<Block> COUNTABLE_ORES)
+    public boolean cleanChunkFindAllOres(ManagedOreClusterChunk chunk, final Set<BlockState> COUNTABLE_ORES)
     {
         LevelChunk levelChunk = chunk.getChunk(false);
         if( levelChunk == null )
@@ -392,12 +387,7 @@ public class OreClusterCalculator {
         LevelChunkSection[] sections = levelChunk.getSections();
 
         final int SECTION_SZ = 16;
-        final int MAX_ORES = 2048;
-        final int NEGATIVE_Y_RANGE = 64;
 
-        Map<Block, HBUtil.Fast3DArray> oreVerticesByBlock = new HashMap<>();
-
-        BlockPos chunkWorldPos = levelChunk.getPos().getWorldPosition();
         int count = 0;
         int outerCount = 0;
         //loop in reverse, top, down
@@ -407,8 +397,6 @@ public class OreClusterCalculator {
             LevelChunkSection section = sections[i];
             if (section == null || section.hasOnlyAir() || TURN_OFF)
                 continue;
-
-            //Maybehas check for ores here, maybe
 
             //iterate over x, y, z
             PalettedContainer<BlockState> states = section.getStates();
@@ -420,8 +408,8 @@ public class OreClusterCalculator {
                     for (int z = 0; z < SECTION_SZ; z++)
                     {
                         outerCount++;
-                        Block block = states.get(x, y, z).getBlock();
-                        if (COUNTABLE_ORES.contains(block)) {
+                        BlockState blockState = states.get(x, y, z);
+                        if (COUNTABLE_ORES.contains(blockState)) {
                           BlockState s = states.get(x, y, z);
                           if( chunk.sampleAddOre(s) ) {
                             HBUtil.TripleInt relativePos = new HBUtil.TripleInt(x, y, z);
@@ -453,8 +441,7 @@ public class OreClusterCalculator {
 
         final Map<BlockState, BlockPos> CLUSTER_TYPES = chunk.getClusterTypes();
 
-        List<BlockState> blocksCopy = new ArrayList<>(CLUSTER_TYPES.keySet());
-        for (BlockState b : blocksCopy)
+        for (BlockState b : CLUSTER_TYPES.keySet())
         {
             if( CLUSTER_TYPES.get(b) != null ) continue;
             BlockPos orePos = chunk.getOreClusterSourcePos(b);

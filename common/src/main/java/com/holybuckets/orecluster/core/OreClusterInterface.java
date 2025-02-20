@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.*;
 
@@ -61,7 +62,7 @@ public class OreClusterInterface {
      * @return null if level or pos is null, or limit is less than 1
      */
 
-    public List<OreClusterInfo> locateOreClusters(LevelAccessor level, BlockPos pos, Block oreType, int limit)
+    public List<OreClusterInfo> locateOreClusters(LevelAccessor level, BlockPos pos, BlockState oreType, int limit)
     {
         //1. Check if level is valid and get OreClusterManager for the level
         if(level == null)
@@ -78,13 +79,13 @@ public class OreClusterInterface {
             return null;
 
         //2. Get list of all oreClusters
-        Map<Block, Set<String>> clusters = manager.getExistingClustersByType();
+        Map<BlockState, Set<String>> clusters = manager.getExistingClustersByType();
 
         //3. Create list of all valid Clusters from each chunk, filtering by oreType if necessary
         List<String> validClusterChunkIds = new ArrayList<>();
         if(oreType == null)
         {
-            for(Block clusterType : clusters.keySet()) {
+            for(BlockState clusterType : clusters.keySet()) {
                 validClusterChunkIds.addAll(clusters.get(clusterType));
             }
         }

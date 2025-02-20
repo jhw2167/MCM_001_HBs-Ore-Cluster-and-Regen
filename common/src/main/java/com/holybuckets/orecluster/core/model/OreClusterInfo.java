@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * Description: Class designed for storing information about ore clusters
@@ -14,12 +15,12 @@ public class OreClusterInfo {
 
     public LevelAccessor level;
     public String chunkId;
-    public Block oreType;
+    public BlockState oreType;
     public BlockPos position;
     /** Distance from arbitrary point, used in some algorithms **/
     public Double pointDistance;
 
-    public OreClusterInfo(ManagedOreClusterChunk chunk, Block oreType)
+    public OreClusterInfo(ManagedOreClusterChunk chunk, BlockState oreType)
     {
         this.level = chunk.getLevel();
         this.chunkId = chunk.getId();

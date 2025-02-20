@@ -17,6 +17,7 @@ import java.util.function.Function;
 
 //Project imports
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
+import net.minecraft.world.level.block.state.BlockState;
 
 
 /**
@@ -35,7 +36,7 @@ public class ModRealTimeConfig
      */
 
     private OreClusterConfigModel defaultConfig;
-    private Map<Block, OreClusterConfigModel> oreConfigs;
+    private Map<BlockState, OreClusterConfigModel> oreConfigs;
 
     /** We will batch checks for which chunks have clusters by the next CHUNK_NORMALIZATION_TOTAL chunks at a time
      thus the spawnrate is normalized to 256 chunks */
@@ -70,7 +71,7 @@ public class ModRealTimeConfig
             this.defaultConfig = new OreClusterConfigModel(clusterConfig);
 
             //Create new oreConfig for each element in cOreClusters list
-            this.oreConfigs = new HashMap<Block, OreClusterConfigModel>();
+            this.oreConfigs = new HashMap<BlockState, OreClusterConfigModel>();
 
             //File configFile = new File(clusterConfig.oreClusters.get());
             //File defaultConfigFile = new File(clusterConfig.oreClusters.getDefault());
@@ -85,11 +86,11 @@ public class ModRealTimeConfig
             //Default configs will be used for all valid ore clusters unless overwritten
             for( Block validOreClusterBlock : defaultConfig.validOreClusterOreBlocks.stream().toList() )
             {
-                defaultConfig.setOreClusterType(validOreClusterBlock);
+                defaultConfig.setOreClusterType(validOreClusterBlock.defaultBlockState());
                 OreClusterConfigModel oreConfig = new OreClusterConfigModel( OreClusterConfigModel.serialize(defaultConfig) );
-                oreConfigs.put(validOreClusterBlock, oreConfig );
+                oreConfigs.put(validOreClusterBlock.defaultBlockState(), oreConfig );
             }
-            defaultConfig.setOreClusterType((Block) null);
+            defaultConfig.setOreClusterType( (BlockState) null);
 
             //Particular configs will overwrite the default data
             for (OreClusterConfigModel oreConfig : jsonOreConfigs.getOreClusterConfigs())
@@ -114,7 +115,7 @@ public class ModRealTimeConfig
          *  Getters
          */
 
-        public Map<Block, OreClusterConfigModel> getOreConfigs() {
+        public Map<BlockState, OreClusterConfigModel> getOreConfigs() {
             return oreConfigs;
         }
 
@@ -130,7 +131,7 @@ public class ModRealTimeConfig
             this.defaultConfig = defaultConfig;
         }
 
-        public void setOreConfigs(Map<Block, OreClusterConfigModel> oreConfigs) {
+        public void setOreConfigs(Map<BlockState, OreClusterConfigModel> oreConfigs) {
             this.oreConfigs = oreConfigs;
         }
 

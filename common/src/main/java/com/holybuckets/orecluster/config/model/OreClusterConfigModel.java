@@ -16,13 +16,14 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class OreClusterConfigModel {
 
     public static final String CLASS_ID = "004";
 
     public Long subSeed = null;
-    public Block oreClusterType = null;
+    public BlockState oreClusterType = null;
     public HashSet<Block> validOreClusterOreBlocks; //defaultConfigOnly
     public Integer oreClusterSpawnRate = COreClusters.DEF_ORE_CLUSTER_SPAWN_RATE.get();
     public TripleInt oreClusterVolume = processVolume( COreClusters.DEF_ORE_CLUSTER_VOLUME);
@@ -32,8 +33,8 @@ public class OreClusterConfigModel {
     public Integer minChunksBetweenOreClusters = COreClusters.DEF_MIN_CHUNKS_BETWEEN_ORE_CLUSTERS.get();
     public Integer maxChunksBetweenOreClusters = COreClusters.DEF_MAX_CHUNKS_BETWEEN_ORE_CLUSTERS.get();
     public Float oreVeinModifier = COreClusters.DEF_ORE_VEIN_MODIFIER.get();
-    public HashSet<Block> oreClusterNonReplaceableBlocks = processStringIntoBlockHashSet(COreClusters.DEF_ORE_CLUSTER_NONREPLACEABLE_BLOCKS);
-    public HashSet<Block> oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(COreClusters.DEF_ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS);
+    public HashSet<BlockState> oreClusterNonReplaceableBlocks = processStringIntoBlockStateHashSet(COreClusters.DEF_ORE_CLUSTER_NONREPLACEABLE_BLOCKS);
+    public HashSet<BlockState> oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(COreClusters.DEF_ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS);
     public Boolean oreClusterDoesRegenerate = COreClusters.DEF_REGENERATE_ORE_CLUSTERS;
     public Map<String, Integer> oreClusterRegenPeriods; //defaultConfigOnly
 
@@ -44,7 +45,11 @@ public class OreClusterConfigModel {
         Creates a cluster for the given type of block with the default settings
      */
     public OreClusterConfigModel(Block oreClusterBlock ) {
-        this.oreClusterType = oreClusterBlock;
+        this.oreClusterType = oreClusterBlock.defaultBlockState();
+    }
+
+    public OreClusterConfigModel(BlockState oreClusterBlockState ) {
+        this.oreClusterType = oreClusterBlockState;
     }
 
     public OreClusterConfigModel(String oreClusterJson) {
@@ -72,7 +77,7 @@ public class OreClusterConfigModel {
         this.minChunksBetweenOreClusters = cOreClusters.minChunksBetweenOreClusters;
         //this.maxChunksBetweenOreClusters = cOreClusters.maxChunksBetweenOreClusters;
         this.oreVeinModifier = cOreClusters.oreVeinModifier;
-        this.oreClusterNonReplaceableBlocks = processStringIntoBlockHashSet(cOreClusters.oreClusterNonreplaceableBlocks );
+        this.oreClusterNonReplaceableBlocks = processStringIntoBlockStateHashSet(cOreClusters.oreClusterNonreplaceableBlocks );
         this.oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(cOreClusters.oreClusterReplaceableEmptyBlocks);
         this.oreClusterDoesRegenerate = cOreClusters.regenerateOreClusters;
 
@@ -106,15 +111,20 @@ public class OreClusterConfigModel {
     }
 
     //Setup static methods to process oreClusterReplaceableBlocks and oreClusterReplaceableEmptyBlock
-    public static HashSet<Block> processStringIntoBlockHashSet(String replaceableBlocks) {
+    public static HashSet<BlockState> processStringIntoBlockStateHashSet(String replaceableBlocks) {
 
-        return Arrays.stream(replaceableBlocks.split(",")) //Split the string by commas
+        HashSet<Block> blocks = Arrays.stream(replaceableBlocks.split(",")) //Split the string by commas
                 .map(OreClusterConfigModel::blockNameToBlock)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        //map blocks to defaultBlockState
+        return blocks.stream()
+                .map(Block::defaultBlockState)
                 .collect(Collectors.toCollection(HashSet::new));
     }
 
-    public static HashSet<Block> processReplaceableEmptyBlocks(String replaceableBlocks) {
-        HashSet<Block> blocks = processStringIntoBlockHashSet(replaceableBlocks);
+    public static HashSet<BlockState> processReplaceableEmptyBlocks(String replaceableBlocks) {
+        HashSet<BlockState> blocks = processStringIntoBlockStateHashSet(replaceableBlocks);
         LoggerProject.logDebug("004000", "Blocks: " + blocks);
         if( blocks == null )
             blocks = new HashSet<>();
@@ -123,7 +133,7 @@ public class OreClusterConfigModel {
             blocks.remove(null);
 
         if( blocks.isEmpty() )
-            blocks.add( blockNameToBlock("air"));
+            blocks.add( blockNameToBlock("air").defaultBlockState());
 
         return blocks;
     }
@@ -216,12 +226,12 @@ public class OreClusterConfigModel {
         Setter Functions
      */
 
-     public void setOreClusterType(Block oreClusterType) {
+     public void setOreClusterType(BlockState oreClusterType) {
         this.oreClusterType = oreClusterType;
      }
 
     public void setOreClusterType(String oreClusterTypeString) {
-        this.oreClusterType = this.blockNameToBlock(oreClusterTypeString);
+        this.oreClusterType = this.blockNameToBlock(oreClusterTypeString).defaultBlockState();
     }
 
     public void setOreClusterSpawnRate(Integer oreClusterSpawnRate) {
@@ -346,7 +356,7 @@ public class OreClusterConfigModel {
     }
 
     public void setOreClusterNonReplaceableBlocks(String oreClusterNonReplaceableBlocks) {
-        this.oreClusterNonReplaceableBlocks = processStringIntoBlockHashSet(oreClusterNonReplaceableBlocks);
+        this.oreClusterNonReplaceableBlocks = processStringIntoBlockStateHashSet(oreClusterNonReplaceableBlocks);
     }
 
     public void setOreClusterReplaceableEmptyBlocks(String oreClusterReplaceableEmptyBlocks) {
@@ -358,7 +368,7 @@ public class OreClusterConfigModel {
     }
 
 
-    private static void logPropertyWarning(String message, Block ore, String defaultMessage, String defaultValue)
+    private static void logPropertyWarning(String message, BlockState ore, String defaultMessage, String defaultValue)
     {
         if( defaultMessage == null )
             defaultMessage = " Using default value of ";
@@ -386,7 +396,7 @@ public class OreClusterConfigModel {
     public static String serialize( OreClusterConfigModel c )
     {
         JsonObject jsonObject = new JsonObject();
-        String oreClusterTypeString = BlockUtil.blockToString(c.oreClusterType);
+        String oreClusterTypeString = BlockUtil.blockToString(c.oreClusterType.getBlock());
         jsonObject.addProperty("oreClusterType", oreClusterTypeString);
         jsonObject.addProperty("oreClusterSpawnRate", c.oreClusterSpawnRate);
         jsonObject.addProperty("oreClusterVolume", c.oreClusterVolume.x
@@ -401,9 +411,9 @@ public class OreClusterConfigModel {
 
         jsonObject.addProperty("oreVeinModifier", c.oreVeinModifier);
         jsonObject.addProperty("oreClusterNonReplaceableBlocks",
-            c.oreClusterNonReplaceableBlocks.stream().map(BlockUtil::blockToString).collect(Collectors.joining(", ")));
+            c.oreClusterNonReplaceableBlocks.stream().map(bs -> bs.getBlock()).map(BlockUtil::blockToString).collect(Collectors.joining(", ")));
         jsonObject.addProperty("oreClusterReplaceableEmptyBlocks",
-            c.oreClusterReplaceableEmptyBlocks.stream().map(BlockUtil::blockToString).collect(Collectors.joining(", ")));
+            c.oreClusterReplaceableEmptyBlocks.stream().map(bs -> bs.getBlock()).map(BlockUtil::blockToString).collect(Collectors.joining(", ")));
         jsonObject.addProperty("oreClusterDoesRegenerate", c.oreClusterDoesRegenerate);
 
         //System.err.println("jsonObject: " + jsonObject);

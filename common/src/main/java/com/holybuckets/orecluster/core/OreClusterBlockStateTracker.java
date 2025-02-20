@@ -33,15 +33,9 @@ public class OreClusterBlockStateTracker
         OreClusterManager manager = OreClusterManager.getManager(level);
         chunkId = HBUtil.ChunkUtil.getId(currentChunk);
         currentManagedOreClusterChunk = manager.getDeterminedOreClusterChunk( chunkId );
-        if( trackingOreConfig == null ) {
-            Map<Block, OreClusterConfigModel> map = manager.getConfig().getOreConfigs();
-            trackingOreConfig = map.entrySet().stream().collect(
-                    java.util.stream.Collectors.toMap(
-                            e -> e.getKey().defaultBlockState(),
-                            e -> e.getValue()
-                    )
-            );
-        }
+        if( trackingOreConfig == null )
+            trackingOreConfig = manager.getConfig().getOreConfigs();
+
 
     }
 
