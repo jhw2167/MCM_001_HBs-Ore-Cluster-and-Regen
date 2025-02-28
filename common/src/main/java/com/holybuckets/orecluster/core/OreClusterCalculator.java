@@ -2,6 +2,8 @@ package com.holybuckets.orecluster.core;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
+import java.util.function.Function;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import com.holybuckets.foundation.HBUtil;
@@ -325,7 +327,7 @@ public class OreClusterCalculator {
          {
             StringBuilder sb = new StringBuilder();
             clusterCounts.entrySet().forEach( ore -> sb.append(ore.getKey() + ": " + ore.getValue() + ", "));
-            LoggerProject.logWarning("003001", "Unable to place all ore clusters: " + e.getMessage() + "Remaining Counts: " + sb.toString());
+            LoggerProject.logWarning("013001", "Unable to place all ore clusters: " + e.getMessage() + "Remaining Counts: " + sb.toString());
              e.printStackTrace();
          }
 
@@ -516,7 +518,7 @@ public class OreClusterCalculator {
      * @param source
      * @return List of BlockPos that make up the ore cluster
      */
-    public List<BlockPos> generateCluster(Pair<BlockState, BlockPos> source)
+    public List<BlockPos> generateCluster(ManagedOreClusterChunk chunk, Pair<BlockState, BlockPos> source)
     {
 
         //1. Determine the cluster size and shape
@@ -528,23 +530,114 @@ public class OreClusterCalculator {
 
        //2. Generate Cube
        final TripleInt VOL = config.oreClusterVolume;
-       //Fast3DArray positions = ShapeUtil.getCube(VOL.x, VOL.z, VOL.y);
-        Fast3DArray positions = ShapeUtil.getCircle(VOL.x);
+       Fast3DArray positions = ShapeUtil.getCube(VOL.x, VOL.z, VOL.y);
+       //Fast3DArray positions = ShapeUtil.getCircle(VOL.x);
 
 
        //3. Convert cube to BlockPos
-        List<BlockPos> blockPositions = new ArrayList<>();
+        List<BlockPos> blockPositions = new ArrayList<>(positions.size);
+        List<Integer> Xs = new ArrayList<>(positions.size);
+        List<Integer> Ys = new ArrayList<>(positions.size);
+        List<Integer> Zs = new ArrayList<>(positions.size);
         for( int i = 0; i < positions.size; i++ )
         {
+            Xs.add(positions.getX(i)); Ys.add(positions.getY(i)); Zs.add(positions.getZ(i));
             int x = sPos.getX() + positions.getX(i);
             int y = sPos.getY() + positions.getY(i);
             int z = sPos.getZ() + positions.getZ(i);
             blockPositions.add(new BlockPos(x, y, z));
         }
 
+        LoggerProject.logInfo("013009", "Determining air offset" );
+        try {
+
+            List<Pair<Integer,List<Integer>>> relativePosData = new ArrayList<>();
+            relativePosData.add(Pair.of(VOL.x, Xs)); relativePosData.add(Pair.of(VOL.y, Ys)); relativePosData.add(Pair.of(VOL.z, Zs));
+            TripleInt airOffset = offSetClusterToAvoidAir(relativePosData, blockPositions, chunk);
+            LoggerProject.logInfo("003010", "Cluster offset to avoid air: " + airOffset);
+            blockPositions.forEach( pos -> pos.offset(airOffset.x, airOffset.y, airOffset.z) );
+
+        } catch ( NullPointerException e) {
+            return null;
+        }
+
         return blockPositions;
     }
     //END GENERATE ORE CLUSTERS
+
+        /**
+         * Returns advisement to offset cluster best to avoid spawning in open air where cluster may look unnatural
+         * @param positions
+         * @param chunk
+         * @return
+         */
+        private TripleInt offSetClusterToAvoidAir( List<Pair<Integer, List<Integer>>> positions, List<BlockPos> blockPositions, ManagedOreClusterChunk chunk)
+        {
+
+            //4. Determine "edges" of the cluster as all positions at the top, bottom, left, right etc. 20% of the shape
+            final float EDGE_PORTION_CONSTANT = 0.2f;
+            final Function<Integer,Integer> CALC_EDGE_SZ = (Integer size) -> (int) Math.ceil( size * EDGE_PORTION_CONSTANT );
+            List<Float> clusterEdgeAirPortions = new ArrayList<>(6);
+
+            List<BlockPos> nearEdges = new ArrayList<>();
+            List<BlockPos> farEdges = new ArrayList<>();
+
+            //Determine edge portion as air for each side (as float)
+            for(Pair<Integer, List<Integer>> dimension : positions)
+            {
+                if(dimension.getLeft() == 0) continue;
+                nearEdges.clear(); farEdges.clear();
+
+                int dimLength = dimension.getLeft();
+                int EDGE_SZ = CALC_EDGE_SZ.apply(dimension.getLeft());
+                int NEAR_CUTOFF = dimLength - EDGE_SZ;
+                int FAR_CUTOFF = -1*dimLength + EDGE_SZ;
+
+                List<Integer> relativePos = dimension.getRight();
+                for (int i = 0; i < relativePos.size(); i++)
+                {
+                    if( relativePos.get(i) >= NEAR_CUTOFF)         //most positive
+                        nearEdges.add(blockPositions.get(i));
+                    else if( relativePos.get(i) <= FAR_CUTOFF )   //more negative
+                        farEdges.add(blockPositions.get(i));
+                }
+                clusterEdgeAirPortions.add(checkSideAirExposure(nearEdges, chunk));
+                clusterEdgeAirPortions.add(checkSideAirExposure(farEdges, chunk));
+
+            }
+
+
+            final TripleInt OFFSET = new TripleInt(0, 0, 0);
+            for(int i = 0; i < clusterEdgeAirPortions.size(); i+=2 )
+            {
+                int EDGE_SZ = CALC_EDGE_SZ.apply(positions.get(i/2).getLeft());
+                Function<Float, Integer> getOffset = (Float portion) -> {
+                    if(portion < 0.2f) return 0;
+                    else if(portion < 0.4f) return (int) Math.ceil(EDGE_SZ * 0.5f);
+                    else if(portion < 0.6f) return (int) Math.ceil(EDGE_SZ * 1f);
+                    else if(portion < 0.8f) return (int) Math.ceil(EDGE_SZ * 1.5f);
+                    else return (int) Math.ceil(portion * 2f);
+                };
+
+                int offset = 0;
+                int nearOffset = getOffset.apply(clusterEdgeAirPortions.get(i));
+                    if( nearOffset > 0) offset -= nearOffset;
+
+                int farOffset = getOffset.apply(clusterEdgeAirPortions.get(i+1));
+                    if( farOffset > 0) offset += farOffset;
+
+                if( i < 2 )
+                    OFFSET.x  = offset;
+                else if( i < 4 )
+                    OFFSET.y = offset;
+                else
+                    OFFSET.z = offset;
+
+            }
+
+            return OFFSET;
+        }
+
 
 
         /**
@@ -553,13 +646,18 @@ public class OreClusterCalculator {
          * @param chunk
          * @return
          */
-        private float checkSideAirExposure(List<BlockPos> positions, LevelChunk chunk)
+        private float checkSideAirExposure(List<BlockPos> positions, ManagedOreClusterChunk chunk)
         {
             if( positions == null || positions.isEmpty() ) return 0;
 
+            if(chunk == null || chunk.getChunk(false) == null)
+                throw new NullPointerException("LevelChunk for ManagedOreClusterChunk " + chunk.getId()
+                    + " is null, cannot check air exposure");
+
+            LevelChunk levelChunk = chunk.getChunk(false);
             int count = 0;
             for (BlockPos pos : positions) {
-                if (chunk.getBlockState(pos).isAir()) {
+                if (levelChunk.getBlockState(pos).isAir()) {
                     count++;
                 }
             }

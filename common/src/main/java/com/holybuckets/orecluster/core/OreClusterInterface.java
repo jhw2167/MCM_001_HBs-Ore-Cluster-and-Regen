@@ -1,6 +1,8 @@
 package com.holybuckets.orecluster.core;
 
 
+import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import com.holybuckets.orecluster.core.model.OreClusterInfo;
 import net.minecraft.core.BlockPos;
@@ -81,6 +83,9 @@ public class OreClusterInterface {
         //2. Get list of all oreClusters
         Map<BlockState, Set<String>> clusters = manager.getExistingClustersByType();
 
+        LoggerProject.logInfo(null, "008000", "Found " + clusters.size() +
+         " clusters in level: " + HBUtil.LevelUtil.toLevelId(level) + " with oreType: " + oreType );
+
         //3. Create list of all valid Clusters from each chunk, filtering by oreType if necessary
         List<String> validClusterChunkIds = new ArrayList<>();
         if(oreType == null)
@@ -110,6 +115,8 @@ public class OreClusterInterface {
             }
         }
 
+        LoggerProject.logInfo(null, "008001", "Found " + clusterInfo.size() + " clusters of type: " + oreType);
+
         //4. Determine distance of each cluster from pos
         for(OreClusterInfo cluster : clusterInfo) {
             cluster.calcPointDistance(pos);
@@ -122,6 +129,8 @@ public class OreClusterInterface {
             .sorted( clusterComparator )
             .limit(limit)
             .toList();
+
+        LoggerProject.logInfo(null, "008002", "Sorted clusters by distance from: " + pos + " with limit  " + limit);
 
         return sortedClusters;
     }

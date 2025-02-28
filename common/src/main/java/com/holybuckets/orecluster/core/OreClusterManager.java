@@ -974,7 +974,11 @@ public class OreClusterManager {
             }
 
 
-            List<BlockPos> clusterPos = oreClusterCalculator.generateCluster(Pair.of(oreType, sourcePos));
+            List<BlockPos> clusterPos = oreClusterCalculator.generateCluster( chunk, Pair.of(oreType, sourcePos));
+            if( clusterPos == null || clusterPos.size() == 0 ) {
+                SKIPPED = BlockUtil.blockToString(oreType.getBlock());
+                continue;
+            }
             clusterPos.forEach( pos -> chunk.addBlockStateUpdate(oreType, pos) );
         }
 

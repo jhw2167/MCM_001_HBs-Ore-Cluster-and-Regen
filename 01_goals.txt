@@ -363,11 +363,15 @@ jarJar {
 	- Added network and message packages
 
 
-37.  
+37.  More Releastic cluster generation
 ---  
 
-38.  
+
+38.  Add support for regenerating clusters
 ---  
+
+
+
 
 39.  
 ---  
@@ -409,10 +413,6 @@ jarJar {
 
 		- Add an indicator to the param to NOT generate clusters
 
-		- port mod to remote server and test for accuracy and ability
-		- find out how to get chunkUnload to trigger
-
-
 		- Determine "ticksLastRefreshed" parameter on ManagedOreClusterChunk
 		- tickLastRefreshed < LAST_REGEN_TICK then do a refresh, set tickLastRefreshed to LAST_REGEN_TICK
 		- when currentGameTick > NEXT_REGEN_TICK, set LAST_REGEN_TICK == NEXT_REGEN_TICK
@@ -425,16 +425,12 @@ jarJar {
 
 
 	Touchups:
-	- Determine Max Size/Lifetime of Managed Chunk in RAM
+	- Determine Max Size/Lifetime of Managed Chunk in RAM						X
 	- Add level distinguisher in TOML
 	- Add level JSON property to ore configuration
 	- Alter ManagedOreClusterChunk sourcing algorithm to select valid Regenerating ores by cluster
-	- Move Particular Ore configuration JSON to its own config file and folder
-	- Set TOML config file to read file name where JSON config is stored
 	
 	- Deserialization method should be synchronous, locked on objects to ensure other methods aren't running
-	- Performance isnt excellent, but it is pretty good, could be improved but intersecting noise generating alg to source ores
-	- Improve positions serializer to store in int[], be 8x more memory efficient
 
 			
 TEST CASES
@@ -451,94 +447,3 @@ TEST CASES
 	#Threadpool
 	1. onNewlyLoadedChunks successfully runs in background to pickup new chunks
 	2. onNewlyLoadedChunks is shutdown successfully when the class is shutdown
-
-
-
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1568, 128, -16]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1632, 128, -32]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1616, 128, -48]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1520, 128, 16]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1648, 128, 48]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1680, 128, 48]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1488, 128, 16]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1504, 128, -80]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: deepslate_diamond_ore at [-1664, 128, -96]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1456, 128, -16]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1584, 128, 144]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1552, 128, 144]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1712, 128, -80]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1744, 128, 16]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1728, 128, -64]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1440, 128, 64]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1424, 128, 16]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1760, 128, 48]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: deepslate_diamond_ore at [-1472, 128, 144]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1472, 128, -128]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1600, 128, -176]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1552, 128, -176]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1536, 128, -176]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1520, 128, -176]
-[01:20:19] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1584, 128, -192]
-
-[01:22:17] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1632, 128, 224]
-[01:22:17] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1376, 128, -96]
-[01:22:17] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1392, 128, -128]
-[01:22:17] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1824, 128, -32]
-[01:22:17] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1648, 128, -224]
-[01:22:17] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1392, 128, 176]
-[01:22:17] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1424, 128, -208]
-[01:22:17] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1760, 128, 224]
-[01:22:17] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1824, 128, 192]
-[01:22:17] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1232, 128, 32]
-
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1632, 128, 224]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1648, 128, 224]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1360, 128, 16]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1376, 128, 96]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1392, 128, 128]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1360, 128, -48]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1376, 128, -96]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1360, 128, -64]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1392, 128, -128]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1824, 128, -32]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1648, 128, -224]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1344, 128, 64]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1344, 128, -48]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: deepslate_diamond_ore at [-1552, 128, -240]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: deepslate_diamond_ore at [-1488, 128, -224]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1632, 128, -240]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1840, 128, 0]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1392, 128, 176]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1408, 128, 208]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1600, 128, -256]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1680, 128, -240]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1456, 128, -224]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1488, 128, -240]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1424, 128, -208]
-[01:24:52] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1648, 128, -256]
-
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: deepslate_diamond_ore at [-1600, 128, 48]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1552, 128, 32]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1568, 128, -32]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1632, 128, -32]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1520, 128, 16]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1520, 128, 0]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1648, 128, 48]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1488, 128, 16]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1680, 128, 48]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1632, 128, 112]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: deepslate_diamond_ore at [-1472, 128, 32]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1504, 128, -80]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: deepslate_diamond_ore at [-1712, 128, 16]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: deepslate_diamond_ore at [-1664, 128, -96]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1456, 128, -16]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1584, 128, 144]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1552, 128, 144]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1568, 128, -128]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: coal_ore at [-1728, 128, 16]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1456, 128, -48]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1712, 128, -80]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1440, 128, 64]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: gold_ore at [-1744, 128, 16]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: iron_ore at [-1728, 128, -64]
-[01:26:23] [Render thread/INFO] (Minecraft) [CHAT] <Player391> Cluster: deepslate_diamond_ore at [-1696, 128, 128]
