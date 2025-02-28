@@ -1,5 +1,6 @@
 package com.holybuckets.orecluster;
 
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.foundation.event.EventRegistrar;
 
@@ -79,7 +80,9 @@ public class OreClustersAndRegenMain
             modRealTimeConfig = new ModRealTimeConfig();
         }
 
-        if( !ORE_CLUSTER_MANAGER_BY_LEVEL.containsKey( level ) ) {
+        if( !ORE_CLUSTER_MANAGER_BY_LEVEL.containsKey( level ) )
+        {
+            if( DEBUG && ( !HBUtil.LevelUtil.toLevelId( level ).contains("overworld") )) return;
             ORE_CLUSTER_MANAGER_BY_LEVEL.put( level, new OreClusterManager( level,  modRealTimeConfig ) );
         }
 

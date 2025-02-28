@@ -1,14 +1,12 @@
 package com.holybuckets.orecluster.core.model;
 
 import com.holybuckets.foundation.GeneralConfig;
-import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.HBUtil.ChunkUtil;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
-import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
@@ -24,7 +22,6 @@ import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -57,7 +54,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private static final String CLASS_ID = "003";
     private static final String NBT_KEY_HEADER = "managedOreClusterChunk";
     
-    public static final String TEST_ID = "3,-1";
+    public static final String TEST_ID = "-15,-15";
 
 
 
@@ -85,6 +82,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private ChunkPos pos;
     private ClusterStatus status;
     private long timeUnloaded;
+    private long timeLastLoaded;
     private long tickLoaded;
     private boolean isReady;
 
@@ -108,6 +106,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.pos = null;
         this.status = ClusterStatus.NONE;
         this.timeUnloaded = -1;
+        this.timeLastLoaded = System.currentTimeMillis();
         this.tickLoaded = GeneralConfig.getInstance().getTotalTickCount();
         this.isReady = false;
         this.clusterTypes = null;
@@ -201,6 +200,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     public LevelAccessor getLevel() { return level; }
 
     public Long getTimeUnloaded() { return timeUnloaded; }
+
+    public Long getTimeLastLoaded() { return timeLastLoaded; }
 
     public Long getTickLoaded() { return tickLoaded; }
 
@@ -302,9 +303,13 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     /**
      * Updates time loaded with the current system time in milliseconds
      */
-    public void setTimeUnloaded()
-    {
+    public void setTimeUnloaded() {
         this.timeUnloaded = System.currentTimeMillis();
+    }
+
+    public void setTimeLastLoaded() {
+        if(ManagedChunkUtilityAccessor.isLoaded(this.level, this.id))
+            this.timeLastLoaded = System.currentTimeMillis();
     }
 
     /** Other Methods **/

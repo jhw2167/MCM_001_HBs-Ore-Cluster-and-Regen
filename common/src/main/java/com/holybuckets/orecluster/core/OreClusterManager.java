@@ -11,6 +11,7 @@ import com.holybuckets.foundation.datastructure.ConcurrentLinkedSet;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.model.ManagedChunk;
+import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
@@ -237,14 +238,15 @@ public class OreClusterManager {
      * chunkDelete
      * chunkExpire
      */
-     private static final Long MAX_DETERMINED_CHUNK_LIFETIME_MILLIS = 150_000L;
-     private static final Long SLEEP_TIME_MILLIS = 30_000L;
+     //private static final Long MAX_DETERMINED_CHUNK_LIFETIME_MILLIS = 150_000L;
+    private static final Long MAX_DETERMINED_CHUNK_LIFETIME_MILLIS = 15_000L;
+     private static final Long SLEEP_TIME_MILLIS = 30_00L;
     private void threadWatchManagedOreChunkLifetime()
     {
         try {
             while(managerRunning)
             {
-                if( loadedOreClusterChunks.isEmpty() )
+                if( this.loadedOreClusterChunks.isEmpty() )
                 {
                     sleep(10);
                     continue;
@@ -252,27 +254,50 @@ public class OreClusterManager {
 
                 Long systemTime = System.currentTimeMillis();
                 List<String> expired_chunks = new ArrayList<>();
+
+                //chunks that were loaded and unloaded
+                loadedOreClusterChunks.values().forEach(c -> c.setTimeLastLoaded() );
                 loadedOreClusterChunks.values().stream()
-                    .filter(c -> c.getTimeUnloaded() > -1 )
-                    .filter(c -> systemTime - c.getTimeUnloaded() > MAX_DETERMINED_CHUNK_LIFETIME_MILLIS)
+                    .filter(c -> systemTime - c.getTimeLastLoaded() > MAX_DETERMINED_CHUNK_LIFETIME_MILLIS)
+                    .limit(30)
                     .forEach(c -> expired_chunks.add(c.getId()));
 
                 if(expired_chunks.contains(TEST_ID)) {
                     int i = 0;
                 }
 
+                Set<String> initializedChunks = ManagedChunkUtilityAccessor.getInitializedChunks(level);
                 for( String id : expired_chunks ) {
-                    LoggerProject.logDebug("002004", "Chunk " + id + " has expired");
-                    loadedOreClusterChunks.remove(id);
+                    if( !initializedChunks.contains(id) ) {
+                        LevelChunk chunk = ManagedChunkUtilityAccessor.getChunk(level, id, true);
+                        chunk.setUnsaved(true);
+                    }
                 }
 
-                sleep(SLEEP_TIME_MILLIS);
+                sleep(SLEEP_TIME_MILLIS); //Sleep for chunks to write data out and unload
+
+                for( String id : expired_chunks ) {
+                    LoggerProject.logDebug("002004", "Chunk " + id + " has expired");
+                    editManagedChunk(loadedOreClusterChunks.get(id), this::removeManagedChunkById);
+                }
+
             }
         }
         catch (Exception e) {
             LoggerProject.logError("002002", "Error in threadWatchManagedOreChunkLifetime: " + e.getMessage());
         }
 
+    }
+
+    private void removeManagedChunkById(ManagedOreClusterChunk c)
+    {
+        String chunkId = c.getId();
+        loadedOreClusterChunks.remove(chunkId);
+        chunksPendingHandling.remove(chunkId);
+        chunksPendingDeterminations.remove(chunkId);
+        chunksPendingCleaning.remove(chunkId);
+        chunksPendingPreGeneration.remove(chunkId);
+        //chunksPendingManifestation.remove(chunkId);
     }
 
 
@@ -751,6 +776,7 @@ public class OreClusterManager {
      * @param batchSize
      * @param chunkId
      *
+     * handleClusterDetermination
      * handleChunkDetermination
      * handleDetermineChunks
      */

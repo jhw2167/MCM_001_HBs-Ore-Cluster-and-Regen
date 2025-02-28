@@ -547,6 +547,27 @@ public class OreClusterCalculator {
     //END GENERATE ORE CLUSTERS
 
 
+        /**
+         * For all provided blockPos checks if the position occupies air
+         * @param positions
+         * @param chunk
+         * @return
+         */
+        private float checkSideAirExposure(List<BlockPos> positions, LevelChunk chunk)
+        {
+            if( positions == null || positions.isEmpty() ) return 0;
+
+            int count = 0;
+            for (BlockPos pos : positions) {
+                if (chunk.getBlockState(pos).isAir()) {
+                    count++;
+                }
+            }
+
+            return count / (float) positions.size();
+        }
+
+
 }
 //END CLASS
 
