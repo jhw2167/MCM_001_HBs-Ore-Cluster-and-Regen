@@ -6,6 +6,7 @@ import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 import com.holybuckets.orecluster.LoggerProject;
+import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.OreClusterManager;
@@ -208,7 +209,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     public boolean isReady() { return isReady; }
 
     public Random getChunkRandom() {
-        return ManagedChunkUtilityAccessor.getChunkRandom(this.pos);
+        return ManagedChunkUtilityAccessor.getChunkRandom(this.pos, ModRealTimeConfig.CLUSTER_SEED );
     }
 
     public synchronized ReentrantLock getLock() {
@@ -340,8 +341,13 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public void addBlockStateUpdate(BlockState block, BlockPos pos) {
-        this.blockStateUpdates.add( Pair.of(block, pos) );
+            this.addBlockStateUpdate( Pair.of(block, pos) );
     }
+
+    public void addBlockStateUpdate(Pair<BlockState, BlockPos> pair) {
+        this.blockStateUpdates.add( pair );
+    }
+
 
 
     /**

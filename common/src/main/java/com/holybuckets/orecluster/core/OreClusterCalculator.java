@@ -3,16 +3,20 @@ package com.holybuckets.orecluster.core;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 import java.util.function.Function;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.Vec3i;
+import net.minecraft.util.KeyDispatchDataCodec;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 
@@ -21,6 +25,9 @@ import com.holybuckets.foundation.HBUtil.*;
 import com.holybuckets.orecluster.LoggerProject;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.PalettedContainer;
+import net.minecraft.world.level.levelgen.DensityFunction;
+import net.minecraft.world.level.levelgen.DensityFunctions;
+import net.minecraft.world.level.levelgen.synth.NormalNoise;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class OreClusterCalculator {
@@ -514,18 +521,16 @@ public class OreClusterCalculator {
      * that will become the ore cluster in the world.
      *
      * This process is expensive and delaying load times
-     *
-     * @param source
-     * @return List of BlockPos that make up the ore cluster
+     * @param oreType source type of the cluster
+     * @param sourcePos source position of the cluster
+     * @return List of Blockstate - BlockPos pairs that make up the ore cluster
      */
-    public List<BlockPos> generateCluster(ManagedOreClusterChunk chunk, Pair<BlockState, BlockPos> source)
+    public List<Pair<BlockState, BlockPos>> generateCluster(ManagedOreClusterChunk chunk, BlockState oreType, BlockPos sourcePos)
     {
 
         //1. Determine the cluster size and shape
         //HBUtil.TripleInt volume = config.oreClusterVolume;
         //String shape = config.oreClusterShape;
-        BlockState oreType = source.getLeft();
-        BlockPos sPos = source.getRight();
         final OreClusterConfigModel config = C.getOreConfigs().get(oreType);
 
        //2. Generate Cube
@@ -542,36 +547,144 @@ public class OreClusterCalculator {
         for( int i = 0; i < positions.size; i++ )
         {
             Xs.add(positions.getX(i)); Ys.add(positions.getY(i)); Zs.add(positions.getZ(i));
-            int x = sPos.getX() + positions.getX(i);
-            int y = sPos.getY() + positions.getY(i);
-            int z = sPos.getZ() + positions.getZ(i);
+            int x = sourcePos.getX() + positions.getX(i);
+            int y = sourcePos.getY() + positions.getY(i);
+            int z = sourcePos.getZ() + positions.getZ(i);
             blockPositions.add(new BlockPos(x, y, z));
         }
 
+        //4. Determine if we are near an open cave and which side it is on
         LoggerProject.logInfo("013009", "Determining air offset" );
+        TripleInt airOffset;
+        List<Pair<Integer,List<Integer>>> relativePosData = new ArrayList<>();
+        relativePosData.add(Pair.of(VOL.x, Xs)); relativePosData.add(Pair.of(VOL.y, Ys)); relativePosData.add(Pair.of(VOL.z, Zs));
+
+        OreClusterGeneratorUtility generator;
         try {
-
-            List<Pair<Integer,List<Integer>>> relativePosData = new ArrayList<>();
-            relativePosData.add(Pair.of(VOL.x, Xs)); relativePosData.add(Pair.of(VOL.y, Ys)); relativePosData.add(Pair.of(VOL.z, Zs));
-            TripleInt airOffset = offSetClusterToAvoidAir(relativePosData, blockPositions, chunk);
-            LoggerProject.logInfo("003010", "Cluster offset to avoid air: " + airOffset);
-            blockPositions.forEach( pos -> pos.offset(airOffset.x, airOffset.y, airOffset.z) );
-
+             generator = new OreClusterGeneratorUtility(chunk, config, blockPositions, relativePosData);
         } catch ( NullPointerException e) {
             return null;
         }
 
-        return blockPositions;
+        airOffset = generator.calculateAvoidAirOffset();
+        LoggerProject.logInfo("003010", "Cluster offset to avoid air: " + airOffset);
+
+        //5. Apply Density function
+        List<BlockState> clusterBlockStates = generator.applyRadialDensityFunction();
+        if( clusterBlockStates == null ) return null;
+
+        //6. Apply translation(s):
+        List<Pair<BlockState, BlockPos>> clusterBlockStatePositions = new ArrayList<>(positions.size);
+        for(int i = 0; i < clusterBlockStates.size(); i++)
+        {
+            if(clusterBlockStates.get(i) == null) continue;
+
+            BlockState state = clusterBlockStates.get(i);
+            BlockPos pos = blockPositions.get(i).offset(airOffset.x, airOffset.y, airOffset.z);
+            clusterBlockStatePositions.add(Pair.of(state, pos));
+        }
+
+
+        return clusterBlockStatePositions;
     }
     //END GENERATE ORE CLUSTERS
 
+
+    class OreClusterGeneratorUtility
+    {
+
+        private ManagedOreClusterChunk chunk;
+        private LevelChunk levelChunk;
+        private Random randomGenerator;
+        private List<BlockPos> blockWorldPositions;
+        private List<Pair<Integer, List<Integer>>> relativePositions;
+
+        private OreClusterConfigModel config;
+        private TripleInt volume;
+        private float expectedOreDensity;
+        private List<BlockState> proportionedBlockStates;
+
+        //Densities
+        private Holder<NormalNoise.NoiseParameters> noiseParametersHolder;
+        private DensityFunction.NoiseHolder noiseHolder;
+        private DensityFunction noise;
+
+        private DensityFunction linearXDensity;
+        private DensityFunction linearZDensity;
+        private DensityFunction linearYDensity;
+        private DensityFunction radialXZDensity;
+        private DensityFunction radialZXDensity;
+
+
+
+        OreClusterGeneratorUtility(ManagedOreClusterChunk chunk, OreClusterConfigModel config, List<BlockPos> blockPositions, List<Pair<Integer, List<Integer>>> positions)
+        {
+            this.chunk = chunk;
+            this.levelChunk = this.chunk.getChunk(false);
+            this.randomGenerator = this.chunk.getChunkRandom();
+            if( levelChunk == null ) throw new NullPointerException("LevelChunk for ManagedOreClusterChunk " + chunk.getId() + " is null" );
+            this.blockWorldPositions = blockPositions;
+            this.relativePositions = positions;
+
+            //Config
+            this.config = config;
+            this.volume = config.oreClusterVolume;
+            this.expectedOreDensity = config.oreClusterDensity;
+
+            this.initOreDensityPortions();
+            this.initDensityFunctions();
+        }
+
+        //Add cutoff values to list which determine dynamically which density values map to which blocks
+        private void initOreDensityPortions()
+        {
+            this.proportionedBlockStates = new ArrayList<>(100);
+            int density = (int) this.expectedOreDensity * 100;
+            for( int i = 0; i < density; i++ ) {
+                this.proportionedBlockStates.add(config.oreClusterType);
+            }
+            List<BlockState> alternativeBlocks = config.oreClusterReplaceableEmptyBlocks.stream().toList();
+            //Add the rest in even portions
+            for( int i = density; i < 100; i++ ) {
+                this.proportionedBlockStates.add(alternativeBlocks.get(i % alternativeBlocks.size()));
+            }
+
+        }
+
+        private void initDensityFunctions()
+        {
+            final int FIRST_OCTAVE = -7;
+            final List<Double> AMPLITUDES = Arrays.asList(1.0, 0.5, 0.25, 0.125);
+            NormalNoise.NoiseParameters nParameters = new NormalNoise.NoiseParameters(FIRST_OCTAVE, AMPLITUDES);
+            RandomSource rSource = RandomSource.create( HBUtil.ChunkUtil.getChunkPos1DMap(chunk.getId()) );
+            NormalNoise noiseGenerator = NormalNoise.create(rSource, nParameters);
+            noise = new CustomNoiseFunction(noiseGenerator, 1.0, 1.0);
+
+            DensityFunction linearXFalloff = DensityFunctions.yClampedGradient(0, volume.x, 1.0, 0);
+            DensityFunction linearZFalloff = DensityFunctions.yClampedGradient(0, volume.z, 1.0, 0);
+            DensityFunction linearYFalloff = DensityFunctions.yClampedGradient(0, volume.y, 1.0, 0);
+
+            DensityFunction radialXZFalloff = new RadialGradient(new TripleInt(0, 0, 0), volume.x, 1.0, 0);
+            DensityFunction radialZXFalloff = new RadialGradient(new TripleInt(0, 0, 0), volume.z, 1.0, 0);
+
+            linearXDensity = DensityFunctions.mul(noise, linearXFalloff).clamp(0, 1.0);
+            linearZDensity = DensityFunctions.mul(noise, linearZFalloff).clamp(0, 1.0);
+            linearYDensity = DensityFunctions.mul(noise, linearYFalloff).clamp(0, 1.0);
+
+            radialXZDensity = mul( mul(noise, radialXZFalloff), linearYFalloff).clamp(0, 1.0);
+            radialZXDensity = mul( mul(noise, radialZXFalloff), linearYFalloff).clamp(0, 1.0);
+
+        }
+
+        private DensityFunction mul( DensityFunction d1, DensityFunction d2 ) {
+            return DensityFunctions.mul(d1, d2).clamp(0, 1.0);
+        }
+
         /**
          * Returns advisement to offset cluster best to avoid spawning in open air where cluster may look unnatural
-         * @param positions
-         * @param chunk
          * @return
          */
-        private TripleInt offSetClusterToAvoidAir( List<Pair<Integer, List<Integer>>> positions, List<BlockPos> blockPositions, ManagedOreClusterChunk chunk)
+        TripleInt calculateAvoidAirOffset()
         {
 
             //4. Determine "edges" of the cluster as all positions at the top, bottom, left, right etc. 20% of the shape
@@ -583,7 +696,7 @@ public class OreClusterCalculator {
             List<BlockPos> farEdges = new ArrayList<>();
 
             //Determine edge portion as air for each side (as float)
-            for(Pair<Integer, List<Integer>> dimension : positions)
+            for(Pair<Integer, List<Integer>> dimension : relativePositions)
             {
                 if(dimension.getLeft() == 0) continue;
                 nearEdges.clear(); farEdges.clear();
@@ -597,12 +710,12 @@ public class OreClusterCalculator {
                 for (int i = 0; i < relativePos.size(); i++)
                 {
                     if( relativePos.get(i) >= NEAR_CUTOFF)         //most positive
-                        nearEdges.add(blockPositions.get(i));
+                        nearEdges.add(blockWorldPositions.get(i));
                     else if( relativePos.get(i) <= FAR_CUTOFF )   //more negative
-                        farEdges.add(blockPositions.get(i));
+                        farEdges.add(blockWorldPositions.get(i));
                 }
-                clusterEdgeAirPortions.add(checkSideAirExposure(nearEdges, chunk));
-                clusterEdgeAirPortions.add(checkSideAirExposure(farEdges, chunk));
+                clusterEdgeAirPortions.add(checkSideAirExposure(nearEdges));
+                clusterEdgeAirPortions.add(checkSideAirExposure(farEdges));
 
             }
 
@@ -610,7 +723,7 @@ public class OreClusterCalculator {
             final TripleInt OFFSET = new TripleInt(0, 0, 0);
             for(int i = 0; i < clusterEdgeAirPortions.size(); i+=2 )
             {
-                int EDGE_SZ = CALC_EDGE_SZ.apply(positions.get(i/2).getLeft());
+                int EDGE_SZ = CALC_EDGE_SZ.apply(relativePositions.get(i/2).getLeft());
                 Function<Float, Integer> getOffset = (Float portion) -> {
                     if(portion < 0.2f) return 0;
                     else if(portion < 0.4f) return (int) Math.ceil(EDGE_SZ * 0.5f);
@@ -621,10 +734,10 @@ public class OreClusterCalculator {
 
                 int offset = 0;
                 int nearOffset = getOffset.apply(clusterEdgeAirPortions.get(i));
-                    if( nearOffset > 0) offset -= nearOffset;
+                if( nearOffset > 0) offset -= nearOffset;
 
                 int farOffset = getOffset.apply(clusterEdgeAirPortions.get(i+1));
-                    if( farOffset > 0) offset += farOffset;
+                if( farOffset > 0) offset += farOffset;
 
                 if( i < 2 )
                     OFFSET.x  = offset;
@@ -639,22 +752,15 @@ public class OreClusterCalculator {
         }
 
 
-
         /**
          * For all provided blockPos checks if the position occupies air
          * @param positions
-         * @param chunk
          * @return
          */
-        private float checkSideAirExposure(List<BlockPos> positions, ManagedOreClusterChunk chunk)
+        private float checkSideAirExposure(List<BlockPos> positions)
         {
             if( positions == null || positions.isEmpty() ) return 0;
 
-            if(chunk == null || chunk.getChunk(false) == null)
-                throw new NullPointerException("LevelChunk for ManagedOreClusterChunk " + chunk.getId()
-                    + " is null, cannot check air exposure");
-
-            LevelChunk levelChunk = chunk.getChunk(false);
             int count = 0;
             for (BlockPos pos : positions) {
                 if (levelChunk.getBlockState(pos).isAir()) {
@@ -664,6 +770,143 @@ public class OreClusterCalculator {
 
             return count / (float) positions.size();
         }
+
+
+        /**
+         * Applies radial density function to BlockPositions Array
+         * @return
+         */
+        List<BlockState> applyRadialDensityFunction()
+        {
+            List<BlockState> blockStates = new ArrayList<>(blockWorldPositions.size());
+            List<BlockState> blockStatesXZ = new ArrayList<>(blockWorldPositions.size());
+            List<BlockState> blockStatesZX = new ArrayList<>(blockWorldPositions.size());
+
+            int size = blockWorldPositions.size();
+            Integer[] Xs = relativePositions.get(0).getRight().toArray(new Integer[0]);
+            Integer[] Ys = relativePositions.get(1).getRight().toArray(new Integer[0]);
+            Integer[] Zs = relativePositions.get(2).getRight().toArray(new Integer[0]);
+
+            //XZ Results
+            for( int i = 0; i < size; i++ )
+            {
+                DensityFunction.SinglePointContext pos = new DensityFunction.SinglePointContext(Xs[i], Ys[i], Zs[i]);
+                blockStatesXZ.add(i, applyBlockState(pos, radialXZDensity));
+            }
+
+            //ZX Results
+            for( int i = 0; i < size; i++ )
+            {
+                DensityFunction.SinglePointContext pos = new DensityFunction.SinglePointContext(Zs[i], Ys[i], Xs[i]);
+                blockStatesZX.add(i, applyBlockState(pos, radialZXDensity));
+            }
+
+            //When abs(x) > abs(z), use XZ
+            //When equal, 50/50
+            //When abs(z) > abs(x), use ZX
+            for( int i = 0; i < size; i++ )
+            {
+                if( Math.abs(Xs[i]) > Math.abs(Zs[i]) )
+                    blockStates.add(blockStatesXZ.get(i));
+                else if( Math.abs(Xs[i]) < Math.abs(Zs[i]) )
+                    blockStates.add(blockStatesZX.get(i));
+                else
+                    blockStates.add(randomGenerator.nextBoolean() ? blockStatesXZ.get(i) : blockStatesZX.get(i));
+            }
+            return blockStates;
+        }
+
+        //Reverse the density because the main ore of the cluster fills proportionedBlockStaes from the from
+        private BlockState applyBlockState(DensityFunction.SinglePointContext pos, DensityFunction density)
+        {
+            density = linearXDensity;
+            //int densityValue = 100 - ((int) density.compute(pos)*100);
+            int densityValue = 99 - ((int) density.compute(pos)*100);
+            if(densityValue > 99)
+                densityValue = 99;
+            return proportionedBlockStates.get(densityValue);
+        }
+
+    }
+    //END INNER CLASS OreClusterGeneratorUtility
+
+    class CustomNoiseFunction implements DensityFunction.SimpleFunction
+    {
+
+        private final NormalNoise noise;
+        private final double xzScale;
+        private final double yScale;
+
+        public CustomNoiseFunction(NormalNoise noise, double xzScale, double yScale) {
+            this.noise = noise;
+            this.xzScale = xzScale;
+            this.yScale = yScale;
+        }
+
+        @Override
+        public double compute(FunctionContext context) {
+            double x = context.blockX() * xzScale;
+            double y = context.blockY() * yScale;
+            double z = context.blockZ() * xzScale;
+            return noise.getValue(x, y, z);
+        }
+
+        @Override
+        public double minValue() {
+            return -noise.maxValue(); // Noise typically ranges [-max, max]
+        }
+
+        @Override
+        public double maxValue() {
+            return noise.maxValue();
+        }
+
+        @Override
+        public KeyDispatchDataCodec<? extends DensityFunction> codec() {
+            // Simplified codec; in a full implementation, you'd serialize parameters
+            return KeyDispatchDataCodec.of(MapCodec.unit(this));
+        }
+    }
+
+    class RadialGradient implements DensityFunction.SimpleFunction
+    {
+        private final int centerX, centerY, centerZ; // Cluster center
+        private final double radius; // Max distance from center
+        private final double fromValue, toValue; // Density range (e.g., 1.0 to 0.0)
+
+        public RadialGradient(TripleInt center, double radius, double fromValue, double toValue) {
+            this.centerX = center.x;
+            this.centerY = center.y;
+            this.centerZ = center.z;
+            this.radius = radius;
+            this.fromValue = fromValue;
+            this.toValue = toValue;
+        }
+
+        @Override
+        public double compute(FunctionContext context) {
+            double dx = context.blockX() - centerX;
+            double dy = context.blockY() - centerY;
+            double dz = context.blockZ() - centerZ;
+            double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            return Mth.clampedMap(distance, 0.0, radius, fromValue, toValue);
+        }
+
+        @Override
+        public double minValue() {
+            return Math.min(fromValue, toValue);
+        }
+
+        @Override
+        public double maxValue() {
+            return Math.max(fromValue, toValue);
+        }
+
+        @Override
+        public KeyDispatchDataCodec<? extends DensityFunction> codec() {
+            return KeyDispatchDataCodec.of(MapCodec.unit(this)); // Simplified codec
+        }
+    }
 
 
 }

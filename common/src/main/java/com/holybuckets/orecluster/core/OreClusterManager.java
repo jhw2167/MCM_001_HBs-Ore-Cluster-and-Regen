@@ -973,13 +973,12 @@ public class OreClusterManager {
                 continue;
             }
 
-
-            List<BlockPos> clusterPos = oreClusterCalculator.generateCluster( chunk, Pair.of(oreType, sourcePos));
+            List<Pair<BlockState, BlockPos>> clusterPos = oreClusterCalculator.generateCluster( chunk, oreType, sourcePos);
             if( clusterPos == null || clusterPos.size() == 0 ) {
                 SKIPPED = BlockUtil.blockToString(oreType.getBlock());
                 continue;
             }
-            clusterPos.forEach( pos -> chunk.addBlockStateUpdate(oreType, pos) );
+            clusterPos.forEach( pos -> chunk.addBlockStateUpdate(pos) );
         }
 
         if( SKIPPED == null )
