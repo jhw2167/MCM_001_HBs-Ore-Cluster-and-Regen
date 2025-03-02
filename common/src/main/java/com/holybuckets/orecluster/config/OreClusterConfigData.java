@@ -24,10 +24,11 @@ public class OreClusterConfigData implements BalmConfigData {
         //Defaults
         public static final String DEF_SUB_SEED = "";
 
-        public static final String DEF_VALID_ORE_CLUSTER_ORE_BLOCKS = "minecraft:iron_ore,minecraft:gold_ore,minecraft:coal_ore";
+        public static final String DEF_VALID_ORE_CLUSTER_ORE_BLOCKS = "minecraft:iron_ore";
 
         public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_SPAWN_RATE = new ConfigNumber<>("oreClusterSpawnrate", 16, 1, DEF_ORE_CLUSTER_SPAWNRATE_AREA);
         public static final String DEF_ORE_CLUSTER_VOLUME = "8x8x4";
+
         public static final ConfigNumber<Float> DEF_ORE_CLUSTER_DENSITY = new ConfigNumber<>("oreClusterDensity", 1f, 0f, 1f);
         public static final String DEF_ORE_CLUSTER_SHAPE = "any";
         public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_MAX_Y_LEVEL_SPAWN = new ConfigNumber<>("oreClusterMaxYLevelSpawn", 256, 0, 512);

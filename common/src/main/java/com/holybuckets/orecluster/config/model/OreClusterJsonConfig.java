@@ -39,6 +39,9 @@ public class OreClusterJsonConfig implements IStringSerializable
     {
         super();
         final OreClusterConfigModel IRON = new OreClusterConfigModel(Blocks.IRON_ORE);
+            IRON.oreClusterSpawnRate = 16;
+            IRON.oreClusterVolume = new HBUtil.TripleInt(12, 8, 12);
+            IRON.oreClusterDensity = 0.4f;
         final OreClusterConfigModel DPSLT_DIAMOND = new OreClusterConfigModel(Blocks.DEEPSLATE_DIAMOND_ORE);
             DPSLT_DIAMOND.oreClusterSpawnRate = 10;
             DPSLT_DIAMOND.oreClusterVolume = new HBUtil.TripleInt(6, 4, 6);
@@ -79,7 +82,7 @@ public class OreClusterJsonConfig implements IStringSerializable
     }
 
 
-    /** ################ **/
+    /* ################ **/
     /** END GETTERS **/
     /** ################ **/
 
@@ -90,7 +93,7 @@ public class OreClusterJsonConfig implements IStringSerializable
         return new Gson().toJson(this);
     }
 
-    /**
+    /*
      * Deserialize the JSON string into the OreClusterJsonConfig object
      * - We want to let any complex type serialize itself
      * @param jsonString

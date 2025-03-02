@@ -17,6 +17,7 @@ import net.minecraft.util.KeyDispatchDataCodec;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 
@@ -554,7 +555,7 @@ public class OreClusterCalculator {
         }
 
         //4. Determine if we are near an open cave and which side it is on
-        LoggerProject.logInfo("013009", "Determining air offset" );
+        //LoggerProject.logInfo("013009", "Determining air offset" );
         TripleInt airOffset;
         List<Pair<Integer,List<Integer>>> relativePosData = new ArrayList<>();
         relativePosData.add(Pair.of(VOL.x, Xs)); relativePosData.add(Pair.of(VOL.y, Ys)); relativePosData.add(Pair.of(VOL.z, Zs));
@@ -567,7 +568,6 @@ public class OreClusterCalculator {
         }
 
         airOffset = generator.calculateAvoidAirOffset();
-        LoggerProject.logInfo("003010", "Cluster offset to avoid air: " + airOffset);
 
         //5. Apply Density function
         List<BlockState> clusterBlockStates = generator.applyRadialDensityFunction();
@@ -612,9 +612,11 @@ public class OreClusterCalculator {
         private DensityFunction linearXDensity;
         private DensityFunction linearZDensity;
         private DensityFunction linearYDensity;
+        private DensityFunction linearXZDensity;
         private DensityFunction radialXZDensity;
         private DensityFunction radialZXDensity;
 
+        private DensityFunction.ContextProvider densityFunctionContext;
 
 
         OreClusterGeneratorUtility(ManagedOreClusterChunk chunk, OreClusterConfigModel config, List<BlockPos> blockPositions, List<Pair<Integer, List<Integer>>> positions)
@@ -639,7 +641,7 @@ public class OreClusterCalculator {
         private void initOreDensityPortions()
         {
             this.proportionedBlockStates = new ArrayList<>(100);
-            int density = (int) this.expectedOreDensity * 100;
+            int density = (int) (this.expectedOreDensity * 100);
             for( int i = 0; i < density; i++ ) {
                 this.proportionedBlockStates.add(config.oreClusterType);
             }
@@ -651,33 +653,75 @@ public class OreClusterCalculator {
 
         }
 
-        private void initDensityFunctions()
-        {
-            final int FIRST_OCTAVE = -7;
-            final List<Double> AMPLITUDES = Arrays.asList(1.0, 0.5, 0.25, 0.125);
+        private void initDensityFunctions() {
+            final int FIRST_OCTAVE = -2;
+            final List<Double> AMPLITUDES = Arrays.asList(2.0, 1.0, 0.5, 0.25);
             NormalNoise.NoiseParameters nParameters = new NormalNoise.NoiseParameters(FIRST_OCTAVE, AMPLITUDES);
-            RandomSource rSource = RandomSource.create( HBUtil.ChunkUtil.getChunkPos1DMap(chunk.getId()) );
+            RandomSource rSource = RandomSource.create(HBUtil.ChunkUtil.getChunkPos1DMap(chunk.getId()));
             NormalNoise noiseGenerator = NormalNoise.create(rSource, nParameters);
-            noise = new CustomNoiseFunction(noiseGenerator, 1.0, 1.0);
 
+            double scale = 1.0; // 3 cycles across 12
+            noise = new CustomNoiseFunction(noiseGenerator, scale, scale);
+            double maxVal = noise.maxValue(); // ~7.5
+
+            DensityFunction shiftedNoise = mul( DensityFunctions.add(noise, DensityFunctions.constant(maxVal)),
+                DensityFunctions.constant(1.0 / (2 * maxVal)))
+                .clamp(0, 1.0);
+
+            // Falloffs
             DensityFunction linearXFalloff = DensityFunctions.yClampedGradient(0, volume.x, 1.0, 0);
             DensityFunction linearZFalloff = DensityFunctions.yClampedGradient(0, volume.z, 1.0, 0);
             DensityFunction linearYFalloff = DensityFunctions.yClampedGradient(0, volume.y, 1.0, 0);
-
             DensityFunction radialXZFalloff = new RadialGradient(new TripleInt(0, 0, 0), volume.x, 1.0, 0);
             DensityFunction radialZXFalloff = new RadialGradient(new TripleInt(0, 0, 0), volume.z, 1.0, 0);
 
-            linearXDensity = DensityFunctions.mul(noise, linearXFalloff).clamp(0, 1.0);
-            linearZDensity = DensityFunctions.mul(noise, linearZFalloff).clamp(0, 1.0);
-            linearYDensity = DensityFunctions.mul(noise, linearYFalloff).clamp(0, 1.0);
+            // Existing densities with smoother blending
+            linearXDensity = mul( DensityFunctions.add(shiftedNoise, linearXFalloff),
+                DensityFunctions.constant(0.5)).clamp(0, 1.0);
+            linearZDensity = mul( DensityFunctions.add(shiftedNoise, linearZFalloff),
+                DensityFunctions.constant(0.5)).clamp(0, 1.0);
+            linearYDensity = mul( DensityFunctions.add(shiftedNoise, linearYFalloff),
+                DensityFunctions.constant(0.5)).clamp(0, 1.0);
 
-            radialXZDensity = mul( mul(noise, radialXZFalloff), linearYFalloff).clamp(0, 1.0);
-            radialZXDensity = mul( mul(noise, radialZXFalloff), linearYFalloff).clamp(0, 1.0);
+            radialXZDensity = mul( DensityFunctions.add(
+                DensityFunctions.add(shiftedNoise, radialXZFalloff), linearYFalloff),
+                (DensityFunctions.constant(1.0 / 3.0))).clamp(0, 1.0);
+            radialZXDensity = mul( DensityFunctions.add(
+                DensityFunctions.add(shiftedNoise, radialZXFalloff), linearYFalloff),
+                (DensityFunctions.constant(1.0 / 3.0))).clamp(0, 1.0);
+
+            linearXZDensity = noise.clamp(0, 1.0);
+
+
+           this.densityFunctionContext = new DensityFunction.ContextProvider() {
+                @Override
+                public DensityFunction.FunctionContext forIndex(int index) {
+                    TripleInt p = getRelativePos(index);
+                    return new DensityFunction.SinglePointContext(p.x, p.y, p.z);
+                }
+
+                @Override
+                public void fillAllDirectly(double[] values, DensityFunction density) {
+                    for (int i = 0; i < values.length; i++) {
+                        TripleInt p = getRelativePos(i);
+                        DensityFunction.FunctionContext context;
+                        context = new DensityFunction.SinglePointContext(p.x, p.y, p.z);
+                        values[i] = density.compute(context);
+                    }
+                }
+            };
 
         }
 
+        private TripleInt getRelativePos(int i) {
+            return new TripleInt(
+                abs( relativePositions.get(0).getRight().get(i) ),
+                abs( relativePositions.get(1).getRight().get(i) ),
+                abs( relativePositions.get(2).getRight().get(i)) );
+        }
+
         private DensityFunction mul( DensityFunction d1, DensityFunction d2 ) {
-            return DensityFunctions.mul(d1, d2).clamp(0, 1.0);
+            return DensityFunctions.mul(d1, d2);
         }
 
         /**
@@ -788,17 +832,13 @@ public class OreClusterCalculator {
             Integer[] Zs = relativePositions.get(2).getRight().toArray(new Integer[0]);
 
             //XZ Results
-            for( int i = 0; i < size; i++ )
-            {
-                DensityFunction.SinglePointContext pos = new DensityFunction.SinglePointContext(Xs[i], Ys[i], Zs[i]);
-                blockStatesXZ.add(i, applyBlockState(pos, radialXZDensity));
+            for( int i = 0; i < size; i++ ) {
+                //blockStatesXZ.add(i, getBlockState(Xs[i], Ys[i], Zs[i], radialXZDensity));
             }
 
             //ZX Results
-            for( int i = 0; i < size; i++ )
-            {
-                DensityFunction.SinglePointContext pos = new DensityFunction.SinglePointContext(Zs[i], Ys[i], Xs[i]);
-                blockStatesZX.add(i, applyBlockState(pos, radialZXDensity));
+            for( int i = 0; i < size; i++ ) {
+                //blockStatesZX.add(i, getBlockState(Zs[i], Ys[i], Xs[i], radialZXDensity));
             }
 
             //When abs(x) > abs(z), use XZ
@@ -806,25 +846,38 @@ public class OreClusterCalculator {
             //When abs(z) > abs(x), use ZX
             for( int i = 0; i < size; i++ )
             {
+                /*
                 if( Math.abs(Xs[i]) > Math.abs(Zs[i]) )
                     blockStates.add(blockStatesXZ.get(i));
                 else if( Math.abs(Xs[i]) < Math.abs(Zs[i]) )
                     blockStates.add(blockStatesZX.get(i));
                 else
                     blockStates.add(randomGenerator.nextBoolean() ? blockStatesXZ.get(i) : blockStatesZX.get(i));
+                */
+
+                 blockStates.add( i, getBlockState(i, linearXZDensity) );
             }
-            return blockStates;
+
+
+             return blockStates;
+        }
+
+
+        private BlockState getBlockState(int i, DensityFunction density) {
+          TripleInt pos = getRelativePos(i);
+          return getBlockState(pos.x, pos.y, pos.z, density);
         }
 
         //Reverse the density because the main ore of the cluster fills proportionedBlockStaes from the from
-        private BlockState applyBlockState(DensityFunction.SinglePointContext pos, DensityFunction density)
+        private BlockState getBlockState(int x, int y, int z, DensityFunction density)
         {
-            density = linearXDensity;
-            //int densityValue = 100 - ((int) density.compute(pos)*100);
-            int densityValue = 99 - ((int) density.compute(pos)*100);
-            if(densityValue > 99)
-                densityValue = 99;
+            DensityFunction.SinglePointContext pos = new DensityFunction.SinglePointContext( abs(x), abs(y), abs(z));
+            int densityValue = (int) (density.compute(pos)*99);
             return proportionedBlockStates.get(densityValue);
+        }
+
+        private int abs(Number a) {
+            return Math.abs(a.intValue());
         }
 
     }

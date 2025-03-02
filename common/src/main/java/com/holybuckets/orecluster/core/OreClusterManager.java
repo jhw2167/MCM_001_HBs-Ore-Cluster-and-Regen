@@ -20,6 +20,9 @@ import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
@@ -28,6 +31,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
+import org.apache.commons.lang3.mutable.Mutable;
 import org.apache.commons.lang3.tuple.Pair;
 import oshi.annotation.concurrent.ThreadSafe;
 
@@ -845,7 +849,7 @@ public class OreClusterManager {
         if( chunk == null|| chunk.getChunk() == null )
             return;
 
-        if( !chunk.testChunkStatusOrAfter(ChunkStatus.FULL ) ) return;
+        if( !chunk.testChunkLoadedAndEditable() ) return;
 
         LoggerProject.logDebug("002025", "Cleaning chunk: " + chunk.getId());
 
@@ -947,6 +951,7 @@ public class OreClusterManager {
      * clusterGeneration
      * clusterPregeneration
      * generation
+     * generateClusters(
      */
     private void handleChunkClusterPreGeneration(ManagedOreClusterChunk chunk)
     {
@@ -978,7 +983,13 @@ public class OreClusterManager {
                 SKIPPED = BlockUtil.blockToString(oreType.getBlock());
                 continue;
             }
-            clusterPos.forEach( pos -> chunk.addBlockStateUpdate(pos) );
+
+            Vec3i sourceOffset = new Vec3i(0, 120 - sourcePos.getY(), 0);
+            for( Pair<BlockState, BlockPos> pos : clusterPos )
+            {
+                //2. Add the blockstate and position to the blockStateUpdates
+                chunk.addBlockStateUpdate(pos.getLeft(), pos.getRight().offset(sourceOffset));
+            }
         }
 
         if( SKIPPED == null )

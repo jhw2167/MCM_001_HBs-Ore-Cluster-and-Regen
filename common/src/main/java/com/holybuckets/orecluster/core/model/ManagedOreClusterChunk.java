@@ -146,9 +146,14 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
         ChunkAccess chunk = parent.getChunk(false);
         if(chunk == null) return false;
+        LevelChunk c;
 
         try { return chunk.getStatus().isOrAfter(status); }
         catch(Exception e) { return false; }
+    }
+
+    public boolean testChunkLoadedAndEditable() {
+        return ManagedChunkUtilityAccessor.isChunkFullyLoaded(this.level, this.id);
     }
 
     public boolean hasChunk() {
@@ -246,6 +251,9 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
      */
     public boolean sampleAddOre(BlockState state)
     {
+        if(this.originalOres == null)
+            return false;
+
         if(!this.originalOres.containsKey(state)) {
             this.originalOres.put(state, Pair.of(null, new MutableInt(1)));
             return true;
@@ -571,7 +579,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
                 this.clusterTypes.keySet().forEach((k) -> clusters.put(k.getBlock(), new ArrayList<>()));
                 for(Map.Entry<BlockState, BlockPos> entry : this.clusterTypes.entrySet())
                 {
-                    BlockState block = entry.getKey();
+                    Block block = entry.getKey().getBlock();
                     BlockPos pos = entry.getValue();
                     if(pos != null)
                         clusters.get(block).add(pos);
