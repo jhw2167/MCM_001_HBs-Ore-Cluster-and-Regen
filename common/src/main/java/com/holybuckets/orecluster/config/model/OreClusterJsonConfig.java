@@ -42,12 +42,14 @@ public class OreClusterJsonConfig implements IStringSerializable
         final OreClusterConfigModel IRON = new OreClusterConfigModel(Blocks.IRON_ORE);
             IRON.oreClusterSpawnRate = 16;
             IRON.oreClusterVolume = new HBUtil.TripleInt(12, 8, 12);
-            IRON.oreClusterDensity = 0.4f;
-            IRON.validOreClusterOreBlocks = new HashSet<>();
+            IRON.oreClusterDensity = 0.1f;
+            IRON.oreClusterReplaceableEmptyBlocks = new HashSet<>();
         final OreClusterConfigModel DPSLT_DIAMOND = new OreClusterConfigModel(Blocks.DEEPSLATE_DIAMOND_ORE);
             DPSLT_DIAMOND.oreClusterSpawnRate = 10;
             DPSLT_DIAMOND.oreClusterVolume = new HBUtil.TripleInt(6, 4, 6);
             DPSLT_DIAMOND.oreClusterDensity = 0.75f;
+            DPSLT_DIAMOND.oreClusterReplaceableEmptyBlocks = new HashSet<>();
+            DPSLT_DIAMOND.oreClusterReplaceableEmptyBlocks.add(Blocks.DEEPSLATE.defaultBlockState());
 
         this.oreClusterConfigs = new ArrayList<>()
         {{
