@@ -9,6 +9,7 @@ import com.holybuckets.orecluster.config.OreClusterConfigData;
 import net.minecraft.world.level.block.Blocks;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 /*
@@ -42,6 +43,7 @@ public class OreClusterJsonConfig implements IStringSerializable
             IRON.oreClusterSpawnRate = 16;
             IRON.oreClusterVolume = new HBUtil.TripleInt(12, 8, 12);
             IRON.oreClusterDensity = 0.4f;
+            IRON.validOreClusterOreBlocks = new HashSet<>();
         final OreClusterConfigModel DPSLT_DIAMOND = new OreClusterConfigModel(Blocks.DEEPSLATE_DIAMOND_ORE);
             DPSLT_DIAMOND.oreClusterSpawnRate = 10;
             DPSLT_DIAMOND.oreClusterVolume = new HBUtil.TripleInt(6, 4, 6);

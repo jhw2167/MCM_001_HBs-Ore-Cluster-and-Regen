@@ -8,4 +8,8 @@ public class Constants {
 	public static final String MOD_ID = "hbs_ore_cluster_and_regen";
 	public static final String MOD_NAME = "HB's Ore Clusters and Regen";
 	public static final Logger LOG = LoggerFactory.getLogger(MOD_NAME);
+
+	public static class MOD_IDS {
+		public static final String FOUNDATION = com.holybuckets.foundation.Constants.MOD_ID;
+	}
 }

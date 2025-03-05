@@ -1,6 +1,7 @@
 package com.holybuckets.orecluster.config.model;
 
 import com.holybuckets.foundation.HBUtil.*;
+import com.holybuckets.orecluster.Constants;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.config.OreClusterConfigData;
 import net.minecraft.world.level.block.Block;
@@ -133,7 +134,7 @@ public class OreClusterConfigModel {
             blocks.remove(null);
 
         if( blocks.isEmpty() )
-            blocks.add( blockNameToBlock("air").defaultBlockState());
+            blocks.add( blockNameToBlock(Constants.MOD_IDS.FOUNDATION + ":empty_block").defaultBlockState());
 
         return blocks;
     }
