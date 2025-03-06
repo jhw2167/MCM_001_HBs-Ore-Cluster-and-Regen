@@ -637,92 +637,6 @@ public class OreClusterCalculator {
             this.initDensityFunctions();
         }
 
-        //Add cutoff values to list which determine dynamically which density values map to which blocks
-        private void initOreDensityPortions()
-        {
-            this.proportionedBlockStates = new ArrayList<>(100);
-            int density = (int) (this.expectedOreDensity * 100);
-            for( int i = 0; i < density; i++ ) {
-                this.proportionedBlockStates.add(config.oreClusterType);
-            }
-            List<BlockState> alternativeBlocks = config.oreClusterReplaceableEmptyBlocks.stream().toList();
-            //Add the rest in even portions
-            for( int i = density; i < 100; i++ ) {
-                this.proportionedBlockStates.add(alternativeBlocks.get(i % alternativeBlocks.size()));
-            }
-
-        }
-
-        private void initDensityFunctions() {
-            final int FIRST_OCTAVE = -2;
-            final List<Double> AMPLITUDES = Arrays.asList(2.0, 1.0, 0.5, 0.25);
-            NormalNoise.NoiseParameters nParameters = new NormalNoise.NoiseParameters(FIRST_OCTAVE, AMPLITUDES);
-            RandomSource rSource = RandomSource.create(HBUtil.ChunkUtil.getChunkPos1DMap(chunk.getId()));
-            NormalNoise noiseGenerator = NormalNoise.create(rSource, nParameters);
-
-            double scale = 1.0; // 3 cycles across 12
-            noise = new CustomNoiseFunction(noiseGenerator, scale, scale);
-            double maxVal = noise.maxValue(); // ~7.5
-
-            DensityFunction shiftedNoise = mul( DensityFunctions.add(noise, DensityFunctions.constant(maxVal)),
-                DensityFunctions.constant(1.0 / (2 * maxVal)))
-                .clamp(0, 1.0);
-
-            // Falloffs
-            DensityFunction linearXFalloff = DensityFunctions.yClampedGradient(0, volume.x, 1.0, 0);
-            DensityFunction linearZFalloff = DensityFunctions.yClampedGradient(0, volume.z, 1.0, 0);
-            DensityFunction linearYFalloff = DensityFunctions.yClampedGradient(0, volume.y, 1.0, 0);
-            DensityFunction radialXZFalloff = new RadialGradient(new TripleInt(0, 0, 0), volume.x, 1.0, 0);
-            DensityFunction radialZXFalloff = new RadialGradient(new TripleInt(0, 0, 0), volume.z, 1.0, 0);
-
-            // Existing densities with smoother blending
-            linearXDensity = mul( DensityFunctions.add(shiftedNoise, linearXFalloff),
-                DensityFunctions.constant(0.5)).clamp(0, 1.0);
-            linearZDensity = mul( DensityFunctions.add(shiftedNoise, linearZFalloff),
-                DensityFunctions.constant(0.5)).clamp(0, 1.0);
-            linearYDensity = mul( DensityFunctions.add(shiftedNoise, linearYFalloff),
-                DensityFunctions.constant(0.5)).clamp(0, 1.0);
-
-            radialXZDensity = mul( DensityFunctions.add(
-                DensityFunctions.add(shiftedNoise, radialXZFalloff), linearYFalloff),
-                (DensityFunctions.constant(1.0 / 3.0))).clamp(0, 1.0);
-            radialZXDensity = mul( DensityFunctions.add(
-                DensityFunctions.add(shiftedNoise, radialZXFalloff), linearYFalloff),
-                (DensityFunctions.constant(1.0 / 3.0))).clamp(0, 1.0);
-
-            linearXZDensity = noise.clamp(0, 1.0);
-
-
-           this.densityFunctionContext = new DensityFunction.ContextProvider() {
-                @Override
-                public DensityFunction.FunctionContext forIndex(int index) {
-                    TripleInt p = getRelativePos(index);
-                    return new DensityFunction.SinglePointContext(p.x, p.y, p.z);
-                }
-
-                @Override
-                public void fillAllDirectly(double[] values, DensityFunction density) {
-                    for (int i = 0; i < values.length; i++) {
-                        TripleInt p = getRelativePos(i);
-                        DensityFunction.FunctionContext context;
-                        context = new DensityFunction.SinglePointContext(p.x, p.y, p.z);
-                        values[i] = density.compute(context);
-                    }
-                }
-            };
-
-        }
-
-        private TripleInt getRelativePos(int i) {
-            return new TripleInt(
-                abs( relativePositions.get(0).getRight().get(i) ),
-                abs( relativePositions.get(1).getRight().get(i) ),
-                abs( relativePositions.get(2).getRight().get(i)) );
-        }
-
-        private DensityFunction mul( DensityFunction d1, DensityFunction d2 ) {
-            return DensityFunctions.mul(d1, d2);
-        }
 
         /**
          * Returns advisement to offset cluster best to avoid spawning in open air where cluster may look unnatural
@@ -816,6 +730,109 @@ public class OreClusterCalculator {
         }
 
 
+        //Add cutoff values to list which determine dynamically which density values map to which blocks
+        private void initOreDensityPortions()
+        {
+            List<BlockState> temp = new ArrayList<>(100);
+            int density = (int) (this.expectedOreDensity * 100);
+            for( int i = 0; i < 100; i++ ) {
+                temp.add(config.oreClusterType);
+            }
+            List<BlockState> alternativeBlocks = config.oreClusterReplaceableEmptyBlocks.stream().toList();
+            int partition = (int) ( ((float) (100 - density)) / alternativeBlocks.size());
+            //Add the rest in even portions
+            int pos = density;
+            for( int i = 0; i < alternativeBlocks.size(); i++ ) {
+                for( int j = 0; j < partition; j++ ) {
+                    temp.set(pos++, alternativeBlocks.get(i));
+                    if( pos >= 100 ) break;
+                }
+            }
+
+            BlockState[] states = new BlockState[201];
+            //mirror temp and fill proportionedBlockStates from the center at 100, out
+            for( int i = 0; i < 100; i++ ) {
+                states[100-i] = temp.get(i);
+                states[100+i] = temp.get(i);
+            }
+            this.proportionedBlockStates = Arrays.asList(states);
+
+        }
+
+
+        private void initDensityFunctions()
+        {
+            final long seed = this.randomGenerator.nextLong();
+            final int FIRST_OCTAVE = -2;
+            final List<Double> AMPLITUDES = Arrays.asList(1.0, 0.5, 0.25, 0.125); // Perlin layers
+            NormalNoise.NoiseParameters nParameters = new NormalNoise.NoiseParameters(FIRST_OCTAVE, AMPLITUDES);
+            RandomSource rSource = RandomSource.create(seed); // Fixed seed for deterministic behavior
+            NormalNoise perlinNoise = NormalNoise.create(rSource, nParameters);
+            UniformNoiseFunction uniformNoise = new UniformNoiseFunction(seed);
+
+            int clusterVolume = volume.x * volume.y * volume.z;
+            if (clusterVolume < 144) {
+                noise = uniformNoise;
+            }
+            else {
+                double scaleFactor = clusterVolume < 168 ? 1.0 : Math.min(Math.sqrt(clusterVolume) / 10.0, 2.0);
+
+                // Primary Perlin noise to introduce clustering
+                DensityFunction perlinDensity = new CustomNoiseFunction(
+                    perlinNoise,
+                    0.1 * scaleFactor,  // Adjust XZ scale dynamically
+                    1.0 * scaleFactor   // Adjust vertical scale dynamically
+                );
+                // Normalize Perlin noise from [-1,1] to [0,1]
+                DensityFunction normalizedPerlin = perlinDensity;
+
+                DensityFunction constant_p = DensityFunctions.constant(1.0);   // Slightly lower noise weight
+                noise =  mul( DensityFunctions.add( normalizedPerlin, uniformNoise), constant_p ).clamp(-1d,1d);
+            }
+            //noise =
+
+            // Falloffs with raw coordinate ranges
+            // Dynamic falloffs
+            int halfX = volume.x / 2;
+            int halfY = volume.y / 2;
+            int halfZ = volume.z / 2;
+            DensityFunction linearXFalloff = DensityFunctions.yClampedGradient(-halfX, halfX, 0.0, 1.0);
+            DensityFunction linearZFalloff = DensityFunctions.yClampedGradient(-halfZ, halfZ, 0.0, 1.0);
+            DensityFunction linearYFalloff = DensityFunctions.yClampedGradient(-halfY, halfY, 0.0, 1.0);
+            DensityFunction radialXZFalloff = new RadialGradient(new TripleInt(0, 0, 0), Math.max(volume.x, volume.z) / 2.0, 0.0, 1.0);
+            DensityFunction radialZXFalloff = new RadialGradient(new TripleInt(0, 0, 0), Math.max(volume.x, volume.z) / 2.0, 0.0, 1.0);
+
+            this.densityFunctionContext = new DensityFunction.ContextProvider() {
+                @Override
+                public DensityFunction.FunctionContext forIndex(int index) {
+                    TripleInt p = getRelativePos(index);
+                    return new DensityFunction.SinglePointContext(p.x, p.y, p.z);
+                }
+
+                @Override
+                public void fillAllDirectly(double[] values, DensityFunction density) {
+                    for (int i = 0; i < values.length; i++) {
+                        TripleInt p = getRelativePos(i);
+                        DensityFunction.FunctionContext context = new DensityFunction.SinglePointContext(p.x, p.y, p.z);
+                        values[i] = density.compute(context);
+                    }
+                }
+            };
+        }
+
+        private TripleInt getRelativePos(int i) {
+            return new TripleInt(
+                relativePositions.get(0).getRight().get(i), // No abs
+                relativePositions.get(1).getRight().get(i),
+                relativePositions.get(2).getRight().get(i)
+            );
+        }
+
+
+        private DensityFunction mul( DensityFunction d1, DensityFunction d2 ) {
+            return DensityFunctions.mul(d1, d2);
+        }
+
         /**
          * Applies radial density function to BlockPositions Array
          * @return
@@ -855,11 +872,13 @@ public class OreClusterCalculator {
                     blockStates.add(randomGenerator.nextBoolean() ? blockStatesXZ.get(i) : blockStatesZX.get(i));
                 */
 
-                 blockStates.add( i, getBlockState(i, linearXZDensity) );
+                 blockStates.add( i, getBlockState(i, noise) );
             }
 
+            double[] sample = new double[size];
+            densityFunctionContext.fillAllDirectly(sample, noise);
 
-             return blockStates;
+            return blockStates;
         }
 
 
@@ -868,12 +887,12 @@ public class OreClusterCalculator {
           return getBlockState(pos.x, pos.y, pos.z, density);
         }
 
-        //Reverse the density because the main ore of the cluster fills proportionedBlockStaes from the from
-        private BlockState getBlockState(int x, int y, int z, DensityFunction density)
-        {
-            DensityFunction.SinglePointContext pos = new DensityFunction.SinglePointContext( abs(x), abs(y), abs(z));
-            int densityValue = (int) (density.compute(pos)*99);
-            return proportionedBlockStates.get(densityValue);
+        private BlockState getBlockState(int x, int y, int z, DensityFunction density) {
+            DensityFunction.SinglePointContext pos = new DensityFunction.SinglePointContext(x, y, z);
+            double densityVal = density.compute(pos);
+            int index = (int) (densityVal * 99) + 100; //centered at 100
+            return proportionedBlockStates.get(index);
+            //noise =
         }
 
         private int abs(Number a) {
@@ -882,6 +901,49 @@ public class OreClusterCalculator {
 
     }
     //END INNER CLASS OreClusterGeneratorUtility
+
+    public class UniformNoiseFunction implements DensityFunction.SimpleFunction
+    {
+        private final long seed;
+
+        public UniformNoiseFunction(long seed) {
+            this.seed = seed;
+        }
+
+        @Override
+        public double compute(FunctionContext context) {
+            long hash = hashCoords(context.blockX(), context.blockY(), context.blockZ());
+            double noise = (hash & 0x7FFFFFFF) / (double) Integer.MAX_VALUE; // [0, 1)
+            return (noise*2) - 1;
+        }
+
+        @Override
+        public double minValue() {
+            return -1.0;
+        }
+
+        @Override
+        public double maxValue() {
+            return 1.0;
+        }
+
+        private long hashCoords(int x, int y, int z) {
+            long h = seed;
+            h = h * 31 + x;
+            h = h * 31 + y;
+            h = h * 31 + z;
+            return Mth.murmurHash3Mixer(Long.valueOf(h).intValue());
+        }
+
+        @Override
+        public KeyDispatchDataCodec<? extends DensityFunction> codec() {
+            // Simplified codec; in a full implementation, you'd serialize parameters
+            return KeyDispatchDataCodec.of(MapCodec.unit(this));
+
+        }
+    }
+
+
 
     class CustomNoiseFunction implements DensityFunction.SimpleFunction
     {
@@ -921,11 +983,11 @@ public class OreClusterCalculator {
         }
     }
 
-    class RadialGradient implements DensityFunction.SimpleFunction
-    {
-        private final int centerX, centerY, centerZ; // Cluster center
-        private final double radius; // Max distance from center
-        private final double fromValue, toValue; // Density range (e.g., 1.0 to 0.0)
+
+    class RadialGradient implements DensityFunction.SimpleFunction {
+        private final int centerX, centerY, centerZ;
+        private final double radius;
+        private final double fromValue, toValue;
 
         public RadialGradient(TripleInt center, double radius, double fromValue, double toValue) {
             this.centerX = center.x;
@@ -942,24 +1004,21 @@ public class OreClusterCalculator {
             double dy = context.blockY() - centerY;
             double dz = context.blockZ() - centerZ;
             double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            return Mth.clampedMap(distance, 0.0, radius, fromValue, toValue);
+            double t = Math.min(distance / radius, 1.0);
+            double smoothT = 1.0 - t * t; // Quadratic for smoothness
+            return Mth.lerp(smoothT, fromValue, toValue);
         }
 
         @Override
-        public double minValue() {
-            return Math.min(fromValue, toValue);
-        }
-
+        public double minValue() { return Math.min(fromValue, toValue); }
         @Override
-        public double maxValue() {
-            return Math.max(fromValue, toValue);
-        }
-
+        public double maxValue() { return Math.max(fromValue, toValue); }
         @Override
         public KeyDispatchDataCodec<? extends DensityFunction> codec() {
-            return KeyDispatchDataCodec.of(MapCodec.unit(this)); // Simplified codec
+            return KeyDispatchDataCodec.of(MapCodec.unit(this));
         }
     }
+    //END RADIAL GRADIENT
 
 
 }

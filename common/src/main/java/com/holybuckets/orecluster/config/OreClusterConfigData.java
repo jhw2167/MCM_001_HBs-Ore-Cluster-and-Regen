@@ -36,7 +36,7 @@ public class OreClusterConfigData implements BalmConfigData {
         public static final ConfigNumber<Integer> DEF_MAX_CHUNKS_BETWEEN_ORE_CLUSTERS = new ConfigNumber<>("maxChunksBetweenOreClusters", 2, 2, 32);
         public static final ConfigNumber<Float> DEF_ORE_VEIN_MODIFIER = new ConfigNumber<>("oreVeinModifier", 1f, 0f, 1f);
         public static final String DEF_ORE_CLUSTER_NONREPLACEABLE_BLOCKS = "minecraft:end_portal_frame,minecraft:bedrock";
-        public static final String DEF_ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS = "minecraft:stone,minecraft:air";
+        public static final String DEF_ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS = "hbs_foundation:empty_block";
 
         public static final boolean DEF_REGENERATE_ORE_CLUSTERS = true;
         public static final String DEF_REGENERATE_ORE_CLUSTER_PERIOD_LENGTHS = "28,24,16,8";

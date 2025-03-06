@@ -1,6 +1,7 @@
 package com.holybuckets.orecluster.config.model;
 
 import com.holybuckets.foundation.HBUtil.*;
+import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.orecluster.Constants;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.config.OreClusterConfigData;
@@ -94,7 +95,7 @@ public class OreClusterConfigModel {
     private static Block blockNameToBlock(String blockName)
     {
         if( blockName == null || blockName.isEmpty() )
-            return Blocks.AIR;
+            return ModBlocks.empty;
 
         if( blockName.contains(":") ) {
             String[] split = blockName.split(":");
