@@ -435,7 +435,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         if(id == null || level == null )
          return null;
 
-        OreClusterManager manager = OreClustersAndRegenMain.ORE_CLUSTER_MANAGER_BY_LEVEL.get(level);
+        OreClusterManager manager = OreClustersAndRegenMain.getManagers().get(level);
         if(manager != null)
         {
             if(manager.getLoadedChunk(id) != null)

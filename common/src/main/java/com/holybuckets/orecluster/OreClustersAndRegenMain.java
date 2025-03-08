@@ -8,6 +8,7 @@ import com.holybuckets.orecluster.command.CommandList;
 import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.core.OreClusterInterface;
 import com.holybuckets.orecluster.core.OreClusterManager;
+import com.holybuckets.orecluster.core.OreClusterRegenManager;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
@@ -25,33 +26,40 @@ public class OreClustersAndRegenMain
     public static final String MODID = "hbs_ore_clusters_and_regen";
     public static final String NAME = "HBs Ore Clusters and Regen";
     public static final String VERSION = "1.0.0f";
-
-
-    public static ModRealTimeConfig modRealTimeConfig = null;
     public static final Boolean DEBUG = true;
 
+    public static OreClustersAndRegenMain INSTANCE = null;
+    public ModRealTimeConfig modRealTimeConfig = null;
+
     /** Real Time Variables **/
-    public static final Map<LevelAccessor, OreClusterManager> ORE_CLUSTER_MANAGER_BY_LEVEL = new HashMap<>();
-    static {
-        OreClusterInterface.initInstance( ORE_CLUSTER_MANAGER_BY_LEVEL );
-    }
+    public Map<LevelAccessor, OreClusterManager> ORE_CLUSTER_MANAGER_BY_LEVEL = new HashMap<>();
+    public OreClusterRegenManager ORE_CLUSTER_REGEN_MANAGER = null;
 
     public OreClustersAndRegenMain()
     {
         super();
         init();
+        INSTANCE = this;
         LoggerProject.logInit( "001000", this.getClass().getName() );
     }
 
     private void init()
     {
+        OreClusterConfig.initialize();
+        ManagedOreClusterChunk.registerManagedChunkData();
+
+        CommandList.register();
+
         EventRegistrar eventRegistrar = EventRegistrar.getInstance();
+        this.ORE_CLUSTER_MANAGER_BY_LEVEL = new HashMap<>();
+        this.modRealTimeConfig = new ModRealTimeConfig();
+        this.ORE_CLUSTER_REGEN_MANAGER = new OreClusterRegenManager( eventRegistrar, modRealTimeConfig, ORE_CLUSTER_MANAGER_BY_LEVEL );
+        OreClusterInterface.initInstance( ORE_CLUSTER_MANAGER_BY_LEVEL );
+
+
         eventRegistrar.registerOnLevelLoad( this::onLoadWorld, EventPriority.High );
         eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );
 
-        CommandList.register();
-        ManagedOreClusterChunk.registerManagedChunkData();
-        OreClusterConfig.initialize();
 
         /*
         WaystonesConfig.initialize();
@@ -68,17 +76,15 @@ public class OreClustersAndRegenMain
 
     }
 
+    public static Map<LevelAccessor, OreClusterManager> getManagers() {
+        return INSTANCE.ORE_CLUSTER_MANAGER_BY_LEVEL;
+    }
+
     public void onLoadWorld( LevelLoadingEvent.Load event )
     {
         LoggerProject.logDebug("001003", "**** WORLD LOAD EVENT ****");
         LevelAccessor level = event.getLevel();
-        if( level.isClientSide() )
-            return;
-
-        if( modRealTimeConfig == null )
-        {
-            modRealTimeConfig = new ModRealTimeConfig();
-        }
+        if( level.isClientSide() ) return;
 
         if( !ORE_CLUSTER_MANAGER_BY_LEVEL.containsKey( level ) )
         {
