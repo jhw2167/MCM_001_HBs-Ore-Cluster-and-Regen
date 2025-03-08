@@ -119,6 +119,10 @@ public class ModRealTimeConfig
             return oreConfigs;
         }
 
+        public OreClusterConfigModel getOreConfigByOre(BlockState ore) {
+            return oreConfigs.get(ore);
+        }
+
         public OreClusterConfigModel getDefaultConfig() {
             return defaultConfig;
         }

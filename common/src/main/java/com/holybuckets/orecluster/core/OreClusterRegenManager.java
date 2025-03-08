@@ -2,27 +2,23 @@ package com.holybuckets.orecluster.core;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import com.holybuckets.foundation.GeneralConfig;
-import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.datastore.DataStore;
-import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.datastore.WorldSaveData;
-import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.orecluster.Constants;
+import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
-import net.blay09.mods.balm.api.event.BalmEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.world.level.LevelAccessor;
 
-import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class OreClusterRegenManager {
@@ -31,6 +27,7 @@ public class OreClusterRegenManager {
     Long periodTickEnd;
     Long periodTickLength;
 
+    ExecutorService triggerRegenThreadExecutor;
     Map<LevelAccessor, OreClusterManager> managers;
 
     GeneralConfig generalConfig;
@@ -41,6 +38,7 @@ public class OreClusterRegenManager {
     public OreClusterRegenManager(EventRegistrar reg, ModRealTimeConfig config, Map<LevelAccessor, OreClusterManager> managers)
     {
         super();
+        this.triggerRegenThreadExecutor = Executors.newSingleThreadExecutor();
         this.managers = managers;
         this.config = config;
         this.generalConfig = GeneralConfig.getInstance();
@@ -53,11 +51,17 @@ public class OreClusterRegenManager {
         reg.registerOnLevelLoad(this::onLevelLoad, EventPriority.Normal);
         reg.registerOnLevelUnload(this::onLevelUnload, EventPriority.Normal);
         reg.registerOnDataSave(this::save, EventPriority.High);
+
+        if( OreClustersAndRegenMain.DEBUG ) {
+            reg.registerOnServerTick(EventRegistrar.TickType.ON_120_TICKS, this::onDailyTick);
+        } else {
+            reg.registerOnServerTick(EventRegistrar.TickType.DAILY_TICK, this::onDailyTick);
+        }
     }
 
-    //Behaviour methods
+    //* BEHAVIOR METHODS *//
 
-    final int TICKS_PER_DAY = 2400;
+    final int TICKS_PER_DAY = (OreClustersAndRegenMain.DEBUG) ? 240 : 24000;
     public void setPeriodLength(String item)
     {
         Map<String, Integer> periodLengthByItem = config.getDefaultConfig().oreClusterRegenPeriods;
@@ -77,7 +81,7 @@ public class OreClusterRegenManager {
     private void handleDailyTick(long tickCount) {
         if( tickCount > periodTickEnd )
         {
-
+            this.triggerRegenThreadExecutor.submit(this::triggerRegenThread);
             updatePeriod(periodTickLength);
         }
     }
@@ -87,7 +91,9 @@ public class OreClusterRegenManager {
      *
      */
     private void triggerRegenThread() {
-
+        for (OreClusterManager manager : managers.values()) {
+            manager.triggerRegen();
+        }
     }
 
 
@@ -129,6 +135,16 @@ public class OreClusterRegenManager {
         worldSaveData.addProperty("oreClusterRegenManager", wrapper);
     }
 
+    public void shutdown() {
+        try {
+            triggerRegenThreadExecutor.awaitTermination(1000, java.util.concurrent.TimeUnit.MILLISECONDS);
+            triggerRegenThreadExecutor.shutdownNow();
+        } catch (InterruptedException e) {
+            LoggerProject.logWarning("015001", "Error shutting down OreClusterRegenManager, regen thread was in progress");
+        }
+        save(DatastoreSaveEvent.create());
+    }
+
 
     //* EVENTS
     public void onLevelLoad(LevelLoadingEvent.Load event) {
@@ -139,13 +155,13 @@ public class OreClusterRegenManager {
     }
 
     public void onLevelUnload(LevelLoadingEvent.Unload event) {
-        save(DatastoreSaveEvent.create());
         isLoaded = false;
     }
 
 
     public void onDailyTick(ServerTickEvent event) {
         this.handleDailyTick(event.getTickCount());
+        LoggerProject.logInfo("015001", "Ore Cluster Regen Manager: TICKS: " + event.getTickCount() + " END " + periodTickEnd);
     }
 
 

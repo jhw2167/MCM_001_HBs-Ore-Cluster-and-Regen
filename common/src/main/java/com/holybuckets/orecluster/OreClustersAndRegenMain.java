@@ -102,6 +102,9 @@ public class OreClustersAndRegenMain
 
         OreClusterManager m = ORE_CLUSTER_MANAGER_BY_LEVEL.remove( level );
         if( m != null ) m.shutdown();
+        if( ORE_CLUSTER_MANAGER_BY_LEVEL.isEmpty() ) {
+            ORE_CLUSTER_REGEN_MANAGER.shutdown();
+        }
     }
 
 

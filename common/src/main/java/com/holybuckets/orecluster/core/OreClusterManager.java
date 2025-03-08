@@ -116,7 +116,7 @@ public class OreClusterManager {
     private final LinkedBlockingQueue<String> chunksPendingDeterminations;
     private final ConcurrentHashMap<String, ManagedOreClusterChunk> chunksPendingCleaning;
     private final ConcurrentHashMap<String, ManagedOreClusterChunk> chunksPendingPreGeneration;
-    private final ConcurrentHashMap<String, ManagedOreClusterChunk> chunksPendingRegeneration;
+    private final ConcurrentSet<String> chunksPendingRegeneration;
     //private final ConcurrentHashMap<String, ManagedOreClusterChunk> chunksPendingManifestation;
 
     //<chunkId, <oreType, Vec3i>>
@@ -147,7 +147,7 @@ public class OreClusterManager {
     //private final ThreadPoolExecutor threadPoolChunkProcessing;
 
     /** Constructor **/
-    public OreClusterManager(LevelAccessor level, ModRealTimeConfig config, ConcurrentHashMap<String)
+    public OreClusterManager(LevelAccessor level, ModRealTimeConfig config)
     {
         super();
         this.level = level;
@@ -163,7 +163,7 @@ public class OreClusterManager {
         this.chunksPendingDeterminations = new LinkedBlockingQueue<>();
         this.chunksPendingCleaning = new ConcurrentHashMap<>();
         this.chunksPendingPreGeneration = new ConcurrentHashMap<>();
-        this.chunksPendingRegeneration = new ConcurrentHashMap<>();
+        this.chunksPendingRegeneration = new ConcurrentSet<>();
 
         this.initializedOreClusterChunks = new ConcurrentSet<>();
         //this.chunksPendingManifestation = new ConcurrentHashMap<>();
@@ -242,8 +242,9 @@ public class OreClusterManager {
      * chunkDelete
      * chunkExpire
      */
-     //private static final Long MAX_DETERMINED_CHUNK_LIFETIME_MILLIS = 150_000L;
-    private static final Long MAX_DETERMINED_CHUNK_LIFETIME_MILLIS = 15_000L;
+     private static final Long MAX_DETERMINED_CHUNK_LIFETIME_MILLIS = (OreClustersAndRegenMain.DEBUG)
+        ? 15_000 : 150_000L;
+     //timeout
      private static final Long SLEEP_TIME_MILLIS = 30_00L;
     private void threadWatchManagedOreChunkLifetime()
     {
@@ -406,15 +407,8 @@ public class OreClusterManager {
                 this.threadPoolClusterGenerating.submit(this::workerThreadGenerateClusters);
             }
         }
-        else if( ManagedOreClusterChunk.isRegenerated(chunk) )
-        {
-            //LoggerProject.logDebug("002007","Chunk " + chunkId + " has been regenerated");
-            if( !chunk.hasBlockUpdates() )
-            {
-                chunksPendingPreGeneration.put(chunkId, chunk);
-                this.threadPoolClusterGenerating.submit(this::workerThreadGenerateClusters);
-            }
-
+        else if( this.chunksPendingRegeneration.contains(chunkId) ) {
+            this.triggerRegen(chunkId);
         }
         else if( ManagedOreClusterChunk.isGenerated(chunk) )
         {
@@ -628,6 +622,7 @@ public class OreClusterManager {
 
                     if( ManagedOreClusterChunk.isPregenerated(chunk) ) {
                         chunksPendingPreGeneration.remove(chunk.getId());
+                        chunksPendingRegeneration.remove(chunk.getId());
                     }
                 }
 
@@ -965,19 +960,24 @@ public class OreClusterManager {
         if(chunk.getClusterTypes() == null || chunk.getClusterTypes().size() == 0)
             return;
 
-
-
-        LoggerProject.logDebug("002015","Generating clusters for chunk: " + chunk.getId());
+        //LoggerProject.logDebug("002015","Generating clusters for chunk: " + chunk.getId());
 
         String SKIPPED = null;
         for( BlockState oreType : chunk.getClusterTypes().keySet() )
         {
-            //1. Get the cluster config
+            //1. If we are regenerating, skip any clusters in this chunk that dont' regenerate
+            if( ManagedOreClusterChunk.isRegenerated(chunk)) {
+                OreClusterConfigModel config = this.config.getOreConfigByOre(oreType);
+                if(!config.oreClusterDoesRegenerate) continue;
+            }
 
+            //2. If we don't have a source pos, skip and revert cluster to clean
             BlockPos sourcePos = chunk.getClusterTypes().get(oreType);
             if( sourcePos == null ) {
                 LoggerProject.logDebug("002016","No source position for oreType: " + oreType);
                 SKIPPED = BlockUtil.blockToString(oreType.getBlock());
+                chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.DETERMINED);
+                this.chunksPendingCleaning.put(chunk.getId(), chunk);
                 continue;
             }
 
@@ -987,7 +987,9 @@ public class OreClusterManager {
                 continue;
             }
 
-            Vec3i sourceOffset = new Vec3i(0, 120 - sourcePos.getY(), 0);
+            //Offset for DEBUG
+            Vec3i sourceOffset = new Vec3i(0, 0, 0);
+            if(OreClustersAndRegenMain.DEBUG) sourceOffset = new Vec3i(0, 120 - sourcePos.getY(), 0);
             for( Pair<BlockState, BlockPos> pos : clusterPos )
             {
                 //2. Add the blockstate and position to the blockStateUpdates
@@ -1122,13 +1124,23 @@ public class OreClusterManager {
     public void triggerRegen()
     {
         //1. Get list of all chunkIds with clusters
+        for( BlockState clusterType : existingClustersByType.keySet() )
+        {
+            OreClusterConfigModel model = this.config.getOreConfigByOre(clusterType);
+            if( model == null || !model.oreClusterDoesRegenerate ) continue;
+            chunksPendingRegeneration.addAll(existingClustersByType.get(clusterType));
+        }
 
+        chunksPendingRegeneration.forEach(this::triggerRegen);
+        this.threadPoolClusterGenerating.submit(this::workerThreadGenerateClusters);
+    }
 
-        //2. Filter out all chunkIds with clusters that don't regenerate
-
-        //3. Add to chunksPendingRegeneration
-
-        //4. Set all loadedChunks to status
+    public void triggerRegen(String chunkId)
+    {
+        ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
+        if( chunk == null ) return;
+        chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.REGENERATED);
+        chunksPendingPreGeneration.put(chunkId, chunk);
     }
 
     /**
