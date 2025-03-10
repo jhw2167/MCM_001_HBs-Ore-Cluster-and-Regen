@@ -23,7 +23,6 @@ import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.util.datafix.fixes.BlockStateData;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Blocks;
@@ -92,11 +91,15 @@ public class OreClusterManager {
     // Worker thread control map
     private static final Map<String, Boolean> WORKER_THREAD_ENABLED = new HashMap<>() {{
         put("workerThreadLoadedChunk", true);
-        put("workerThreadDetermineClusters", false);
-        put("workerThreadCleanClusters", false);
-        put("workerThreadGenerateClusters", false);
-        put("workerThreadEditChunk", false);
+        put("workerThreadDetermineClusters", true);
+        put("workerThreadCleanClusters", true);
+        put("workerThreadGenerateClusters", true);
+        put("workerThreadEditChunk", true);
     }};
+
+    private void setOffWorkerThreads(String threadName) {
+        WORKER_THREAD_ENABLED.put(threadName, false);
+    }
 
     private final Map<String, List<Long>> THREAD_TIMES = new HashMap<>() {{
         put("handleChunkInitialization", new ArrayList<>());
@@ -266,31 +269,29 @@ public class OreClusterManager {
                 }
 
                 Long systemTime = System.currentTimeMillis();
-                List<String> expired_chunks = new ArrayList<>();
+                List<ManagedOreClusterChunk> expired_chunks = new ArrayList<>();
 
-                //chunks that were loaded and unloaded
-                loadedOreClusterChunks.values().forEach(c -> c.setTimeLastLoaded() );
-                loadedOreClusterChunks.values().stream()
-                    .filter(c -> systemTime - c.getTimeLastLoaded() > MAX_DETERMINED_CHUNK_LIFETIME_MILLIS)
-                    //.limit(30)
-                    .forEach(c -> expired_chunks.add(c.getId()));
+                //We need to limit because we will be force loading these chunks so they can save
+                expired_chunks = loadedOreClusterChunks.values().stream()
+                        .filter(c -> !c.updateTimeLastLoaded(systemTime))
+                        .filter(c -> (systemTime - c.getTimeLastLoaded()) > MAX_DETERMINED_CHUNK_LIFETIME_MILLIS)
+                        .limit(16)
+                        .collect(Collectors.toList());
 
-                if(expired_chunks.contains(TEST_ID)) {
+                if(!expired_chunks.stream().filter(c -> c.getId().equals(TEST_ID)).toList().isEmpty()) {
                     int i = 0;
                 }
 
-                Set<String> initializedChunks = ManagedChunkUtilityAccessor.getInitializedChunks(level);
-                for( String id : expired_chunks ) {
-                    if( !initializedChunks.contains(id) ) {
-                        LevelChunk chunk = ManagedChunkUtilityAccessor.getChunk(level, id, true);
-                        chunk.setUnsaved(true);
-                    }
+                for( ManagedOreClusterChunk chunk : expired_chunks ) {
+                    String id = chunk.getId();
+                    LevelChunk levelChunk = ManagedChunkUtilityAccessor.getChunk(level, id, true);
+                    levelChunk.setUnsaved(true);
                 }
 
                 sleep(SLEEP_TIME_MILLIS); //Sleep for chunks to write data out and unload
-                for( String id : expired_chunks ) {
-                    LoggerProject.logDebug("002004", "Chunk " + id + " has expired");
-                    editManagedChunk(loadedOreClusterChunks.get(id), this::removeManagedChunkById);
+                for( ManagedOreClusterChunk chunk : expired_chunks ) {
+                    LoggerProject.logDebug("002004", "Chunk " + chunk.getId() + " has expired");
+                    this.editManagedChunk(chunk, this::removeManagedChunkById);
                 }
 
             }
@@ -303,9 +304,14 @@ public class OreClusterManager {
     }
 
     private static ConcurrentHashMap<String, Integer> expiredChunks = new ConcurrentHashMap<>();
-    private void removeManagedChunkById(ManagedOreClusterChunk c)
+    private void removeManagedChunkById(ManagedOreClusterChunk c )
     {
         String chunkId = c.getId();
+        Integer expiryCount = expiredChunks.get(chunkId);
+        if( expiryCount == null ) expiredChunks.put(chunkId, 0);
+        boolean didComplete = ManagedOreClusterChunk.isComplete(c);
+        expiredChunks.put(chunkId, (didComplete) ? -1 : expiryCount + 1 );
+
         loadedOreClusterChunks.remove(chunkId);
         chunksPendingHandling.remove(chunkId);
         chunksPendingDeterminations.remove(chunkId);
@@ -313,10 +319,6 @@ public class OreClusterManager {
         chunksPendingPreGeneration.remove(chunkId);
         //chunksPendingManifestation.remove(chunkId);
 
-        if( expiredChunks.containsKey(chunkId) )
-            expiredChunks.put(chunkId, expiredChunks.get(chunkId) + 1);
-        else
-            expiredChunks.put(chunkId, 1);
     }
 
 
@@ -688,10 +690,11 @@ public class OreClusterManager {
                     int i = 0;
                 }
 
-                handleChunkReadiness();
+                this.handleChunkReadiness();
 
                 List<ManagedOreClusterChunk> readyChunks = loadedOreClusterChunks.values().stream()
                     .filter(c -> c.isReady())
+                    //.filter(c -> c.hasChunk())
                     .toList();
 
 
@@ -730,59 +733,50 @@ public class OreClusterManager {
         Throwable thrown = null;
         try
         {
-            if( true ) {
-                //sleep(10000);
-                //return;
-            }
-            //sleep(1000);
 
-            //while( managerRunning )
-            {
+            List<ManagedOreClusterChunk> availableChunks = loadedOreClusterChunks.values().stream()
+                .filter(c -> c.hasChunk() )
+                .filter(c -> !c.isReady())
+                .toList();
 
+            //Cleaned chunks that have not been harvested yet
+            List<ManagedOreClusterChunk> cleanedChunks = availableChunks.stream()
+                .filter(c -> ManagedOreClusterChunk.isCleaned(c) )
+                .filter(c -> !c.hasClusters())              //If it still needs to generate clusters, skip
+                .filter(c -> !c.checkClusterHarvested())    //Checks if cluster has been interacted with by player
+                .toList();
 
-                List<ManagedOreClusterChunk> availableChunks = loadedOreClusterChunks.values().stream()
-                    .filter(c -> c.hasChunk() )
-                    .filter(c -> !c.isReady())
-                    .toList();
+             //Pre-generated chunks that have not been harvested yet
+            List<ManagedOreClusterChunk> preGeneratedChunks = availableChunks.stream()
+                .filter(c -> ManagedOreClusterChunk.isPregenerated(c) )
+                .filter(c -> !c.checkClusterHarvested())                //Checks if cluster has been interacted with by player
+                .toList();
 
-                //Cleaned chunks that have not been harvested yet
-                List<ManagedOreClusterChunk> cleanedChunks = availableChunks.stream()
-                    .filter(c -> ManagedOreClusterChunk.isCleaned(c) )
-                    .filter(c -> !c.hasClusters())              //If it still needs to generate clusters, skip
-                    .filter(c -> !c.checkClusterHarvested())    //Checks if cluster has been interacted with by player
-                    .toList();
+            //Any adjacentChunks to the player that are not harvested
+            /*
+            final List<ChunkAccess> PLAYER_CHUNKS = GeneralConfig.getPlayers();
+            //Get location of each player
+            //Get chunk at each location
+            //Determine adjacent chunks
+            //Put adjacent chunks into an array
+            //Filter all chunks that have been harvested
+            List<ManagedOreClusterChunk> adjacentChunks = loadedOreClusterChunks.values().stream()
+                .filter(c -> ManagedOreClusterChunk.isCleaned(c) )
+                .filter(c -> !c.isReady())
+                .filter(c -> !c.checkClusterHarvested())    //Checks if cluster has been interacted with by player
+                .filter(c -> c.hasChunk())                 //must have loaded chunk
+                .toList();
 
-                 //Pre-generated chunks that have not been harvested yet
-                List<ManagedOreClusterChunk> preGeneratedChunks = availableChunks.stream()
-                    .filter(c -> ManagedOreClusterChunk.isPregenerated(c) )
-                    .filter(c -> !c.checkClusterHarvested())                //Checks if cluster has been interacted with by player
-                    .toList();
+            */
 
-                //Any adjacentChunks to the player that are not harvested
-                /*
-                final List<ChunkAccess> PLAYER_CHUNKS = GeneralConfig.getPlayers();
-                //Get location of each player
-                //Get chunk at each location
-                //Determine adjacent chunks
-                //Put adjacent chunks into an array
-                //Filter all chunks that have been harvested
-                List<ManagedOreClusterChunk> adjacentChunks = loadedOreClusterChunks.values().stream()
-                    .filter(c -> ManagedOreClusterChunk.isCleaned(c) )
-                    .filter(c -> !c.isReady())
-                    .filter(c -> !c.checkClusterHarvested())    //Checks if cluster has been interacted with by player
-                    .filter(c -> c.hasChunk())                 //must have loaded chunk
-                    .toList();
+            //Join Lists and mark as ready
+            List<ManagedOreClusterChunk> readyChunks = new ArrayList<>();
+            readyChunks.addAll(cleanedChunks);
+            readyChunks.addAll(preGeneratedChunks);
+            //readyChunks.addAll(adjacentChunks);
 
-                */
+            readyChunks.forEach(c -> editManagedChunk(c, ch -> ch.setReady(true)) );
 
-                //Join Lists and mark as ready
-                List<ManagedOreClusterChunk> readyChunks = new ArrayList<>();
-                readyChunks.addAll(cleanedChunks);
-                readyChunks.addAll(preGeneratedChunks);
-                //readyChunks.addAll(adjacentChunks);
-
-                readyChunks.forEach(c -> editManagedChunk(c, ch -> ch.setReady(true)) );
-            }
 
         }
         catch (Exception e) {
@@ -818,7 +812,7 @@ public class OreClusterManager {
         // #3. Add clusters to determinedClusters
         for( String id: chunkIds)
         {
-            if( determinedChunks.contains(id) ) continue;
+            if( this.determinedChunks.contains(id) ) continue;
 
             if( id.equals(TEST_ID)) {
                 int i = 0;
@@ -1191,11 +1185,10 @@ public class OreClusterManager {
 
         chunksPendingRegeneration.add(chunkId);
         ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
+        if( chunk == null ) return;
 
-        if( chunk == null )
-            return;
-
-        if(!ManagedOreClusterChunk.isGenerated(chunk)) {
+        int REGENERATED = ManagedOreClusterChunk.ClusterStatus.REGENERATED.ordinal();
+        if(chunk.getStatus().ordinal() < REGENERATED ) {
             chunksPendingRegeneration.remove(chunkId);
             return;
         }
@@ -1207,6 +1200,9 @@ public class OreClusterManager {
      *              UTILITY SECTION
      */
 
+    public String healthCheck() {
+
+    }
 
     /**
      * Batch process that determines the location of clusters in the next n chunks
