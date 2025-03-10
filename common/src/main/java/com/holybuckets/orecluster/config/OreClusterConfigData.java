@@ -26,7 +26,7 @@ public class OreClusterConfigData implements BalmConfigData {
 
         public static final String DEF_VALID_ORE_CLUSTER_ORE_BLOCKS = "minecraft:iron_ore";
 
-        public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_SPAWN_RATE = new ConfigNumber<>("oreClusterSpawnrate", 16, 1, DEF_ORE_CLUSTER_SPAWNRATE_AREA);
+        public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_SPAWN_RATE = new ConfigNumber<>("oreClusterSpawnrate", 16, 0, DEF_ORE_CLUSTER_SPAWNRATE_AREA);
         public static final String DEF_ORE_CLUSTER_VOLUME = "8x8x4";
 
         public static final ConfigNumber<Float> DEF_ORE_CLUSTER_DENSITY = new ConfigNumber<>("oreClusterDensity", 1f, 0f, 1f);

@@ -49,13 +49,12 @@ public class OreClustersAndRegenMain
         ManagedOreClusterChunk.registerManagedChunkData();
 
         CommandList.register();
-
         EventRegistrar eventRegistrar = EventRegistrar.getInstance();
+
         this.ORE_CLUSTER_MANAGER_BY_LEVEL = new HashMap<>();
         this.modRealTimeConfig = new ModRealTimeConfig();
         this.ORE_CLUSTER_REGEN_MANAGER = new OreClusterRegenManager( eventRegistrar, modRealTimeConfig, ORE_CLUSTER_MANAGER_BY_LEVEL );
         OreClusterInterface.initInstance( ORE_CLUSTER_MANAGER_BY_LEVEL );
-
 
         eventRegistrar.registerOnLevelLoad( this::onLoadWorld, EventPriority.High );
         eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );

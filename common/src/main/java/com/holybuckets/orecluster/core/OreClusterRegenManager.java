@@ -3,11 +3,13 @@ package com.holybuckets.orecluster.core;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.holybuckets.foundation.GeneralConfig;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.WorldSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.orecluster.Constants;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.ModRealTimeConfig;
@@ -57,6 +59,7 @@ public class OreClusterRegenManager {
         } else {
             reg.registerOnServerTick(EventRegistrar.TickType.DAILY_TICK, this::onDailyTick);
         }
+        LoggerProject.logInit("015000", this.getClass().getName());
     }
 
     //* BEHAVIOR METHODS *//
@@ -81,7 +84,7 @@ public class OreClusterRegenManager {
     private void handleDailyTick(long tickCount) {
         if( tickCount > periodTickEnd )
         {
-            this.triggerRegenThreadExecutor.submit(this::triggerRegenThread);
+            this.triggerRegenThreadExecutor.submit(this::triggerGlobalRegen);
             updatePeriod(periodTickLength);
         }
     }
@@ -90,10 +93,16 @@ public class OreClusterRegenManager {
     /**
      *
      */
-    private void triggerRegenThread() {
+    private void triggerGlobalRegen() {
         for (OreClusterManager manager : managers.values()) {
             manager.triggerRegen();
         }
+    }
+
+    private void triggerChunkRegen(LevelAccessor level, String chunkId) throws InvalidId {
+        OreClusterManager manager = managers.get(level);
+        if(manager == null) throw new InvalidId("Could not find manager for level" + HBUtil.LevelUtil.toLevelId(level));
+        manager.triggerRegen(chunkId);
     }
 
 
@@ -148,6 +157,7 @@ public class OreClusterRegenManager {
 
     //* EVENTS
     public void onLevelLoad(LevelLoadingEvent.Load event) {
+        if(event.getLevel().isClientSide()) return;
         if(isLoaded) return;
         boolean loadedFromFile = load();
         if(!loadedFromFile) setPeriodLength(null);
@@ -155,6 +165,7 @@ public class OreClusterRegenManager {
     }
 
     public void onLevelUnload(LevelLoadingEvent.Unload event) {
+        if(event.getLevel().isClientSide()) return;
         isLoaded = false;
     }
 

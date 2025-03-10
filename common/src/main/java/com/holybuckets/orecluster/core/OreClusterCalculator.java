@@ -66,6 +66,7 @@ public class OreClusterCalculator {
         for (BlockState oreType : oreClusterTypes)
         {
             int normalizedSpawnRate = clusterConfigs.get(oreType).oreClusterSpawnRate;
+            if( normalizedSpawnRate == 0 ) continue;
             double sigma = ModRealTimeConfig.CHUNK_DISTRIBUTION_STDV_FUNC.apply(normalizedSpawnRate);
             int numClusters = (int) Math.round(rng.nextGaussian() * sigma + normalizedSpawnRate);
 

@@ -628,7 +628,6 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     @Override
     public void deserializeNBT(CompoundTag tag)
     {
-        LoggerProject.logDebug("003003", "Deserializing ManagedOreClusterChunk");
         if(tag == null || tag.isEmpty())
             return;
 
@@ -668,7 +667,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
                 }
             }
 
-            LoggerProject.logDebug("003008", "Deserializing clusterTypes: " + clusterTypes);
+            //LoggerProject.logDebug("003008", "Deserializing clusterTypes: " + clusterTypes);
         }
 
         //blockStateUpdates

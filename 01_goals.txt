@@ -365,27 +365,58 @@ jarJar {
 
 37.  More Releastic cluster generation
 ---  
-
+'	- Added perlin noise clustering, moving away from air
 
 38.  Add support for regenerating clusters
 ---  
 
+	- Clusters regenerate every set number of ticks
 
-
-
-39.  
+39.  Add interface support
 ---  
 
-40.  
+	- Regenerate cluster at a particular location
+		- Regenerate cluster at ChunkId
+
+	- Add a cluster to location
+
+	- Add healthCheck command
+		- return status of all pending chunks, size of loaded ore clusters
+		- check status of particular chunk
+
+ManagedChunk.LOADED_CHUNKS.get(HBUtil.LevelUtil.toLevel("SERVER:minecraft:overworld")).keySet().
+existingClustersByType.get(Blocks.IRON_ORE.defaultBlockState()).contains("229,241")
+
+
+40.  Ensure loading works with Chunky / Chunk Pregen
 ---  
 
-41.  
+	- attempt to pre-generate chunks
+
+	- ERROR: After force loading chunks within 4000, 4000 radius, chunks within radius do not trigger reload, clean, run themselves
+	- 
+
+41.   Additional Cluster tests
 ---  
 
-42.  
+	- Make a cluster of many different kinds of ore
+	- Make cluster out of a none ore block
+		- Andesite,
+		- Wood,
+	- Make a cluster out of a block entity block
+		- If no Ore block is found after cleaning - REMOVE from existing clusters by type
+
+	- Make a massive sparse cluster
+
+
+42.  Promotional image creation
 ---  
 
-43.  
+	- Multi-ore cluster
+	- Demonstrate regenerative capabilities
+	- Demonstrate clusters of NON ore blocks
+
+43.  Clean up logs
 ---  
 
 44.  
@@ -410,27 +441,8 @@ jarJar {
 ---  
 
 
-
-		- Add an indicator to the param to NOT generate clusters
-
-		- Determine "ticksLastRefreshed" parameter on ManagedOreClusterChunk
-		- tickLastRefreshed < LAST_REGEN_TICK then do a refresh, set tickLastRefreshed to LAST_REGEN_TICK
-		- when currentGameTick > NEXT_REGEN_TICK, set LAST_REGEN_TICK == NEXT_REGEN_TICK
-			- calculate NEXT_REGEN_TICK += PERIOD_LENGTH_TICKS
-
-	      - Find way to check if chunk gets unloaded
-		-  THREADS CONTINUE TO RUN AFTER WORLD IS SHUTDOWN, NEEDS TO QUIT
-
-		
-
-
 	Touchups:
-	- Determine Max Size/Lifetime of Managed Chunk in RAM						X
-	- Add level distinguisher in TOML
-	- Add level JSON property to ore configuration
-	- Alter ManagedOreClusterChunk sourcing algorithm to select valid Regenerating ores by cluster
-	
-	- Deserialization method should be synchronous, locked on objects to ensure other methods aren't running
+
 
 			
 TEST CASES
