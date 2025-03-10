@@ -92,10 +92,10 @@ public class OreClusterManager {
     // Worker thread control map
     private static final Map<String, Boolean> WORKER_THREAD_ENABLED = new HashMap<>() {{
         put("workerThreadLoadedChunk", true);
-        put("workerThreadDetermineClusters", true);
-        put("workerThreadCleanClusters", true);
-        put("workerThreadGenerateClusters", true);
-        put("workerThreadEditChunk", true);
+        put("workerThreadDetermineClusters", false);
+        put("workerThreadCleanClusters", false);
+        put("workerThreadGenerateClusters", false);
+        put("workerThreadEditChunk", false);
     }};
 
     private final Map<String, List<Long>> THREAD_TIMES = new HashMap<>() {{
