@@ -1202,27 +1202,34 @@ public class OreClusterManager {
 
     public JsonObject healthCheck() {
         JsonObject health = new JsonObject();
-        //health.append("Queue Sizes:\n");
-        health.addProperty("Pending Handling").append(chunksPendingHandling.size()).addProperty("\n");
-        health.addProperty("Pending Determinations: ").append(chunksPendingDeterminations.size()).addProperty("\n");
-        health.addProperty("Pending Cleaning: ").append(chunksPendingCleaning.size()).addProperty("\n");
-        health.addProperty("Pending PreGeneration: ").append(chunksPendingPreGeneration.size()).addProperty("\n");
-        health.addProperty("Pending Regeneration: ").append(chunksPendingRegeneration.size()).append("\n");
+        
+        // Queue Sizes
+        JsonObject queueSizes = new JsonObject();
+        queueSizes.addProperty("pendingHandling", chunksPendingHandling.size());
+        queueSizes.addProperty("pendingDeterminations", chunksPendingDeterminations.size());
+        queueSizes.addProperty("pendingCleaning", chunksPendingCleaning.size());
+        queueSizes.addProperty("pendingPreGeneration", chunksPendingPreGeneration.size());
+        queueSizes.addProperty("pendingRegeneration", chunksPendingRegeneration.size());
+        health.add("queueSizes", queueSizes);
 
-        health.append("\nAverage Thread Times (ms):\n");
+        // Thread Times
+        JsonObject threadTimes = new JsonObject();
         THREAD_TIMES.forEach((threadName, times) -> {
             if (!times.isEmpty()) {
                 double avg = times.stream().mapToLong(Long::valueOf).average().orElse(0.0);
-                health.append(threadName).append(": ").append(String.format("%.2f", avg)).append("\n");
+                threadTimes.addProperty(threadName, avg);
             }
         });
+        health.add("averageThreadTimes", threadTimes);
 
-        health.append("\nChunk Tracking:\n");
-        health.append("Loaded Ore Cluster Chunks: ").append(loadedOreClusterChunks.size()).append("\n");
-        health.append("Expired Chunks: ").append(expiredChunks.size()).append("\n");
-        health.append("Complete Chunks: ").append(completeChunks.size()).append("\n");
+        // Chunk Tracking
+        JsonObject chunkTracking = new JsonObject();
+        chunkTracking.addProperty("loadedOreClusterChunks", loadedOreClusterChunks.size());
+        chunkTracking.addProperty("expiredChunks", expiredChunks.size());
+        chunkTracking.addProperty("completeChunks", completeChunks.size());
+        health.add("chunkTracking", chunkTracking);
 
-        return health.toString();
+        return health;
     }
 
     /**
