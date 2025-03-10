@@ -1201,7 +1201,28 @@ public class OreClusterManager {
      */
 
     public String healthCheck() {
+        StringBuilder health = new StringBuilder();
+        health.append("Queue Sizes:\n");
+        health.append("Pending Handling: ").append(chunksPendingHandling.size()).append("\n");
+        health.append("Pending Determinations: ").append(chunksPendingDeterminations.size()).append("\n");
+        health.append("Pending Cleaning: ").append(chunksPendingCleaning.size()).append("\n");
+        health.append("Pending PreGeneration: ").append(chunksPendingPreGeneration.size()).append("\n");
+        health.append("Pending Regeneration: ").append(chunksPendingRegeneration.size()).append("\n");
 
+        health.append("\nAverage Thread Times (ms):\n");
+        THREAD_TIMES.forEach((threadName, times) -> {
+            if (!times.isEmpty()) {
+                double avg = times.stream().mapToLong(Long::valueOf).average().orElse(0.0);
+                health.append(threadName).append(": ").append(String.format("%.2f", avg)).append("\n");
+            }
+        });
+
+        health.append("\nChunk Tracking:\n");
+        health.append("Loaded Ore Cluster Chunks: ").append(loadedOreClusterChunks.size()).append("\n");
+        health.append("Expired Chunks: ").append(expiredChunks.size()).append("\n");
+        health.append("Complete Chunks: ").append(completeChunks.size()).append("\n");
+
+        return health.toString();
     }
 
     /**
