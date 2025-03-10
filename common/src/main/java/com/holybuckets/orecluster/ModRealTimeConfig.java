@@ -5,9 +5,13 @@ package com.holybuckets.orecluster;
 //Forge Imports
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.config.OreClusterConfigData;
 import com.holybuckets.orecluster.config.model.OreClusterJsonConfig;
+import net.blay09.mods.balm.api.event.BalmEvents;
+import net.blay09.mods.balm.api.event.EventPriority;
+import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.minecraft.world.level.block.Block;
 
 //Java Imports
@@ -63,53 +67,57 @@ public class ModRealTimeConfig
     //Using minecraft world seed as default
     public static Long CLUSTER_SEED = null;
 
-        //Constructor initializes the defaultConfigs and oreConfigs from forge properties
-        public ModRealTimeConfig()
+    public ModRealTimeConfig(EventRegistrar reg) {
+        reg.registerOnBeforeServerStarted(this::onBeforeServerStart, EventPriority.Highest);
+        LoggerProject.logInit("000000", this.getClass().getName());
+    }
+
+
+    //Constructor initializes the defaultConfigs and oreConfigs from forge properties
+    public void onBeforeServerStart(ServerStartingEvent event)
+    {
+        OreClusterConfigData.COreClusters clusterConfig = OreClusterConfig.getActive().cOreClusters;
+        this.defaultConfig = new OreClusterConfigModel(clusterConfig);
+
+        //Create new oreConfig for each element in cOreClusters list
+        this.oreConfigs = new HashMap<>();
+
+        //File configFile = new File(clusterConfig.oreClusters.get());
+        //File defaultConfigFile = new File(clusterConfig.oreClusters.getDefault());
+        //config/HBOreClustersAndRegenConfigs.json
+        File configFile = new File("config/HBOreClustersAndRegenConfigs.json");
+        File defaultConfigFile = new File("config/HBOreClustersAndRegenConfigs.json");
+        String jsonOreConfigData = HBUtil.FileIO.loadJsonConfigs( configFile, defaultConfigFile, OreClusterJsonConfig.DEFAULT_CONFIG );
+
+        OreClusterJsonConfig jsonOreConfigs = new OreClusterJsonConfig(jsonOreConfigData);
+
+
+        //Default configs will be used for all valid ore clusters unless overwritten
+        for( Block validOreClusterBlock : defaultConfig.validOreClusterOreBlocks.stream().toList() )
         {
-
-            OreClusterConfigData.COreClusters clusterConfig = OreClusterConfig.getActive().cOreClusters;
-            this.defaultConfig = new OreClusterConfigModel(clusterConfig);
-
-            //Create new oreConfig for each element in cOreClusters list
-            this.oreConfigs = new HashMap<BlockState, OreClusterConfigModel>();
-
-            //File configFile = new File(clusterConfig.oreClusters.get());
-            //File defaultConfigFile = new File(clusterConfig.oreClusters.getDefault());
-            //config/HBOreClustersAndRegenConfigs.json
-            File configFile = new File("config/HBOreClustersAndRegenConfigs.json");
-            File defaultConfigFile = new File("config/HBOreClustersAndRegenConfigs.json");
-            String jsonOreConfigData = HBUtil.FileIO.loadJsonConfigs( configFile, defaultConfigFile, OreClusterJsonConfig.DEFAULT_CONFIG );
-
-            OreClusterJsonConfig jsonOreConfigs = new OreClusterJsonConfig(jsonOreConfigData);
-
-
-            //Default configs will be used for all valid ore clusters unless overwritten
-            for( Block validOreClusterBlock : defaultConfig.validOreClusterOreBlocks.stream().toList() )
-            {
-                defaultConfig.setOreClusterType(validOreClusterBlock.defaultBlockState());
-                OreClusterConfigModel oreConfig = new OreClusterConfigModel( OreClusterConfigModel.serialize(defaultConfig) );
-                oreConfigs.put(validOreClusterBlock.defaultBlockState(), oreConfig );
-            }
-            defaultConfig.setOreClusterType( (BlockState) null);
-
-            //Particular configs will overwrite the default data
-            for (OreClusterConfigModel oreConfig : jsonOreConfigs.getOreClusterConfigs())
-            {
-                oreConfigs.put(oreConfig.oreClusterType, oreConfig);
-            }
-
-            //Validate the defaultConfig minSpacingBetweenClusters
-            validateClusterSpacingAndMinBlocks();
-
-
-            if( defaultConfig.subSeed != null ) {
-                CLUSTER_SEED = defaultConfig.subSeed;
-            } else {
-                CLUSTER_SEED = GeneralConfig.getInstance().getWorldSeed();
-            }
-
-            LoggerProject.logInit("000000", this.getClass().getName());
+            defaultConfig.setOreClusterType(validOreClusterBlock.defaultBlockState());
+            OreClusterConfigModel oreConfig = new OreClusterConfigModel( OreClusterConfigModel.serialize(defaultConfig) );
+            oreConfigs.put(validOreClusterBlock.defaultBlockState(), oreConfig );
         }
+        defaultConfig.setOreClusterType( (BlockState) null);
+
+        //Particular configs will overwrite the default data
+        for (OreClusterConfigModel oreConfig : jsonOreConfigs.getOreClusterConfigs())
+        {
+            oreConfigs.put(oreConfig.oreClusterType, oreConfig);
+        }
+
+        //Validate the defaultConfig minSpacingBetweenClusters
+        validateClusterSpacingAndMinBlocks();
+
+
+        if( defaultConfig.subSeed != null ) {
+            CLUSTER_SEED = defaultConfig.subSeed;
+        } else {
+            CLUSTER_SEED = GeneralConfig.getInstance().getWorldSeed();
+        }
+
+    }
 
         /**
          *  Getters

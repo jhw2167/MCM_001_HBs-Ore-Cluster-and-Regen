@@ -101,7 +101,7 @@ public class OreClusterManager {
         WORKER_THREAD_ENABLED.put(threadName, false);
     }
 
-    private final Map<String, List<Long>> THREAD_TIMES = new HashMap<>() {{
+    final Map<String, List<Long>> THREAD_TIMES = new ConcurrentHashMap<>() {{
         put("handleChunkInitialization", new ArrayList<>());
         put("handleChunkDetermination", new ArrayList<>());
         put("handleChunkCleaning", new ArrayList<>());
@@ -119,25 +119,26 @@ public class OreClusterManager {
     //private Random randSeqClusterShapeGen;
 
 
-    private final LinkedBlockingQueue<String> chunksPendingHandling;
-    private final LinkedBlockingQueue<String> chunksPendingDeterminations;
-    private final ConcurrentHashMap<String, ManagedOreClusterChunk> chunksPendingCleaning;
-    private final ConcurrentHashMap<String, ManagedOreClusterChunk> chunksPendingPreGeneration;
-    private final ConcurrentSet<String> chunksPendingRegeneration;
+    final LinkedBlockingQueue<String> chunksPendingHandling;
+    final LinkedBlockingQueue<String> chunksPendingDeterminations;
+    final ConcurrentHashMap<String, ManagedOreClusterChunk> chunksPendingCleaning;
+    final ConcurrentHashMap<String, ManagedOreClusterChunk> chunksPendingPreGeneration;
+    final ConcurrentSet<String> chunksPendingRegeneration;
     //private final ConcurrentHashMap<String, ManagedOreClusterChunk> chunksPendingManifestation;
 
     //<chunkId, <oreType, Vec3i>>
 
 
-    private final ConcurrentLinkedSet<String> determinedSourceChunks;
-    private final ConcurrentSet<String> determinedChunks;
-    private final ConcurrentSet<String> completeChunks;
-    private final ConcurrentHashMap<String, ManagedOreClusterChunk> loadedOreClusterChunks;
-    private final Set<String> initializedOreClusterChunks;
+    final ConcurrentLinkedSet<String> determinedSourceChunks;
+    final ConcurrentSet<String> determinedChunks;
+    final ConcurrentSet<String> completeChunks;
+    final ConcurrentHashMap<String, Integer> expiredChunks;
+    final ConcurrentHashMap<String, ManagedOreClusterChunk> loadedOreClusterChunks;
+    final Set<String> initializedOreClusterChunks;
 
-    private final ConcurrentHashMap<BlockState, Set<String>> existingClustersByType;
-    private final ConcurrentHashMap<BlockState, Set<String>> removedClustersByType;
-    private final ChunkGenerationOrderHandler mainSpiral;
+    final ConcurrentHashMap<BlockState, Set<String>> existingClustersByType;
+    final ConcurrentHashMap<BlockState, Set<String>> removedClustersByType;
+    final ChunkGenerationOrderHandler mainSpiral;
     private OreClusterCalculator oreClusterCalculator;
 
     //Threads
@@ -167,6 +168,7 @@ public class OreClusterManager {
         this.determinedSourceChunks = new ConcurrentLinkedSet<>();
         this.determinedChunks = new ConcurrentSet<>();
         this.completeChunks = new ConcurrentSet<>();
+        this.expiredChunks = new ConcurrentHashMap<>();
 
         this.chunksPendingHandling = new LinkedBlockingQueue<>();
         this.chunksPendingDeterminations = new LinkedBlockingQueue<>();
@@ -303,7 +305,6 @@ public class OreClusterManager {
         int i = 0;
     }
 
-    private static ConcurrentHashMap<String, Integer> expiredChunks = new ConcurrentHashMap<>();
     private void removeManagedChunkById(ManagedOreClusterChunk c )
     {
         String chunkId = c.getId();
@@ -1200,37 +1201,7 @@ public class OreClusterManager {
      *              UTILITY SECTION
      */
 
-    public JsonObject healthCheck() {
-        JsonObject health = new JsonObject();
-        
-        // Queue Sizes
-        JsonObject queueSizes = new JsonObject();
-        queueSizes.addProperty("pendingHandling", chunksPendingHandling.size());
-        queueSizes.addProperty("pendingDeterminations", chunksPendingDeterminations.size());
-        queueSizes.addProperty("pendingCleaning", chunksPendingCleaning.size());
-        queueSizes.addProperty("pendingPreGeneration", chunksPendingPreGeneration.size());
-        queueSizes.addProperty("pendingRegeneration", chunksPendingRegeneration.size());
-        health.add("queueSizes", queueSizes);
 
-        // Thread Times
-        JsonObject threadTimes = new JsonObject();
-        THREAD_TIMES.forEach((threadName, times) -> {
-            if (!times.isEmpty()) {
-                double avg = times.stream().mapToLong(Long::valueOf).average().orElse(0.0);
-                threadTimes.addProperty(threadName, avg);
-            }
-        });
-        health.add("averageThreadTimes", threadTimes);
-
-        // Chunk Tracking
-        JsonObject chunkTracking = new JsonObject();
-        chunkTracking.addProperty("loadedOreClusterChunks", loadedOreClusterChunks.size());
-        chunkTracking.addProperty("expiredChunks", expiredChunks.size());
-        chunkTracking.addProperty("completeChunks", completeChunks.size());
-        health.add("chunkTracking", chunkTracking);
-
-        return health;
-    }
 
     /**
      * Batch process that determines the location of clusters in the next n chunks
@@ -1256,6 +1227,11 @@ public class OreClusterManager {
     /** GETTERS AND SETTERS **/
 
         /** GETTERS **/
+
+
+        public LevelAccessor getLevel() {
+            return level;
+        }
 
         public ManagedOreClusterChunk getLoadedChunk(String chunkId) {
             return loadedOreClusterChunks.get(chunkId);
@@ -1434,6 +1410,7 @@ public class OreClusterManager {
     public ManagedOreClusterChunk getDeterminedOreClusterChunk(String chunkId) {
         return this.chunksPendingCleaning.get(chunkId);
     }
+
 
 
     /** ############### **/

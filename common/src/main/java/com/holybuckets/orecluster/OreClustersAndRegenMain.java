@@ -1,9 +1,11 @@
 package com.holybuckets.orecluster;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.foundation.event.EventRegistrar;
 
+import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.orecluster.command.CommandList;
 import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.core.OreClusterInterface;
@@ -16,6 +18,9 @@ import net.minecraft.world.level.LevelAccessor;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 // The value here should match an entry in the META-INF/mods.toml file
 public class OreClustersAndRegenMain
@@ -28,8 +33,9 @@ public class OreClustersAndRegenMain
     public static final String VERSION = "1.0.0f";
     public static final Boolean DEBUG = true;
 
-    public static OreClustersAndRegenMain INSTANCE = null;
-    public ModRealTimeConfig modRealTimeConfig = null;
+    public static OreClustersAndRegenMain INSTANCE;
+    public ModRealTimeConfig modRealTimeConfig;
+    private Thread managerHealthcheckThread;
 
     /** Real Time Variables **/
     public Map<LevelAccessor, OreClusterManager> ORE_CLUSTER_MANAGER_BY_LEVEL = new HashMap<>();
@@ -52,13 +58,18 @@ public class OreClustersAndRegenMain
         EventRegistrar eventRegistrar = EventRegistrar.getInstance();
 
         this.ORE_CLUSTER_MANAGER_BY_LEVEL = new HashMap<>();
-        this.modRealTimeConfig = new ModRealTimeConfig();
+        this.modRealTimeConfig = new ModRealTimeConfig(eventRegistrar);
         this.ORE_CLUSTER_REGEN_MANAGER = new OreClusterRegenManager( eventRegistrar, modRealTimeConfig, ORE_CLUSTER_MANAGER_BY_LEVEL );
         OreClusterInterface.initInstance( ORE_CLUSTER_MANAGER_BY_LEVEL );
 
         eventRegistrar.registerOnLevelLoad( this::onLoadWorld, EventPriority.High );
         eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );
 
+        if( DEBUG ) {
+            eventRegistrar.registerOnServerTick( EventRegistrar.TickType.ON_120_TICKS, this::onDailyTick );
+        } else {
+            eventRegistrar.registerOnServerTick( EventRegistrar.TickType.DAILY_TICK, this::onDailyTick );
+        }
 
         /*
         WaystonesConfig.initialize();
@@ -104,8 +115,42 @@ public class OreClustersAndRegenMain
         if( ORE_CLUSTER_MANAGER_BY_LEVEL.isEmpty() ) {
             ORE_CLUSTER_REGEN_MANAGER.shutdown();
         }
+
+        if( this.managerHealthcheckThread != null ) {
+            this.managerHealthcheckThread.interrupt();
+            this.managerHealthcheckThread = null;
+        }
     }
 
+    private void onDailyTick(ServerTickEvent event) {
+        if( this.managerHealthcheckThread == null ) {
+            this.managerHealthcheckThread = new Thread(this::managerHealthCheck, "OreClusterAndRegenMain-ManagerHealthCheck");
+            this.managerHealthcheckThread.start();
+        }
+
+    }
+    private void managerHealthCheck()
+    {
+    try {
+        for( OreClusterManager m : ORE_CLUSTER_MANAGER_BY_LEVEL.values() )
+        {
+            LevelAccessor level = m.getLevel();
+            String jsonHealthCheck = OreClusterInterface.healthCheck( m ).getAsString();
+            StringBuilder message = new StringBuilder("Manager Health Check for level: ");
+            message.append( HBUtil.LevelUtil.toLevelId( level ) );
+            message.append( "\n\n");
+            message.append( jsonHealthCheck );
+            LoggerProject.logInfo( "001001", message.toString() );
+        }
+    } catch (Exception e) {
+        LoggerProject.logWarning("001002", "Manager Health Check Thread Exception: " + e.getMessage());
+    }
+    finally {
+        this.managerHealthcheckThread = null;
+    }
+
+
+    }
 
 
     /*

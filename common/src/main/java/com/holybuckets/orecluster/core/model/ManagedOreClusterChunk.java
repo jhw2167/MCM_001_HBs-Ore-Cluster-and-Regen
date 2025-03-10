@@ -288,7 +288,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     public boolean hasOreClusterSourcePos(BlockState b) {
         if(this.originalOres == null) return false;
-        return this.originalOres.containsKey(b);
+        if(!this.originalOres.containsKey(b)) return false;
+        return this.originalOres.get(b).getLeft() != null;
     }
 
     public BlockPos getOreClusterSourcePos(BlockState b) {
@@ -316,9 +317,16 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.timeUnloaded = System.currentTimeMillis();
     }
 
-    public void setTimeLastLoaded() {
-        if(ManagedChunkUtilityAccessor.isLoaded(this.level, this.id))
-            this.timeLastLoaded = System.currentTimeMillis();
+    /**
+     * Updates time with specified time if ManagedChunkUtilityAccessor.isLoaded returns true
+     * @param currentTime
+     */
+    public boolean updateTimeLastLoaded(Long currentTime) {
+        if(ManagedChunkUtilityAccessor.isLoaded(this.level, this.id)) {
+            this.timeLastLoaded = currentTime;
+            return true;
+        }
+        return false;
     }
 
     /** Other Methods **/

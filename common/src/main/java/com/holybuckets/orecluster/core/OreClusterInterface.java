@@ -1,6 +1,7 @@
 package com.holybuckets.orecluster.core;
 
 
+import com.google.gson.JsonObject;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
@@ -133,6 +134,42 @@ public class OreClusterInterface {
         LoggerProject.logInfo(null, "008002", "Sorted clusters by distance from: " + pos + " with limit  " + limit);
 
         return sortedClusters;
+    }
+
+
+    public static JsonObject healthCheck(OreClusterManager m) {
+        JsonObject health = new JsonObject();
+
+        // Queue Sizes
+        JsonObject queueSizes = new JsonObject();
+        queueSizes.addProperty("pendingHandling", m.chunksPendingHandling.size());
+        queueSizes.addProperty("pendingDeterminations", m.chunksPendingDeterminations.size());
+        queueSizes.addProperty("pendingCleaning", m.chunksPendingCleaning.size());
+        queueSizes.addProperty("pendingPreGeneration", m.chunksPendingPreGeneration.size());
+        queueSizes.addProperty("pendingRegeneration", m.chunksPendingRegeneration.size());
+        health.add("queueSizes", queueSizes);
+
+        // Thread Times
+        JsonObject threadTimes = new JsonObject();
+        m.THREAD_TIMES.forEach((threadName, times) -> {
+            if (!times.isEmpty()) {
+                double avg = times.stream().mapToLong(Long::valueOf).average().orElse(0.0);
+                threadTimes.addProperty(threadName, avg);
+            }
+        });
+        health.add("averageThreadTimes", threadTimes);
+
+        // Chunk Tracking
+        JsonObject chunkTracking = new JsonObject();
+        String[] determinedSourceChunks = m.determinedSourceChunks.toArray(new String[0]);
+        chunkTracking.addProperty("determinedSourceChunks", HBUtil.FileIO.arrayToJson(determinedSourceChunks).toString());
+        chunkTracking.addProperty("determinedChunks", m.determinedChunks.size());
+        chunkTracking.addProperty("loadedOreClusterChunks", m.loadedOreClusterChunks.size());
+        chunkTracking.addProperty("expiredChunks", m.expiredChunks.size());
+        chunkTracking.addProperty("completeChunks", m.completeChunks.size());
+        health.add("chunkTracking", chunkTracking);
+
+        return health;
     }
 
 

@@ -156,9 +156,11 @@ public class OreClusterRegenManager {
 
 
     //* EVENTS
-    public void onLevelLoad(LevelLoadingEvent.Load event) {
+    public void onLevelLoad(LevelLoadingEvent.Load event)
+    {
         if(event.getLevel().isClientSide()) return;
         if(isLoaded) return;
+        this.triggerRegenThreadExecutor = Executors.newSingleThreadExecutor();
         boolean loadedFromFile = load();
         if(!loadedFromFile) setPeriodLength(null);
         isLoaded = true;
