@@ -1200,14 +1200,14 @@ public class OreClusterManager {
      *              UTILITY SECTION
      */
 
-    public String healthCheck() {
-        StringBuilder health = new StringBuilder();
-        health.append("Queue Sizes:\n");
-        health.append("Pending Handling: ").append(chunksPendingHandling.size()).append("\n");
-        health.append("Pending Determinations: ").append(chunksPendingDeterminations.size()).append("\n");
-        health.append("Pending Cleaning: ").append(chunksPendingCleaning.size()).append("\n");
-        health.append("Pending PreGeneration: ").append(chunksPendingPreGeneration.size()).append("\n");
-        health.append("Pending Regeneration: ").append(chunksPendingRegeneration.size()).append("\n");
+    public JsonObject healthCheck() {
+        JsonObject health = new JsonObject();
+        //health.append("Queue Sizes:\n");
+        health.addProperty("Pending Handling").append(chunksPendingHandling.size()).addProperty("\n");
+        health.addProperty("Pending Determinations: ").append(chunksPendingDeterminations.size()).addProperty("\n");
+        health.addProperty("Pending Cleaning: ").append(chunksPendingCleaning.size()).addProperty("\n");
+        health.addProperty("Pending PreGeneration: ").append(chunksPendingPreGeneration.size()).addProperty("\n");
+        health.addProperty("Pending Regeneration: ").append(chunksPendingRegeneration.size()).append("\n");
 
         health.append("\nAverage Thread Times (ms):\n");
         THREAD_TIMES.forEach((threadName, times) -> {
