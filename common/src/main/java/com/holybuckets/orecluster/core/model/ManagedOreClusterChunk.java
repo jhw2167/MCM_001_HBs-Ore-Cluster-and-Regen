@@ -77,7 +77,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     private HashMap<BlockState, BlockPos> clusterTypes;
     private Map<BlockState, Pair<BlockPos, MutableInt>> originalOres;
-    private List<Pair<BlockState, BlockPos>> blockStateUpdates;
+    private ConcurrentHashMap<Integer, Pair<BlockState, BlockPos>> blockStateUpdates;
 
     private Random managedRandom;
     private ReentrantLock lock = new ReentrantLock();
@@ -99,7 +99,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.tickLoaded = GeneralConfig.getInstance().getTotalTickCount();
         this.isReady = false;
         this.clusterTypes = null;
-        this.blockStateUpdates = new LinkedList<Pair<BlockState, BlockPos>>();
+        this.blockStateUpdates = new ConcurrentHashMap<>();
         this.originalOres = new HashMap<>();
 
     }
@@ -184,7 +184,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public List<Pair<BlockState, BlockPos>> getBlockStateUpdates() {
-        return blockStateUpdates;
+        return new ArrayList<>(blockStateUpdates.values());
     }
 
     /**
@@ -193,11 +193,9 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
      */
     public Map<BlockPos, Integer> getMapBlockStateUpdates() {
         Map<BlockPos, Integer> map = new HashMap<>();
-        int i = 0;
-        for(Pair<BlockState, BlockPos> pair : this.blockStateUpdates) {
-            map.put(pair.getRight(), i);
-            i++;
-        }
+        blockStateUpdates.forEach((index, pair) -> {
+            map.put(pair.getRight(), index);
+        });
         return map;
     }
 
@@ -372,10 +370,10 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public void addBlockStateUpdate(Pair<BlockState, BlockPos> pair, int index) {
-        if(index < 0 || index >= this.blockStateUpdates.size())
-            this.blockStateUpdates.add(pair);
-        else
-            this.blockStateUpdates.set(index, pair);
+        if(index < 0) {
+            index = blockStateUpdates.size();
+        }
+        blockStateUpdates.put(index, pair);
     }
 
 
@@ -402,7 +400,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
 
         //If any block in the chunk does not equal a block in block state updates, set the chunk as harvested
-        for(Pair<BlockState, BlockPos> pair : this.blockStateUpdates)
+        for(Pair<BlockState, BlockPos> pair : this.blockStateUpdates.values())
         {
             BlockState block = pair.getLeft();
             BlockPos pos = pair.getRight();
@@ -423,7 +421,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public void clearBlockStateUpdates() {
-        this.blockStateUpdates.clear();
+        this.blockStateUpdates.clear(); 
     }
 
     public ManagedOreClusterChunk getEarliest(Map<String, ManagedOreClusterChunk> loadedChunks) {
