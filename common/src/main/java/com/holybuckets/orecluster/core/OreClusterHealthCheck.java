@@ -3,30 +3,53 @@ package com.holybuckets.orecluster.core;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.orecluster.LoggerProject;
-import com.holybuckets.orecluster.OreClustersAndRegenMain;
+import net.minecraft.world.level.LevelAccessor;
+
+import java.util.Map;
+
+import static com.holybuckets.orecluster.OreClustersAndRegenMain.DEBUG;
 
 public class OreClusterHealthCheck {
     private static OreClusterHealthCheck INSTANCE;
     private final Gson gson;
+    private OreClusterInterface oreClusterInterface;
+    private final Map<LevelAccessor, OreClusterManager> managers;
 
-    private OreClusterHealthCheck() {
+    //Threads
+    private Thread statisticHealthCheckThread;
+
+    private OreClusterHealthCheck(EventRegistrar reg, OreClusterInterface interfacer, Map<LevelAccessor, OreClusterManager> managers) {
+        this.oreClusterInterface = interfacer;
         this.gson = new GsonBuilder().setPrettyPrinting().create();
+        this.managers = managers;
+
+        if (DEBUG) {
+            reg.registerOnServerTick(EventRegistrar.TickType.ON_1200_TICKS, this::onDailyTick);
+        } else {
+            reg.registerOnServerTick(EventRegistrar.TickType.DAILY_TICK, this::onDailyTick);
+        }
+
     }
 
-    public static OreClusterHealthCheck getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new OreClusterHealthCheck();
-        }
+    public static OreClusterHealthCheck initInstance(EventRegistrar reg, OreClusterInterface interfacer, Map<LevelAccessor, OreClusterManager> managers) {
+        INSTANCE = new OreClusterHealthCheck(reg, interfacer, managers);
         return INSTANCE;
     }
 
-    public void performHealthCheck() {
+    //* BEHAVIOR
+
+    /**
+     * Logs the size of all queues for each level manager, average processing time
+     */
+    private void statisticHealthCheck()
+    {
         try {
-            for (OreClusterManager m : OreClustersAndRegenMain.getManagers().values()) {
-                JsonElement jsonHealthCheck = getHealthCheckData(m);
+            for (OreClusterManager m : managers.values()) {
+                JsonElement jsonHealthCheck = oreClusterInterface.healthCheck(m);
                 StringBuilder message = new StringBuilder("Manager Health Check for level: ");
                 message.append(HBUtil.LevelUtil.toLevelId(m.getLevel()));
                 message.append("\n\n");
@@ -36,40 +59,29 @@ public class OreClusterHealthCheck {
         } catch (Exception e) {
             LoggerProject.logWarning("001002", "Manager Health Check Thread Exception: " + e.getMessage());
         }
+        finally {
+            this.statisticHealthCheckThread = null;
+        }
     }
 
-    public JsonObject getHealthCheckData(OreClusterManager m) {
-        JsonObject health = new JsonObject();
+    private void chunkLoadsHealthCheck()
+    {
 
-        // Queue Sizes
-        JsonObject queueSizes = new JsonObject();
-        queueSizes.addProperty("pendingHandling", m.chunksPendingHandling.size());
-        queueSizes.addProperty("pendingDeterminations", m.chunksPendingDeterminations.size());
-        queueSizes.addProperty("pendingCleaning", m.chunksPendingCleaning.size());
-        queueSizes.addProperty("pendingPreGeneration", m.chunksPendingPreGeneration.size());
-        queueSizes.addProperty("pendingRegeneration", m.chunksPendingRegeneration.size());
-        health.add("queueSizes", queueSizes);
-
-        // Thread Times
-        JsonObject threadTimes = new JsonObject();
-        m.THREAD_TIMES.forEach((threadName, times) -> {
-            if (!times.isEmpty()) {
-                double avg = times.stream().mapToLong(Long::valueOf).average().orElse(0.0);
-                threadTimes.addProperty(threadName, avg);
-            }
-        });
-        health.add("averageThreadTimes", threadTimes);
-
-        // Chunk Tracking
-        JsonObject chunkTracking = new JsonObject();
-        String[] determinedSourceChunks = m.determinedSourceChunks.toArray(new String[0]);
-        chunkTracking.add("determinedSourceChunks", HBUtil.FileIO.arrayToJson(determinedSourceChunks));
-        chunkTracking.addProperty("determinedChunks", m.determinedChunks.size());
-        chunkTracking.addProperty("loadedOreClusterChunks", m.loadedOreClusterChunks.size());
-        chunkTracking.addProperty("expiredChunks", m.expiredChunks.size());
-        chunkTracking.addProperty("completeChunks", m.completeChunks.size());
-        health.add("chunkTracking", chunkTracking);
-
-        return health;
     }
+
+
+
+
+
+    //* EVENTS
+    private void onDailyTick(ServerTickEvent event) {
+        if (this.statisticHealthCheckThread == null) {
+            this.statisticHealthCheckThread = new Thread(this::statisticHealthCheck, "OreClusterAndRegenMain-ManagerHealthCheck");
+            this.statisticHealthCheckThread.start();
+        }
+    }
+
+
+
 }
+//END CLASS

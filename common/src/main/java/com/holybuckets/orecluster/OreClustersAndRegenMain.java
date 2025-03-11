@@ -1,17 +1,11 @@
 package com.holybuckets.orecluster;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.foundation.event.EventRegistrar;
 
-import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.orecluster.command.CommandList;
 import com.holybuckets.orecluster.config.OreClusterConfig;
+import com.holybuckets.orecluster.core.OreClusterHealthCheck;
 import com.holybuckets.orecluster.core.OreClusterInterface;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import com.holybuckets.orecluster.core.OreClusterRegenManager;
@@ -22,9 +16,6 @@ import net.minecraft.world.level.LevelAccessor;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 
 // The value here should match an entry in the META-INF/mods.toml file
 public class OreClustersAndRegenMain
@@ -39,11 +30,12 @@ public class OreClustersAndRegenMain
 
     public static OreClustersAndRegenMain INSTANCE;
     public ModRealTimeConfig modRealTimeConfig;
-    private Thread managerHealthcheckThread;
 
     /** Real Time Variables **/
-    public Map<LevelAccessor, OreClusterManager> ORE_CLUSTER_MANAGER_BY_LEVEL = new HashMap<>();
-    public OreClusterRegenManager ORE_CLUSTER_REGEN_MANAGER = null;
+    public Map<LevelAccessor, OreClusterManager> oreClusterManagers;
+    public OreClusterRegenManager regenManager;
+    public OreClusterInterface oreClusterInterface;
+    public OreClusterHealthCheck oreClusterHealthCheck;
 
     public OreClustersAndRegenMain()
     {
@@ -61,19 +53,18 @@ public class OreClustersAndRegenMain
         CommandList.register();
         EventRegistrar eventRegistrar = EventRegistrar.getInstance();
 
-        this.ORE_CLUSTER_MANAGER_BY_LEVEL = new HashMap<>();
+        this.oreClusterManagers = new HashMap<>();
         this.modRealTimeConfig = new ModRealTimeConfig(eventRegistrar);
-        this.ORE_CLUSTER_REGEN_MANAGER = new OreClusterRegenManager( eventRegistrar, modRealTimeConfig, ORE_CLUSTER_MANAGER_BY_LEVEL );
-        OreClusterInterface.initInstance( ORE_CLUSTER_MANAGER_BY_LEVEL );
+        this.regenManager = new OreClusterRegenManager( eventRegistrar, modRealTimeConfig, oreClusterManagers);
+        this.oreClusterInterface = OreClusterInterface.initInstance(oreClusterManagers);
+        this.oreClusterHealthCheck = OreClusterHealthCheck.initInstance( eventRegistrar,
+         oreClusterInterface,
+         oreClusterManagers
+          );
 
         eventRegistrar.registerOnLevelLoad( this::onLoadWorld, EventPriority.High );
         eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );
 
-        if( DEBUG ) {
-            eventRegistrar.registerOnServerTick( EventRegistrar.TickType.ON_1200_TICKS, this::onDailyTick );
-        } else {
-            eventRegistrar.registerOnServerTick( EventRegistrar.TickType.DAILY_TICK, this::onDailyTick );
-        }
 
         /*
         WaystonesConfig.initialize();
@@ -91,7 +82,7 @@ public class OreClustersAndRegenMain
     }
 
     public static Map<LevelAccessor, OreClusterManager> getManagers() {
-        return INSTANCE.ORE_CLUSTER_MANAGER_BY_LEVEL;
+        return INSTANCE.oreClusterManagers;
     }
 
     public void onLoadWorld( LevelLoadingEvent.Load event )
@@ -100,10 +91,10 @@ public class OreClustersAndRegenMain
         LevelAccessor level = event.getLevel();
         if( level.isClientSide() ) return;
 
-        if( !ORE_CLUSTER_MANAGER_BY_LEVEL.containsKey( level ) )
+        if( !oreClusterManagers.containsKey( level ) )
         {
             if( DEBUG && ( !HBUtil.LevelUtil.toLevelId( level ).contains("overworld") )) return;
-            ORE_CLUSTER_MANAGER_BY_LEVEL.put( level, new OreClusterManager( level,  modRealTimeConfig ) );
+            oreClusterManagers.put( level, new OreClusterManager( level,  modRealTimeConfig ) );
         }
 
     }
@@ -114,30 +105,10 @@ public class OreClustersAndRegenMain
         LevelAccessor level = event.getLevel();
         if( level.isClientSide() ) return;
 
-        OreClusterManager m = ORE_CLUSTER_MANAGER_BY_LEVEL.remove( level );
+        OreClusterManager m = oreClusterManagers.remove( level );
         if( m != null ) m.shutdown();
-        if( ORE_CLUSTER_MANAGER_BY_LEVEL.isEmpty() ) {
-            ORE_CLUSTER_REGEN_MANAGER.shutdown();
-        }
-
-        if( this.managerHealthcheckThread != null ) {
-            this.managerHealthcheckThread.interrupt();
-            this.managerHealthcheckThread = null;
-        }
-    }
-
-    private void onDailyTick(ServerTickEvent event) {
-        if( this.managerHealthcheckThread == null ) {
-            this.managerHealthcheckThread = new Thread(this::managerHealthCheck, "OreClusterAndRegenMain-ManagerHealthCheck");
-            this.managerHealthcheckThread.start();
-        }
-
-    }
-    private void managerHealthCheck() {
-        try {
-            OreClusterHealthCheck.getInstance().performHealthCheck();
-        } finally {
-            this.managerHealthcheckThread = null;
+        if( oreClusterManagers.isEmpty() ) {
+            regenManager.shutdown();
         }
     }
 

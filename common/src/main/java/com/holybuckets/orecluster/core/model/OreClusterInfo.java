@@ -1,5 +1,6 @@
 package com.holybuckets.orecluster.core.model;
 
+import com.holybuckets.orecluster.core.OreClusterStatus;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.LevelAccessor;
@@ -19,12 +20,14 @@ public class OreClusterInfo {
     public BlockPos position;
     /** Distance from arbitrary point, used in some algorithms **/
     public Double pointDistance;
+    public OreClusterStatus status;
 
     public OreClusterInfo(ManagedOreClusterChunk chunk, BlockState oreType)
     {
         this.level = chunk.getLevel();
         this.chunkId = chunk.getId();
         this.oreType = oreType;
+        this.status = chunk.getStatus();
         this.position = chunk.getClusterTypes().get(oreType);
     }
     

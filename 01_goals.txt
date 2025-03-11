@@ -384,6 +384,9 @@ jarJar {
 		- return status of all pending chunks, size of loaded ore clusters
 		- check status of particular chunk
 
+	- Added OreClusterHealthCheck class
+	- 
+
 ManagedChunk.LOADED_CHUNKS.get(HBUtil.LevelUtil.toLevel("SERVER:minecraft:overworld")).keySet().
 existingClustersByType.get(Blocks.IRON_ORE.defaultBlockState()).contains("229,241")
 
