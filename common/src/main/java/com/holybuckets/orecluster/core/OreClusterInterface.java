@@ -162,7 +162,7 @@ public class OreClusterInterface {
         // Chunk Tracking
         JsonObject chunkTracking = new JsonObject();
         String[] determinedSourceChunks = m.determinedSourceChunks.toArray(new String[0]);
-        chunkTracking.addProperty("determinedSourceChunks", HBUtil.FileIO.arrayToJson(determinedSourceChunks).toString());
+        chunkTracking.add("determinedSourceChunks", HBUtil.FileIO.arrayToJson(determinedSourceChunks));
         chunkTracking.addProperty("determinedChunks", m.determinedChunks.size());
         chunkTracking.addProperty("loadedOreClusterChunks", m.loadedOreClusterChunks.size());
         chunkTracking.addProperty("expiredChunks", m.expiredChunks.size());

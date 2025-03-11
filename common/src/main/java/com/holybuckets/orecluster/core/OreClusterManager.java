@@ -241,6 +241,7 @@ public class OreClusterManager {
         });
 
        this.threadInitSerializedChunks.start();
+       this.threadWatchManagedOreChunkLifetime.start();
 
        EventRegistrar.getInstance().registerOnDataSave(this::save, EventPriority.High);
     }
@@ -255,52 +256,60 @@ public class OreClusterManager {
      * lifetime
      */
      private static final Long MAX_DETERMINED_CHUNK_LIFETIME_MILLIS = (OreClustersAndRegenMain.DEBUG)
-        ? 15_000 : 150_000L;
+        ? 30_000 : 150_000L;
      //timeout
-     private static final Long SLEEP_TIME_MILLIS = (OreClustersAndRegenMain.DEBUG)
-        ? 5_000 : 30_000L;
+     private static final Long SLEEP_TIME_PER_CHUNK_MILLIS = (OreClustersAndRegenMain.DEBUG)
+        ? 100L : 100L;
+    private static final Long MAX_EXPIRATIONS = 100L;
     private void threadWatchManagedOreChunkLifetime()
     {
-        try {
-            while(managerRunning)
-            {
-                if( this.loadedOreClusterChunks.isEmpty() )
-                {
-                    sleep(10);
-                    continue;
-                }
-
-                Long systemTime = System.currentTimeMillis();
-                List<ManagedOreClusterChunk> expired_chunks = new ArrayList<>();
-
-                //We need to limit because we will be force loading these chunks so they can save
-                expired_chunks = loadedOreClusterChunks.values().stream()
-                        .filter(c -> !c.updateTimeLastLoaded(systemTime))
-                        .filter(c -> (systemTime - c.getTimeLastLoaded()) > MAX_DETERMINED_CHUNK_LIFETIME_MILLIS)
-                        .limit(16)
-                        .collect(Collectors.toList());
-
-                if(!expired_chunks.stream().filter(c -> c.getId().equals(TEST_ID)).toList().isEmpty()) {
-                    int i = 0;
-                }
-
-                for( ManagedOreClusterChunk chunk : expired_chunks ) {
-                    String id = chunk.getId();
-                    LevelChunk levelChunk = ManagedChunkUtilityAccessor.getChunk(level, id, true);
-                    levelChunk.setUnsaved(true);
-                }
-
-                sleep(SLEEP_TIME_MILLIS); //Sleep for chunks to write data out and unload
-                for( ManagedOreClusterChunk chunk : expired_chunks ) {
-                    LoggerProject.logDebug("002004", "Chunk " + chunk.getId() + " has expired");
-                    this.editManagedChunk(chunk, this::removeManagedChunkById);
-                }
-
+        while(initializing) {
+            try {
+                sleep(10);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }
-        catch (Exception e) {
-            LoggerProject.logError("002002", "Error in threadWatchManagedOreChunkLifetime: " + e.getMessage());
-        }
+            while(managerRunning)
+            {
+                try {
+                    if (this.loadedOreClusterChunks.isEmpty()) {
+                        sleep(10);
+                        continue;
+                    }
+
+                    Long systemTime = System.currentTimeMillis();
+                    List<ManagedOreClusterChunk> expired_chunks = new ArrayList<>();
+
+                    //We need to limit because we will be force loading these chunks so they can save
+                    expired_chunks = loadedOreClusterChunks.values().stream()
+                        .filter(c -> !c.updateTimeLastLoaded(systemTime))
+                        .filter(c -> (systemTime - c.getTimeLastLoaded()) > MAX_DETERMINED_CHUNK_LIFETIME_MILLIS)
+                        .limit(MAX_EXPIRATIONS)
+                        .collect(Collectors.toList());
+
+                    if (!expired_chunks.stream().filter(c -> c.getId().equals(TEST_ID)).toList().isEmpty()) {
+                        int i = 0;
+                    }
+
+                    for (ManagedOreClusterChunk chunk : expired_chunks) {
+                        String id = chunk.getId();
+                        LevelChunk levelChunk = ManagedChunkUtilityAccessor.getChunk(level, id, true);
+                        levelChunk.setUnsaved(true);
+                        sleep(SLEEP_TIME_PER_CHUNK_MILLIS ); //Sleep for chunks to write data out and unload
+                    }
+
+                    for (ManagedOreClusterChunk chunk : expired_chunks) {
+                        LoggerProject.logDebug("002004", "Chunk " + chunk.getId() + " has expired");
+                        this.editManagedChunk(chunk, this::removeManagedChunkById);
+                    }
+
+                }
+                catch (Exception e) {
+                        LoggerProject.logError("002002", "Error in threadWatchManagedOreChunkLifetime: " + e.getMessage());
+                    }
+
+            }
 
         int i = 0;
     }
@@ -308,10 +317,15 @@ public class OreClusterManager {
     private void removeManagedChunkById(ManagedOreClusterChunk c )
     {
         String chunkId = c.getId();
-        Integer expiryCount = expiredChunks.get(chunkId);
-        if( expiryCount == null ) expiredChunks.put(chunkId, 0);
-        boolean didComplete = ManagedOreClusterChunk.isComplete(c);
-        expiredChunks.put(chunkId, (didComplete) ? -1 : expiryCount + 1 );
+
+        if( !ManagedOreClusterChunk.isComplete(c) ) {
+            Integer expiryCount = expiredChunks.get(chunkId);
+            if( expiryCount == null ) {
+                expiredChunks.put(chunkId, 0);
+                expiryCount = 0;
+            }
+            expiredChunks.put(chunkId, expiryCount + 1 );
+        }
 
         loadedOreClusterChunks.remove(chunkId);
         chunksPendingHandling.remove(chunkId);
@@ -392,14 +406,14 @@ public class OreClusterManager {
             loadedOreClusterChunks.put(chunkId, chunk);
 
             if( determinedChunks.contains(chunkId) )
-                chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.DETERMINED);
+                chunk.setStatus(OreClusterStatus.DETERMINED);
             handleChunkLoaded(chunkId);
             return;
         }
         else if( ManagedOreClusterChunk.isNoStatus(chunk) )
         {
             if(determinedChunks.contains(chunkId)) {
-                chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.DETERMINED);
+                chunk.setStatus(OreClusterStatus.DETERMINED);
                 handleChunkLoaded(chunkId);
                 return;
             }
@@ -415,12 +429,17 @@ public class OreClusterManager {
             chunksPendingCleaning.put(chunkId, chunk);
             this.threadPoolClusterCleaning.submit(this::workerThreadCleanClusters);
         }
-        else if( ManagedOreClusterChunk.isCleaned(chunk) )
+        else if( ManagedOreClusterChunk.isCleaned(chunk)
+            || ManagedOreClusterChunk.isPregenerated(chunk)
+            || ManagedOreClusterChunk.isRegenerated(chunk) )
         {
             //LoggerProject.logDebug("002007","Chunk " + chunkId + " has been cleaned");
             if( chunk.hasClusters() )
             {
+                if( ManagedOreClusterChunk.isRegenerated(chunk))
+                    this.chunksPendingRegeneration.add(chunkId);
                 chunksPendingPreGeneration.put(chunkId, chunk);
+                chunk.setStatus(OreClusterStatus.CLEANED);
                 this.threadPoolClusterGenerating.submit(this::workerThreadGenerateClusters);
             }
         }
@@ -643,9 +662,9 @@ public class OreClusterManager {
                     long end = System.nanoTime();
                     THREAD_TIMES.get("handleChunkClusterPreGeneration").add((end - start) / 1_000_000);
 
-                    if( ManagedOreClusterChunk.isPregenerated(chunk) ) {
+                    if( ManagedOreClusterChunk.isPregenerated(chunk)
+                     || ManagedOreClusterChunk.isRegenerated(chunk) ) {
                         chunksPendingPreGeneration.remove(chunk.getId());
-                        chunksPendingRegeneration.remove(chunk.getId());
                     }
                 }
 
@@ -823,7 +842,7 @@ public class OreClusterManager {
             this.loadedOreClusterChunks.put(id, chunk);
 
             chunk.addClusterTypes(clusters.get(id));
-            chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.DETERMINED);
+            chunk.setStatus(OreClusterStatus.DETERMINED);
             this.chunksPendingCleaning.put(id, chunk);
             this.determinedChunks.add(id);
         }
@@ -930,7 +949,7 @@ public class OreClusterManager {
             }
 
             //4. Set the chunk status to CLEANED
-            chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.CLEANED);
+            chunk.setStatus(OreClusterStatus.CLEANED);
             chunksPendingCleaning.remove(chunk.getId());
 
             //5. Set the originalOres array to null to free up memory
@@ -980,12 +999,12 @@ public class OreClusterManager {
             return;
 
         //LoggerProject.logDebug("002015","Generating clusters for chunk: " + chunk.getId());
-
+        boolean onlyRegenerateOres = this.chunksPendingRegeneration.contains(chunk.getId());
         String SKIPPED = null;
         for( BlockState oreType : chunk.getClusterTypes().keySet() )
         {
             //1. If we are regenerating, skip any clusters in this chunk that dont' regenerate
-            if( ManagedOreClusterChunk.isRegenerated(chunk)) {
+            if( onlyRegenerateOres ) {
                 OreClusterConfigModel config = this.config.getOreConfigByOre(oreType);
                 if(!config.oreClusterDoesRegenerate) continue;
             }
@@ -995,7 +1014,7 @@ public class OreClusterManager {
             if( sourcePos == null ) {
                 LoggerProject.logDebug("002016","No source position for oreType: " + oreType);
                 SKIPPED = BlockUtil.blockToString(oreType.getBlock());
-                chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.DETERMINED);
+                chunk.setStatus(OreClusterStatus.DETERMINED);
                 this.chunksPendingCleaning.put(chunk.getId(), chunk);
                 continue;
             }
@@ -1009,15 +1028,24 @@ public class OreClusterManager {
             //Offset for DEBUG
             Vec3i sourceOffset = new Vec3i(0, 0, 0);
             if(OreClustersAndRegenMain.DEBUG) sourceOffset = new Vec3i(0, 120 - sourcePos.getY(), 0);
+            Map<BlockPos, Integer> existingBlockStateUpdates = chunk.getMapBlockStateUpdates();
             for( Pair<BlockState, BlockPos> pos : clusterPos )
             {
-                //2. Add the blockstate and position to the blockStateUpdates
-                chunk.addBlockStateUpdate(pos.getLeft(), pos.getRight().offset(sourceOffset));
+                int index = -1;
+                if( existingBlockStateUpdates.containsKey(pos.getRight()) )
+                    index = existingBlockStateUpdates.get(pos.getRight());
+                chunk.addBlockStateUpdate(pos.getLeft(), pos.getRight().offset(sourceOffset), index);
             }
         }
 
         if( SKIPPED == null )
-            chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.PREGENERATED);
+        {
+            if( onlyRegenerateOres )
+                chunk.setStatus(OreClusterStatus.REGENERATED);
+            else
+                chunk.setStatus(OreClusterStatus.PREGENERATED);
+        }
+
     }
 
     /**
@@ -1045,21 +1073,22 @@ public class OreClusterManager {
         {
             LevelChunk levelChunk = chunk.getChunk(false);
             if (levelChunk == null) return;
-            List<Pair<BlockState, BlockPos>> updates = chunk.getBlockStateUpdates().stream().toList();
+            List<Pair<BlockState, BlockPos>> updates = chunk.getBlockStateUpdates();
             isSuccessful = ManagedChunk.updateChunkBlockStates(level, updates);
         }
 
         if( isSuccessful )
         {
             chunk.setReady(false);
-            chunk.getBlockStateUpdates().clear();
+            chunk.clearBlockStateUpdates();
             completeChunks.add(chunk.getId());
 
             if( chunk.hasClusters() ) {
-                chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.GENERATED);
+                chunk.setStatus(OreClusterStatus.GENERATED);
+                chunksPendingRegeneration.remove(chunk.getId());
             }
             else {
-                chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.COMPLETE);
+                chunk.setStatus(OreClusterStatus.COMPLETE);
                 this.removeManagedChunkById(chunk);
             }
         }
@@ -1122,7 +1151,6 @@ public class OreClusterManager {
         this.initializing = false;
         this.managerRunning = true;
 
-        this.threadWatchManagedOreChunkLifetime.start();
     }
 
     /**
@@ -1188,12 +1216,12 @@ public class OreClusterManager {
         ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
         if( chunk == null ) return;
 
-        int REGENERATED = ManagedOreClusterChunk.ClusterStatus.REGENERATED.ordinal();
+        int REGENERATED = OreClusterStatus.REGENERATED.ordinal();
         if(chunk.getStatus().ordinal() < REGENERATED ) {
             chunksPendingRegeneration.remove(chunkId);
             return;
         }
-        chunk.setStatus(ManagedOreClusterChunk.ClusterStatus.REGENERATED);
+        chunk.setStatus(OreClusterStatus.REGENERATED);
         chunksPendingPreGeneration.put(chunkId, chunk);
     }
 

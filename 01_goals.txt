@@ -440,6 +440,17 @@ existingClustersByType.get(Blocks.IRON_ORE.defaultBlockState()).contains("229,24
 50.  
 ---  
 
+	Templates:
+
+		Manager:
+			constructor(ModRealTimeConfig)
+			load() - reads from dataStore
+			save() - saves into DataStore
+			onLevelLoad/unload
+			init()
+			
+			
+
 
 	Touchups:
 

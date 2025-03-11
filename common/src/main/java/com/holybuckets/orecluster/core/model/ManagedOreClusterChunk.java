@@ -26,6 +26,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -77,7 +78,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     private HashMap<BlockState, BlockPos> clusterTypes;
     private Map<BlockState, Pair<BlockPos, MutableInt>> originalOres;
-    private ConcurrentHashMap<Integer, Pair<BlockState, BlockPos>> blockStateUpdates;
+    private Map<Integer, Pair<BlockState, BlockPos>> blockStateUpdates;
 
     private Random managedRandom;
     private ReentrantLock lock = new ReentrantLock();
@@ -193,9 +194,12 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
      */
     public Map<BlockPos, Integer> getMapBlockStateUpdates() {
         Map<BlockPos, Integer> map = new HashMap<>();
-        blockStateUpdates.forEach((index, pair) -> {
-            map.put(pair.getRight(), index);
-        });
+        int i = 0;
+        for(Pair<BlockState, BlockPos> pair : blockStateUpdates.values())
+        {
+            map.put(pair.getRight(), i);
+            i++;
+        }
         return map;
     }
 
@@ -350,7 +354,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
             return;
 
         if( this.clusterTypes == null )
-            this.clusterTypes = new HashMap<BlockState, BlockPos>();
+            this.clusterTypes = new HashMap<>();
 
         this.clusterTypes.putAll( clusterMap );
         //LoggerProject.logDebug("003010", "Adding clusterTypes: " + this.clusterTypes);
@@ -370,9 +374,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public void addBlockStateUpdate(Pair<BlockState, BlockPos> pair, int index) {
-        if(index < 0) {
-            index = blockStateUpdates.size();
-        }
+        if(index < 0) index = blockStateUpdates.size();
         blockStateUpdates.put(index, pair);
     }
 

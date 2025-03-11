@@ -1,6 +1,10 @@
 package com.holybuckets.orecluster;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.foundation.event.EventRegistrar;
@@ -66,7 +70,7 @@ public class OreClustersAndRegenMain
         eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );
 
         if( DEBUG ) {
-            eventRegistrar.registerOnServerTick( EventRegistrar.TickType.ON_120_TICKS, this::onDailyTick );
+            eventRegistrar.registerOnServerTick( EventRegistrar.TickType.ON_1200_TICKS, this::onDailyTick );
         } else {
             eventRegistrar.registerOnServerTick( EventRegistrar.TickType.DAILY_TICK, this::onDailyTick );
         }
@@ -132,14 +136,15 @@ public class OreClustersAndRegenMain
     private void managerHealthCheck()
     {
     try {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
         for( OreClusterManager m : ORE_CLUSTER_MANAGER_BY_LEVEL.values() )
         {
             LevelAccessor level = m.getLevel();
-            String jsonHealthCheck = OreClusterInterface.healthCheck( m ).getAsString();
+            JsonElement jsonHealthCheck = OreClusterInterface.healthCheck( m );
             StringBuilder message = new StringBuilder("Manager Health Check for level: ");
             message.append( HBUtil.LevelUtil.toLevelId( level ) );
             message.append( "\n\n");
-            message.append( jsonHealthCheck );
+            message.append( gson.toJson( jsonHealthCheck ) );
             LoggerProject.logInfo( "001001", message.toString() );
         }
     } catch (Exception e) {

@@ -12,24 +12,24 @@ public class LoggerProject extends LoggerBase {
     public static final String PREFIX = Constants.MOD_NAME;
     public static final Boolean DEBUG_MODE = OreClustersAndRegenMain.DEBUG;
 
-    public static void logInfo(String logId, String message) {
+    public static synchronized void logInfo(String logId, String message) {
         LoggerBase.logInfo(PREFIX, logId, message);
     }
 
-    public static void logWarning(String logId, String string) {
+    public static synchronized void logWarning(String logId, String string) {
         LoggerBase.logWarning(PREFIX, logId, string);
     }
 
-    public static void logError(String logId, String string) {
+    public static synchronized void logError(String logId, String string) {
         LoggerBase.logError(PREFIX, logId, string);
     }
 
-    public static void logDebug(String logId, String string) {
+    public static synchronized void logDebug(String logId, String string) {
         if (DEBUG_MODE)
             LoggerBase.logDebug(PREFIX, logId, string);
     }
 
-    public static void logInit(String logId, String string) {
+    public static synchronized void logInit(String logId, String string) {
         logDebug(logId, "--------" + string.toUpperCase() + " INITIALIZED --------");
     }
 

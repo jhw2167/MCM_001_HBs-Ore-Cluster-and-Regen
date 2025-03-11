@@ -39,7 +39,7 @@ public class OreClusterConfigData implements BalmConfigData {
         public static final String DEF_ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS = "hbs_foundation:empty_block";
 
         public static final boolean DEF_REGENERATE_ORE_CLUSTERS = true;
-        public static final String DEF_REGENERATE_ORE_CLUSTER_PERIOD_LENGTHS = "28,24,16,8";
+        public static final String DEF_REGENERATE_ORE_CLUSTER_PERIOD_LENGTHS = "16,24,16,8";
         public static final String DEF_REGENERATE_ORE_CLUSTER_UPGRADE_ITEMS = "default,minecraft:blaze_powder," +
             "minecraft:dragon_egg,minecraft:nether_star";
         public static final String DEF_ORE_CLUSTER_FILE_CONFIG_PATH = "config/HBOreClustersAndRegenConfigs.json";

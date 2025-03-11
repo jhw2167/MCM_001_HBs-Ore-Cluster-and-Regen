@@ -64,7 +64,7 @@ public class OreClusterRegenManager {
 
     //* BEHAVIOR METHODS *//
 
-    final int TICKS_PER_DAY = (OreClustersAndRegenMain.DEBUG) ? 240 : 24000;
+    final int TICKS_PER_DAY = (OreClustersAndRegenMain.DEBUG) ? 2400 : 24000;
     public void setPeriodLength(String item)
     {
         Map<String, Integer> periodLengthByItem = config.getDefaultConfig().oreClusterRegenPeriods;
@@ -174,7 +174,6 @@ public class OreClusterRegenManager {
 
     public void onDailyTick(ServerTickEvent event) {
         this.handleDailyTick(event.getTickCount());
-        LoggerProject.logInfo("015001", "Ore Cluster Regen Manager: TICKS: " + event.getTickCount() + " END " + periodTickEnd);
     }
 
 
