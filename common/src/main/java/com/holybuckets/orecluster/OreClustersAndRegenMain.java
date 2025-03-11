@@ -133,28 +133,12 @@ public class OreClustersAndRegenMain
         }
 
     }
-    private void managerHealthCheck()
-    {
-    try {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        for( OreClusterManager m : ORE_CLUSTER_MANAGER_BY_LEVEL.values() )
-        {
-            LevelAccessor level = m.getLevel();
-            JsonElement jsonHealthCheck = OreClusterInterface.healthCheck( m );
-            StringBuilder message = new StringBuilder("Manager Health Check for level: ");
-            message.append( HBUtil.LevelUtil.toLevelId( level ) );
-            message.append( "\n\n");
-            message.append( gson.toJson( jsonHealthCheck ) );
-            LoggerProject.logInfo( "001001", message.toString() );
+    private void managerHealthCheck() {
+        try {
+            OreClusterHealthCheck.getInstance().performHealthCheck();
+        } finally {
+            this.managerHealthcheckThread = null;
         }
-    } catch (Exception e) {
-        LoggerProject.logWarning("001002", "Manager Health Check Thread Exception: " + e.getMessage());
-    }
-    finally {
-        this.managerHealthcheckThread = null;
-    }
-
-
     }
 
 
