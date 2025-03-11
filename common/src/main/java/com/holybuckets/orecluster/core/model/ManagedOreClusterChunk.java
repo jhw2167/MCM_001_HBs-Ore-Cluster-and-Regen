@@ -10,6 +10,7 @@ import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.OreClusterManager;
+import com.holybuckets.orecluster.core.OreClusterStatus;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -58,19 +59,6 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     public static final String TEST_ID = "-15,-15";
 
 
-
-
-    public static enum ClusterStatus {
-        NONE,
-        DETERMINED,
-        CLEANED,
-        PREGENERATED,
-        REGENERATED,
-        GENERATED,
-        HARVESTED,
-        COMPLETE
-    }
-
     public static final int MAX_ORIGINAL_ORES = 8;
 
     public static void registerManagedChunkData() {
@@ -81,7 +69,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private LevelAccessor level;
     private String id;
     private ChunkPos pos;
-    private ClusterStatus status;
+    private OreClusterStatus status;
     private long timeUnloaded;
     private long timeLastLoaded;
     private long tickLoaded;
@@ -89,7 +77,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     private HashMap<BlockState, BlockPos> clusterTypes;
     private Map<BlockState, Pair<BlockPos, MutableInt>> originalOres;
-    private ConcurrentLinkedQueue<Pair<BlockState, BlockPos>> blockStateUpdates;
+    private List<Pair<BlockState, BlockPos>> blockStateUpdates;
 
     private Random managedRandom;
     private ReentrantLock lock = new ReentrantLock();
@@ -105,13 +93,13 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.level = level;
         this.id = null;
         this.pos = null;
-        this.status = ClusterStatus.NONE;
+        this.status = OreClusterStatus.NONE;
         this.timeUnloaded = -1;
         this.timeLastLoaded = System.currentTimeMillis();
         this.tickLoaded = GeneralConfig.getInstance().getTotalTickCount();
         this.isReady = false;
         this.clusterTypes = null;
-        this.blockStateUpdates = new ConcurrentLinkedQueue<Pair<BlockState, BlockPos>>();
+        this.blockStateUpdates = new LinkedList<Pair<BlockState, BlockPos>>();
         this.originalOres = new HashMap<>();
 
     }
@@ -168,7 +156,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return id;
     }
 
-    public ClusterStatus getStatus() {
+    public OreClusterStatus getStatus() {
         return status;
     }
 
@@ -195,8 +183,22 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return ready;
     }
 
-    public Queue<Pair<BlockState, BlockPos>> getBlockStateUpdates() {
+    public List<Pair<BlockState, BlockPos>> getBlockStateUpdates() {
         return blockStateUpdates;
+    }
+
+    /**
+     * Maps the current block state update at a given BlockPos to its index in the blockStateUpdates list
+     * @return
+     */
+    public Map<BlockPos, Integer> getMapBlockStateUpdates() {
+        Map<BlockPos, Integer> map = new HashMap<>();
+        int i = 0;
+        for(Pair<BlockState, BlockPos> pair : this.blockStateUpdates) {
+            map.put(pair.getRight(), i);
+            i++;
+        }
+        return map;
     }
 
     public Map<BlockState, Pair<BlockPos, MutableInt>> getOriginalOres() {
@@ -234,9 +236,9 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     @Override
     public void setLevel(LevelAccessor level) { this.level = level; }
 
-    private static final ClusterStatus current = ClusterStatus.CLEANED;
-    private static final ClusterStatus delinquent = ClusterStatus.DETERMINED;
-    public void setStatus(ClusterStatus status) {
+    private static final OreClusterStatus current = OreClusterStatus.CLEANED;
+    private static final OreClusterStatus delinquent = OreClusterStatus.DETERMINED;
+    public void setStatus(OreClusterStatus status) {
         if(this.status == current && status == delinquent) {
             LoggerProject.logInfo("003012", "Chunk " + this.id + " attempted to set delinquent status" + status);
         }
@@ -356,12 +358,24 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         //LoggerProject.logDebug("003010", "Adding clusterTypes: " + this.clusterTypes);
     }
 
+    public void addBlockStateUpdate(BlockState block, BlockPos pos, int index) {
+        this.addBlockStateUpdate( Pair.of(block, pos), index);
+    }
+
+
     public void addBlockStateUpdate(BlockState block, BlockPos pos) {
-            this.addBlockStateUpdate( Pair.of(block, pos) );
+        this.addBlockStateUpdate( Pair.of(block, pos) );
     }
 
     public void addBlockStateUpdate(Pair<BlockState, BlockPos> pair) {
-        this.blockStateUpdates.add( pair );
+        this.addBlockStateUpdate(pair, -1);
+    }
+
+    public void addBlockStateUpdate(Pair<BlockState, BlockPos> pair, int index) {
+        if(index < 0 || index >= this.blockStateUpdates.size())
+            this.blockStateUpdates.add(pair);
+        else
+            this.blockStateUpdates.set(index, pair);
     }
 
 
@@ -380,10 +394,10 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         if(chunk == null)
             return false;
 
-        if(this.status == ClusterStatus.HARVESTED)
+        if(this.status == OreClusterStatus.HARVESTED)
             return true;
 
-        if( this.status != ClusterStatus.GENERATED )
+        if( this.status != OreClusterStatus.GENERATED )
             return false;
 
 
@@ -395,7 +409,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
             if(!chunk.getBlockState(pos).getBlock().equals( block ))
             {
                 LoggerProject.logDebug("003011", "Cluster Harvested: " + BlockUtil.positionToString(pos));
-                this.status = ClusterStatus.HARVESTED;
+                this.status = OreClusterStatus.HARVESTED;
                 blockStateUpdates.clear();
                 return true;
             }
@@ -406,6 +420,10 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     public boolean hasBlockUpdates() {
         return this.blockStateUpdates != null && this.blockStateUpdates.size() > 0;
+    }
+
+    public void clearBlockStateUpdates() {
+        this.blockStateUpdates.clear();
     }
 
     public ManagedOreClusterChunk getEarliest(Map<String, ManagedOreClusterChunk> loadedChunks) {
@@ -514,35 +532,35 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public  static boolean isNoStatus(ManagedOreClusterChunk chunk) {
-        return chunk.getStatus() == ClusterStatus.NONE;
+        return chunk.getStatus() == OreClusterStatus.NONE;
     }
 
     public static boolean isDetermined(ManagedOreClusterChunk chunk) {
-        return chunk.getStatus() == ClusterStatus.DETERMINED;
+        return chunk.getStatus() == OreClusterStatus.DETERMINED;
     }
 
     public static boolean isCleaned(ManagedOreClusterChunk chunk) {
-        return chunk.getStatus() == ClusterStatus.CLEANED;
+        return chunk.getStatus() == OreClusterStatus.CLEANED;
     }
 
     public static boolean isPregenerated(ManagedOreClusterChunk chunk) {
-        return chunk.getStatus() == ClusterStatus.PREGENERATED;
+        return chunk.getStatus() == OreClusterStatus.PREGENERATED;
     }
 
     public static boolean isRegenerated(ManagedOreClusterChunk chunk) {
-        return chunk.getStatus() == ClusterStatus.REGENERATED;
+        return chunk.getStatus() == OreClusterStatus.REGENERATED;
     }
 
     public static boolean isGenerated(ManagedOreClusterChunk chunk) {
-        return chunk.getStatus() == ClusterStatus.GENERATED;
+        return chunk.getStatus() == OreClusterStatus.GENERATED;
     }
 
     public static boolean isHarvested(ManagedOreClusterChunk chunk) {
-        return chunk.getStatus() == ClusterStatus.HARVESTED;
+        return chunk.getStatus() == OreClusterStatus.HARVESTED;
     }
 
     public static boolean isComplete(ManagedOreClusterChunk chunk) {
-        return chunk.getStatus() == ClusterStatus.COMPLETE;
+        return chunk.getStatus() == OreClusterStatus.COMPLETE;
     }
 
     public static boolean isReady(ManagedOreClusterChunk chunk) {
@@ -571,7 +589,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
 
         if( this.hasBlockUpdates() )
-            details.putString("status", ClusterStatus.DETERMINED.toString());
+            details.putString("status", OreClusterStatus.DETERMINED.toString());
         else
             details.putString("status", this.status.toString() );
 
@@ -643,7 +661,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.pos = ChunkUtil.getPos( this.id );
         this.tickLoaded = tag.getLong("tickLoaded");
         this.timeUnloaded = -1;
-        this.status = ClusterStatus.valueOf( tag.getString("status") );
+        this.status = OreClusterStatus.valueOf( tag.getString("status") );
 
         if( this.id.equals(TEST_ID)) {
             int i = 0;
@@ -704,8 +722,6 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
         OreClusterManager.addManagedOreClusterChunk( this );
     }
-
-
 
 }
 //END CLASS
