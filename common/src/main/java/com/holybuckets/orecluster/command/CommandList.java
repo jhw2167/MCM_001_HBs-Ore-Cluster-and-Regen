@@ -3,10 +3,9 @@ package com.holybuckets.orecluster.command;
 //Project imports
 
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.orecluster.LoggerProject;
-import com.holybuckets.orecluster.core.OreClusterInterface;
+import com.holybuckets.orecluster.core.OreClusterApi;
 import com.holybuckets.orecluster.core.model.OreClusterInfo;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -86,9 +85,9 @@ public class CommandList {
 
         private static int execute(CommandSourceStack source, int count, String blockType)
         {
-            OreClusterInterface interfacer = OreClusterInterface.getInstance();
-            if(interfacer == null) {
-                source.sendFailure(Component.literal("OreClusterInterface not initialized at this time"));
+            OreClusterApi api = OreClusterApi.getInstance();
+            if(api == null) {
+                source.sendFailure(Component.literal("oreClusterApi not initialized at this time"));
                 return 1;
             }
 
@@ -110,7 +109,7 @@ public class CommandList {
                 ServerPlayer player = source.getPlayerOrException();
                 BlockPos playerPos = player.blockPosition();
                 BlockState bs = (block == null) ? null : block.defaultBlockState();
-                List<OreClusterInfo> data = interfacer.locateOreClusters(
+                List<OreClusterInfo> data = api.locateOreClusters(
                     player.level(), playerPos, bs, count);
 
                 MutableComponent response = Component.literal("Found Clusters: ");

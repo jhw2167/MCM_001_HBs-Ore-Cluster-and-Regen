@@ -8,11 +8,10 @@ import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import com.holybuckets.orecluster.core.model.OreClusterInfo;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Description: Class designed for interfacing with OreClusterManager and perform lookup operations such as:
@@ -20,14 +19,14 @@ import java.util.*;
  *      - Locate Ore
  *      - Count Ore Clusters
  */
-public class OreClusterInterface {
+public class OreClusterApi {
 
     public static final String CLASS_ID = "008";
-    private static OreClusterInterface INSTANCE;
+    private static OreClusterApi INSTANCE;
 
-    public static OreClusterInterface initInstance( Map<LevelAccessor, OreClusterManager> managers ) {
+    public static OreClusterApi initInstance(Map<LevelAccessor, OreClusterManager> managers ) {
         if(INSTANCE == null)
-            INSTANCE = new OreClusterInterface(managers);
+            INSTANCE = new OreClusterApi(managers);
         return INSTANCE;
     }
 
@@ -36,17 +35,17 @@ public class OreClusterInterface {
     }
 
     /**
-     * Gets instance of OreClusterInterface, returns null if instance is not initialized
+     * Gets instance of oreClusterApi, returns null if instance is not initialized
      * @return
      */
-    public static OreClusterInterface getInstance() {
+    public static OreClusterApi getInstance() {
         if(INSTANCE == null)
             return null;
         return INSTANCE;
     }
 
     private final Map<LevelAccessor, OreClusterManager> MANAGERS;
-    private OreClusterInterface( Map<LevelAccessor, OreClusterManager> managers ) {
+    private OreClusterApi(Map<LevelAccessor, OreClusterManager> managers ) {
         this.MANAGERS = managers;
     }
 
@@ -137,7 +136,12 @@ public class OreClusterInterface {
     }
 
 
-    public static JsonObject healthCheck(OreClusterManager m) {
+    /**
+     * Returns queue lengths and average time of completion for processes in the OreClusterManager
+     * @param m
+     * @return
+     */
+    public JsonObject healthCheckStatistics(OreClusterManager m) {
         JsonObject health = new JsonObject();
 
         // Queue Sizes
@@ -173,4 +177,32 @@ public class OreClusterInterface {
     }
 
 
+    /**
+     * Returns a set of chunkIds for all chunks that have not completed initial processing
+     * @param m
+     * @return
+     */
+    public Set<String> getIncompleteChunks(OreClusterManager m)
+    {
+        Set<String> loaded = m.loadedOreClusterChunks.values().stream()
+            .filter( c -> !c.isFinished(c) )
+            .map( c -> c.getId() )
+            .collect(HashSet::new, HashSet::add, HashSet::addAll);
+
+        Set<String> unloaded = m.determinedChunks.stream()
+            .filter( c -> !m.completeChunks.contains(c) )
+            .collect(HashSet::new, HashSet::add, HashSet::addAll);
+
+        loaded.addAll(unloaded);
+        return loaded;
+    }
+
+    public boolean debugForceLoadChunk(OreClusterManager m, String chunkId, AtomicBoolean succeeded) {
+        if(  m.forceProcessChunk(chunkId) ) {
+            succeeded.set(true);
+        } else {
+            LoggerProject.logWarning("016004", "Chunk: " + chunkId + " failed to reload properly, maybe try restarting the server");
+        }
+        return succeeded.get();
+    }
 }

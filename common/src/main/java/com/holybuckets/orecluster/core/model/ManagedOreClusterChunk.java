@@ -118,9 +118,15 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     /** Getters **/
     public LevelChunk getChunk(boolean forceLoad)
     {
+        OreClusterManager m = OreClusterManager.getManager(level);
+        if(m != null) {
+            LevelChunk c = m.getForceLoadedChunk(this.id);
+            if(c != null) return c;
+        }
+
         ManagedChunk parent = ManagedOreClusterChunk.getParent(level, id);
-        if(parent == null)
-            return null;
+        if(parent == null) return null;
+
         return parent.getChunk(forceLoad);
     }
 
@@ -569,6 +575,15 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     public static boolean isLoaded(ManagedOreClusterChunk chunk) {
         return ManagedChunkUtilityAccessor.isLoaded( chunk.getLevel(), chunk.getId() );
+    }
+
+    /**
+     * A chunk is finished if it has passed being generated
+     * @param c
+     * @return
+     */
+    public static boolean isFinished(ManagedOreClusterChunk c) {
+        return (isComplete(c) || isGenerated(c) || isHarvested(c));
     }
 
 

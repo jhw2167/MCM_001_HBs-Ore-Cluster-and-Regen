@@ -6,7 +6,7 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.orecluster.command.CommandList;
 import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.core.OreClusterHealthCheck;
-import com.holybuckets.orecluster.core.OreClusterInterface;
+import com.holybuckets.orecluster.core.OreClusterApi;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import com.holybuckets.orecluster.core.OreClusterRegenManager;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
@@ -34,7 +34,7 @@ public class OreClustersAndRegenMain
     /** Real Time Variables **/
     public Map<LevelAccessor, OreClusterManager> oreClusterManagers;
     public OreClusterRegenManager regenManager;
-    public OreClusterInterface oreClusterInterface;
+    public OreClusterApi oreClusterApi;
     public OreClusterHealthCheck oreClusterHealthCheck;
 
     public OreClustersAndRegenMain()
@@ -56,9 +56,9 @@ public class OreClustersAndRegenMain
         this.oreClusterManagers = new HashMap<>();
         this.modRealTimeConfig = new ModRealTimeConfig(eventRegistrar);
         this.regenManager = new OreClusterRegenManager( eventRegistrar, modRealTimeConfig, oreClusterManagers);
-        this.oreClusterInterface = OreClusterInterface.initInstance(oreClusterManagers);
+        this.oreClusterApi = OreClusterApi.initInstance(oreClusterManagers);
         this.oreClusterHealthCheck = OreClusterHealthCheck.initInstance( eventRegistrar,
-         oreClusterInterface,
+         oreClusterApi,
          oreClusterManagers
           );
 
@@ -109,6 +109,7 @@ public class OreClustersAndRegenMain
         if( m != null ) m.shutdown();
         if( oreClusterManagers.isEmpty() ) {
             regenManager.shutdown();
+            oreClusterHealthCheck.shutdown();
         }
     }
 

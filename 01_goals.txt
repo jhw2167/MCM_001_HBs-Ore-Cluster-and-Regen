@@ -268,7 +268,7 @@ jarJar {
 	- Added command to locate cluster
 	- Added command to spawn cluster
 
-	- Added class core.OreClusterInterface in order to interface with oreClusterManager
+	- Added class core.oreClusterApi in order to interface with oreClusterManager
 	- Added class model.OreClusterInfo class to wrap relevant OreCluster data
 	- Added distance calculation as part of behavior to OreClusterInfo object
 
