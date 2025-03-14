@@ -268,7 +268,7 @@ jarJar {
 	- Added command to locate cluster
 	- Added command to spawn cluster
 
-	- Added class core.oreClusterApi in order to interface with oreClusterManager
+	- Added class core.OreClusterInterface in order to interface with oreClusterManager
 	- Added class model.OreClusterInfo class to wrap relevant OreCluster data
 	- Added distance calculation as part of behavior to OreClusterInfo object
 
@@ -375,17 +375,22 @@ jarJar {
 39.  Add interface support
 ---  
 
-	- Regenerate cluster at a particular location
-		- Regenerate cluster at ChunkId
-
-	- Add a cluster to location
-
 	- Add healthCheck command
 		- return status of all pending chunks, size of loaded ore clusters
 		- check status of particular chunk
 
 	- Added OreClusterHealthCheck class
-	- 
+	
+
+	- COMMAND: config all
+		- config <type>
+
+	- COMMAND: Regenerate cluster at a particular location
+		- Regenerate cluster at ChunkId
+
+	- COMMAND: addCluster configId x z
+	Add a cluster to location
+
 
 ManagedChunk.LOADED_CHUNKS.get(HBUtil.LevelUtil.toLevel("SERVER:minecraft:overworld")).keySet().
 existingClustersByType.get(Blocks.IRON_ORE.defaultBlockState()).contains("229,241")

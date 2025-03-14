@@ -131,6 +131,14 @@ public class ModRealTimeConfig
             return oreConfigs.get(ore);
         }
 
+        public OreClusterConfigModel getOreConfigByConfigId(String id) {
+            for( OreClusterConfigModel oreConfig : oreConfigs.values() ) {
+                if( oreConfig.configId.equals(id) )
+                    return oreConfig;
+            }
+            return null;
+        }
+
         public OreClusterConfigModel getDefaultConfig() {
             return defaultConfig;
         }

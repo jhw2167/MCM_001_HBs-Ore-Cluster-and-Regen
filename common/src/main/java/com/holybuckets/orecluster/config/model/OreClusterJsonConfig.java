@@ -39,12 +39,12 @@ public class OreClusterJsonConfig implements IStringSerializable
     private OreClusterJsonConfig()
     {
         super();
-        final OreClusterConfigModel IRON = new OreClusterConfigModel(Blocks.IRON_ORE);
+        final OreClusterConfigModel IRON = new OreClusterConfigModel(Blocks.IRON_ORE.defaultBlockState());
             IRON.oreClusterSpawnRate = 16;
             IRON.oreClusterVolume = new HBUtil.TripleInt(12, 8, 12);
             IRON.oreClusterDensity = 0.1f;
             IRON.oreClusterReplaceableEmptyBlocks = new HashSet<>();
-        final OreClusterConfigModel DPSLT_DIAMOND = new OreClusterConfigModel(Blocks.DEEPSLATE_DIAMOND_ORE);
+        final OreClusterConfigModel DPSLT_DIAMOND = new OreClusterConfigModel(Blocks.DEEPSLATE_DIAMOND_ORE.defaultBlockState());
             DPSLT_DIAMOND.oreClusterSpawnRate = 10;
             DPSLT_DIAMOND.oreClusterVolume = new HBUtil.TripleInt(5, 4, 5);
             DPSLT_DIAMOND.oreClusterDensity = 0.75f;

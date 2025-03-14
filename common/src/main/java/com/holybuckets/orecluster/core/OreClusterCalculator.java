@@ -11,13 +11,11 @@ import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.HolderSet;
 import net.minecraft.core.Vec3i;
 import net.minecraft.util.KeyDispatchDataCodec;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 
@@ -48,7 +46,7 @@ public class OreClusterCalculator {
         this.manager = manager;
         this.C = manager.getConfig();
         this.determinedChunks = manager.getDeterminedChunks();
-        this.existingClustersByType = manager.getExistingClustersByType();
+        this.existingClustersByType = manager.getTentativeClustersByType();
     }
 
     public Map<String, List<BlockState>> calculateClusterLocations(List<String> chunks, Random rng)

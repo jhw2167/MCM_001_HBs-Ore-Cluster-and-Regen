@@ -4,8 +4,10 @@ package com.holybuckets.orecluster.core;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.ModRealTimeConfig;
+import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import com.holybuckets.orecluster.core.model.OreClusterInfo;
@@ -29,12 +31,7 @@ public class OreClusterApi {
 
     private final ModRealTimeConfig modConfig;
     private final Map<LevelAccessor, OreClusterManager> managers;
-
-    public static OreClusterApi initInstance(Map<LevelAccessor, OreClusterManager> managers, ModRealTimeConfig modConfig ) {
-        if(INSTANCE == null)
-            INSTANCE = new OreClusterApi(managers, modConfig);
-        return INSTANCE;
-    }
+    private final OreClusterRegenManager regenManager;
 
     public static boolean isInit() {
         return INSTANCE != null;
@@ -50,9 +47,11 @@ public class OreClusterApi {
         return INSTANCE;
     }
 
-    private OreClusterApi(Map<LevelAccessor, OreClusterManager> managers, ModRealTimeConfig modConfig ) {
+    public OreClusterApi(Map<LevelAccessor, OreClusterManager> managers, ModRealTimeConfig modConfig, OreClusterRegenManager regenManager) {
         this.modConfig = modConfig;
         this.managers = managers;
+        this.regenManager = regenManager;
+        INSTANCE = this;
     }
 
 
@@ -68,9 +67,26 @@ public class OreClusterApi {
             oreObj.addProperty("header", "Ore With ConfigId: " + ore.configId + ":");
             oreObj.addProperty("clusterType", HBUtil.BlockUtil.blockToString(ore.oreClusterType.getBlock()) );
             oreObj.addProperty("clusterSpawnRate", config.oreClusterSpawnRate);
+            oreObj.addProperty("clusterRegenerates", (config.oreClusterDoesRegenerate) ? "yes" : "no");
+            //oreObj.addProperty("vanillaSuperVeinsEnabled", config.oreClusterSpawnRate);
             //oreObj.addProperty("biome", config.oreClusterSpawnRate);
             allOresArray.add(oreObj);
         }
+
+        //Summary stats
+        JsonObject oreObj = new JsonObject();
+        oreObj.addProperty("header", "Summary stats:");
+        oreObj.addProperty("randomSubseed", config.subSeed);
+        oreObj.addProperty("totalConfigs", modConfig.getOreConfigs().size());
+        oreObj.addProperty("periodRegenLengths", config.oreClusterRegenPeriods.entrySet()
+            .stream()
+            .map( e -> e.getKey() + ":" + e.getValue() + " days" )
+            .toList().toString());
+        int daysIn = regenManager.getDaysIntoPeriod();
+        int totalDays = regenManager.getDayPeriodLength();
+        oreObj.addProperty("currentPeriod", daysIn + " of " + totalDays + " days");
+
+        allOresArray.add(oreObj);
 
         resp.addProperty("header", "Configured ores:\n");
         resp.add("value", allOresArray);
@@ -80,47 +96,32 @@ public class OreClusterApi {
 
     public JsonObject getConfig(String configId)
     {
+        if(configId == null) return getConfigSummary();
+        OreClusterConfigModel targetConfig = modConfig.getOreConfigByConfigId(configId);
+        if(targetConfig == null) return null;
+
         JsonObject resp = new JsonObject();
-        
-        // If no configId provided, return summary
-        if(configId == null) {
-            return getConfigSummary();
-        }
-
-        // Get config for specific ID
-        Map<BlockState, OreClusterConfigModel> configs = modConfig.getOreConfigs();
-        OreClusterConfigModel targetConfig = null;
-        BlockState targetOre = null;
-
-        // Find config with matching ID
-        for(Map.Entry<BlockState, OreClusterConfigModel> entry : configs.entrySet()) {
-            if(entry.getValue().configId.equals(configId)) {
-                targetConfig = entry.getValue();
-                targetOre = entry.getKey();
-                break;
-            }
-        }
-
-        // Return null if config not found
-        if(targetConfig == null) {
-            return null;
-        }
-
         resp.addProperty("header", "Config summary for cluster config id: " + configId);
         
         JsonArray configArray = new JsonArray();
         JsonObject configObj = new JsonObject();
         
         // Add ore type first
-        configObj.addProperty("oreClusterType", HBUtil.BlockUtil.blockToString(targetOre.getBlock()));
+        configObj.addProperty("header", "");
+        configObj.addProperty("oreClusterType",
+        HBUtil.BlockUtil.blockToString(targetConfig.oreClusterType.getBlock()) );
         
         // Add all other config properties
         configObj.addProperty("configId", targetConfig.configId);
-        configObj.addProperty("oreClusterSpawnRate", targetConfig.oreClusterSpawnRate);
-        configObj.addProperty("oreClusterSize", targetConfig.oreClusterSize);
+        configObj.addProperty("spawnRate", targetConfig.oreClusterSpawnRate);
+        configObj.addProperty("size", targetConfig.oreClusterVolume.toString());
+        configObj.addProperty("density", targetConfig.oreClusterDensity.toString());
+        configObj.addProperty("shape", targetConfig.oreClusterShape);
         configObj.addProperty("oreClusterDoesRegenerate", targetConfig.oreClusterDoesRegenerate);
-        configObj.addProperty("oreClusterRegenerationTime", targetConfig.oreClusterRegenerationTime);
-        configObj.addProperty("oreVeinModifier", targetConfig.oreVeinModifier);
+        configObj.addProperty("maxYLevelSpawnAllowed", targetConfig.oreClusterMaxYLevelSpawn);
+        configObj.addProperty("nonReplaceableBlocks", targetConfig.oreClusterNonReplaceableBlocks.toString());
+        configObj.addProperty("alternativeClusterBlocks", targetConfig.oreClusterReplaceableEmptyBlocks.toString());
+        //configObj.addProperty("oreVeinModifierExistingOres", targetConfig.oreVeinModifier);
         
         configArray.add(configObj);
         resp.add("value", configArray);
@@ -225,6 +226,22 @@ public class OreClusterApi {
         return manager.addNewCluster(oreType, chunkId, pos);
     }
 
+
+    /**
+     * Triggers all clusters in the world to regenerate their clusters
+     */
+    public void triggerRegen() {
+        this.regenManager.triggerRegen();
+    }
+
+    /**
+     * Triggers a specific cluster to regenerate
+     * @param level
+     * @param chunkId
+     */
+    public void triggerRegen(LevelAccessor level, String chunkId) throws InvalidId {
+        this.regenManager.triggerRegen(level, chunkId);
+    }
 
     /**
      * Returns queue lengths and average time of completion for processes in the OreClusterManager

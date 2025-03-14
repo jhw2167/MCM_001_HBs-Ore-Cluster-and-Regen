@@ -36,7 +36,7 @@ public class OreClusterHealthCheck {
     private final ThreadPoolExecutor chunkReloadExecutor;
 
 
-    private OreClusterHealthCheck(EventRegistrar reg, OreClusterApi api, Map<LevelAccessor, OreClusterManager> managers)
+    public OreClusterHealthCheck(EventRegistrar reg, OreClusterApi api, Map<LevelAccessor, OreClusterManager> managers)
     {
         this.oreClusterApi = api;
         this.gson = new GsonBuilder().setPrettyPrinting().create();
@@ -53,11 +53,7 @@ public class OreClusterHealthCheck {
         }
         reg.registerOnServerStarted(this::onServerStarted);
 
-    }
-
-    public static OreClusterHealthCheck initInstance(EventRegistrar reg, OreClusterApi api, Map<LevelAccessor, OreClusterManager> managers) {
-        INSTANCE = new OreClusterHealthCheck(reg, api, managers);
-        return INSTANCE;
+        INSTANCE = this;
     }
 
     //* BEHAVIOR
@@ -67,6 +63,7 @@ public class OreClusterHealthCheck {
      */
     private void statisticHealthCheck()
     {
+        //LoggerProject.logInfo("016001", "Starting statistic healthCheck");
         try {
             for (OreClusterManager m : managers.values()) {
                 JsonElement jsonHealthCheck = oreClusterApi.healthCheckStatistics(m);
@@ -77,7 +74,7 @@ public class OreClusterHealthCheck {
                 LoggerProject.logInfo("001001", message.toString());
             }
         } catch (Exception e) {
-            LoggerProject.logWarning("001002", "Manager Health Check Thread Exception: " + e.getMessage());
+            LoggerProject.logWarning("061002", "Manager Health Check Thread Exception: " + e.getMessage());
         }
         finally {
             this.statisticHealthCheckThread = null;

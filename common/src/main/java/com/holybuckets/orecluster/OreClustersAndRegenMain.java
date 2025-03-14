@@ -26,7 +26,7 @@ public class OreClustersAndRegenMain
     public static final String MODID = "hbs_ore_clusters_and_regen";
     public static final String NAME = "HBs Ore Clusters and Regen";
     public static final String VERSION = "1.0.0f";
-    public static final Boolean DEBUG = true;
+    public static final Boolean DEBUG = false;
 
     public static OreClustersAndRegenMain INSTANCE;
     public ModRealTimeConfig modRealTimeConfig;
@@ -56,11 +56,8 @@ public class OreClustersAndRegenMain
         this.oreClusterManagers = new HashMap<>();
         this.modRealTimeConfig = new ModRealTimeConfig(eventRegistrar);
         this.regenManager = new OreClusterRegenManager( eventRegistrar, modRealTimeConfig, oreClusterManagers);
-        this.oreClusterApi = OreClusterApi.initInstance(oreClusterManagers);
-        this.oreClusterHealthCheck = OreClusterHealthCheck.initInstance( eventRegistrar,
-         oreClusterApi,
-         oreClusterManagers
-          );
+        this.oreClusterApi = new OreClusterApi(oreClusterManagers, modRealTimeConfig, regenManager);
+        this.oreClusterHealthCheck = new OreClusterHealthCheck( eventRegistrar, oreClusterApi, oreClusterManagers);
 
         eventRegistrar.registerOnLevelLoad( this::onLoadWorld, EventPriority.High );
         eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );
@@ -101,7 +98,7 @@ public class OreClustersAndRegenMain
 
     public void onUnloadWorld(LevelLoadingEvent.Unload event)
     {
-        LoggerProject.logDebug("001004", "**** WORLD UNLOAD EVENT ****");
+        //LoggerProject.logDebug("001004", "**** WORLD UNLOAD EVENT ****");
         LevelAccessor level = event.getLevel();
         if( level.isClientSide() ) return;
 

@@ -2,6 +2,8 @@ package com.holybuckets.orecluster.command;
 
 //Project imports
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.orecluster.LoggerProject;
@@ -14,8 +16,7 @@ import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.*;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -183,20 +184,29 @@ public class CommandList {
                     return 1;
                 }
 
-                JsonElement config;
-                if(configId == null) {
-                    config = api.getConfig();
-                } else {
-                    config = api.getConfig(configId);
-                }
-
+                JsonObject config = api.getConfig(configId);
                 if(config == null) {
                     source.sendFailure(Component.literal("No config found" + (configId != null ? " for id: " + configId : "")));
                     return 1;
                 }
 
-                MutableComponent response = Component.literal("Config: \n");
-                response.append(config.toString());
+
+                String header = config.getAsJsonPrimitive("header").getAsString();
+                source.sendSystemMessage(Component.literal(header));
+                for(JsonElement elem : config.getAsJsonArray("value"))
+                {
+                    JsonObject obj = elem.getAsJsonObject();
+                    StringBuilder s = new StringBuilder( s(obj, "header") );
+                    for(String key : obj.keySet()) {
+                        if(key.equals("header")) continue;
+                        s.append("\n  ").append(key).append(": ").append(s(obj, key));
+                    }
+                    //s.append("\n");
+                    source.sendSystemMessage(Component.literal(s.toString()));
+                }
+                source.sendSystemMessage(Component.literal("---\n"));
+
+                MutableComponent response = Component.literal("command /hbOreClusters config terminated succesfully: \n");
                 source.sendSuccess(() -> response, true);
 
             } catch (Exception e) {
@@ -211,5 +221,10 @@ public class CommandList {
 
 
 
-
+    private static String s(JsonObject object, String property) {
+        if(!object.has(property) || object.get(property) == null || !object.get(property).isJsonPrimitive()) {
+            return "null";
+        }
+        return object.getAsJsonPrimitive(property).getAsString();
+    }
 }

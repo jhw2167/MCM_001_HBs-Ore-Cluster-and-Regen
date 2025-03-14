@@ -81,6 +81,7 @@ public class OreClusterRegenManager {
         this.periodTickEnd = periodTickStart + periodTickLength;
     }
 
+
     private void handleDailyTick(long tickCount) {
         if( tickCount > periodTickEnd )
         {
@@ -89,9 +90,37 @@ public class OreClusterRegenManager {
         }
     }
 
+    //* API
+
+    public int getDaysIntoPeriod() {
+        long currentTicks = generalConfig.getTotalTickCount();
+        return (int) ((periodTickEnd - currentTicks) / TICKS_PER_DAY);
+    }
+
+    public int getDayPeriodLength() {
+        return (int) (periodTickLength / TICKS_PER_DAY);
+    }
 
     /**
-     *
+     * Trigger a global regeneration of all clusters
+     */
+    public void triggerRegen() {
+        this.triggerGlobalRegen();
+    }
+
+    /**
+     * Trigger regeneration for a specific chunk
+     * @param level
+     * @param chunkId
+     * @throws InvalidId
+     */
+    public void triggerRegen(LevelAccessor level, String chunkId) throws InvalidId {
+        this.triggerChunkRegen(level, chunkId);
+    }
+
+
+    /**
+     *  Trigger a global regeneration of all clusters
      */
     private void triggerGlobalRegen() {
         for (OreClusterManager manager : managers.values()) {

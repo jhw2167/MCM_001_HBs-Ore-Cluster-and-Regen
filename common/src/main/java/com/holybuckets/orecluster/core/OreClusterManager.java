@@ -43,6 +43,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static com.holybuckets.orecluster.OreClustersAndRegenMain.DEBUG;
 import static com.holybuckets.orecluster.core.model.ManagedOreClusterChunk.*;
 import static java.lang.Thread.sleep;
 
@@ -101,7 +102,9 @@ public class OreClusterManager {
         WORKER_THREAD_ENABLED.put(threadName, false);
     }
 
+    //NEED TO CLEAR TO RETAIN MEMORY
     final Map<String, List<Long>> THREAD_TIMES = new ConcurrentHashMap<>() {{
+        put("workerThreadLoadedChunk", new ArrayList<>());
         put("handleChunkInitialization", new ArrayList<>());
         put("handleChunkDetermination", new ArrayList<>());
         put("handleChunkCleaning", new ArrayList<>());
@@ -139,7 +142,9 @@ public class OreClusterManager {
     final Set<String> initializedOreClusterChunks;
 
     final ConcurrentHashMap<BlockState, Set<String>> existingClustersByType;
+    final ConcurrentHashMap<BlockState, Set<String>> tentativeClustersByType;
     final ConcurrentHashMap<BlockState, Set<String>> removedClustersByType;
+    final ConcurrentHashMap<BlockState, Set<String>> addedClustersByType;
     final ChunkGenerationOrderHandler mainSpiral;
     private OreClusterCalculator oreClusterCalculator;
 
@@ -165,7 +170,10 @@ public class OreClusterManager {
         this.config = config;
 
         this.existingClustersByType = new ConcurrentHashMap<BlockState, Set<String>>();
+        this.tentativeClustersByType = new ConcurrentHashMap<BlockState, Set<String>>();
+        this.addedClustersByType = new ConcurrentHashMap<BlockState, Set<String>>();
         this.removedClustersByType = new ConcurrentHashMap<BlockState, Set<String>>();
+
         this.loadedOreClusterChunks = new ConcurrentHashMap<>();
         this.determinedSourceChunks = new ConcurrentLinkedSet<>();
         this.determinedChunks = new ConcurrentSet<>();
@@ -218,8 +226,8 @@ public class OreClusterManager {
         return loadedOreClusterChunks;
     }
 
-    public ConcurrentHashMap<BlockState, Set<String>> getExistingClustersByType() {
-        return existingClustersByType;
+    public ConcurrentHashMap<BlockState, Set<String>> getTentativeClustersByType() {
+        return tentativeClustersByType;
     }
 
 
@@ -240,6 +248,8 @@ public class OreClusterManager {
 
         config.getOreConfigs().forEach((oreType, oreConfig) -> {
             existingClustersByType.put(oreType, new ConcurrentSet<>());
+            tentativeClustersByType.put(oreType, new ConcurrentSet<>());
+            addedClustersByType.put(oreType, new ConcurrentSet<>());
             removedClustersByType.put(oreType, new ConcurrentSet<>());
         });
 
@@ -258,10 +268,10 @@ public class OreClusterManager {
      * chunkExpire
      * lifetime
      */
-     private static final Long MAX_DETERMINED_CHUNK_LIFETIME_MILLIS = (OreClustersAndRegenMain.DEBUG)
+     private static final Long MAX_DETERMINED_CHUNK_LIFETIME_MILLIS = (DEBUG)
         ? 30_000 : 150_000L;
      //timeout
-     private static final Long SLEEP_TIME_PER_CHUNK_MILLIS = (OreClustersAndRegenMain.DEBUG)
+     private static final Long SLEEP_TIME_PER_CHUNK_MILLIS = (DEBUG)
         ? 100L : 100L;
     private static final Long MAX_EXPIRATIONS = 100L;
     private void threadWatchManagedOreChunkLifetime()
@@ -426,7 +436,7 @@ public class OreClusterManager {
         else if( ManagedOreClusterChunk.isDetermined(chunk) ) {
             if(chunk.hasClusters()) {
                 chunk.getClusterTypes().forEach((oreType, pos) -> {
-                    existingClustersByType.get(oreType).add(chunkId);
+                    tentativeClustersByType.get(oreType).add(chunkId);
                 });
             }
             chunksPendingCleaning.put(chunkId, chunk);
@@ -485,15 +495,14 @@ public class OreClusterManager {
                 }
 
                 String chunkId = chunksPendingHandling.poll(1, TimeUnit.SECONDS);
-
-                if( chunkId == null )
-                    continue;
+                if( chunkId == null ) continue;
 
                 long start = System.nanoTime();
                 handleChunkLoaded(chunkId);
                 long end = System.nanoTime();
                 //Remove duplicates
                 chunksPendingHandling.remove(chunkId);
+                THREAD_TIMES.get("workerThreadLoadedChunk").add((end - start) / 1_000_000);
             }
         }
         catch (InterruptedException e)
@@ -852,12 +861,12 @@ public class OreClusterManager {
         LoggerProject.logDebug("002010","Added " + clusters.size() + " clusters to determinedChunks");
 
 
-        // #4. Add clusters to existingClustersByType
+        // #4. Add clusters to tenativeClustersByType
         for( Map.Entry<String, List<BlockState>> clusterChunk : clusters.entrySet())
         {
             for( BlockState clusterOreType : clusterChunk.getValue() )
             {
-                existingClustersByType.get(clusterOreType).add(clusterChunk.getKey());
+                tentativeClustersByType.get(clusterOreType).add(clusterChunk.getKey());
             }
         }
 
@@ -891,7 +900,7 @@ public class OreClusterManager {
         try {
 
             //0. Add a gold_block to blockStateUpdates
-            if(true)
+            if(DEBUG)
             {
                 LevelChunk c = chunk.getChunk(false);
                 if( c == null ) return;
@@ -932,7 +941,7 @@ public class OreClusterManager {
                     for(BlockState b : noOresFoundOnClean)
                     {
                         chunk.getClusterTypes().remove(b);
-                        existingClustersByType.get(b).remove(chunk.getId());
+                        tentativeClustersByType.get(b).remove(chunk.getId());
                         removedClustersByType.get(b).add(chunk.getId());
                     }
                     missingOriginalsCleaned++;
@@ -1030,7 +1039,7 @@ public class OreClusterManager {
 
             //Offset for DEBUG
             Vec3i sourceOffset = new Vec3i(0, 0, 0);
-            if(OreClustersAndRegenMain.DEBUG) sourceOffset = new Vec3i(0, 120 - sourcePos.getY(), 0);
+            if(DEBUG) sourceOffset = new Vec3i(0, 120 - sourcePos.getY(), 0);
             Map<BlockPos, Integer> existingBlockStateUpdates = chunk.getMapBlockStateUpdates();
             for( Pair<BlockState, BlockPos> pos : clusterPos )
             {
@@ -1039,6 +1048,8 @@ public class OreClusterManager {
                     index = existingBlockStateUpdates.get(pos.getRight());
                 chunk.addBlockStateUpdate(pos.getLeft(), pos.getRight().offset(sourceOffset), index);
             }
+            //add to existingClustersByType
+            existingClustersByType.get(oreType).add(chunk.getId());
         }
 
         if( SKIPPED == null )
@@ -1095,11 +1106,6 @@ public class OreClusterManager {
                 this.removeManagedChunk(chunk);
             }
         }
-    }
-
-    private void handleChunkRegeneration(ManagedOreClusterChunk chunk)
-    {
-        //Probably unused
     }
 
 
@@ -1176,17 +1182,63 @@ public class OreClusterManager {
             this.determinedChunks.add(id);
         }
 
-        // #4. Add clusters to existingClustersByType
+        // #4. Add clusters to tentativeClustersByType
         for( String id : clusters.keySet() ) {
             List<BlockState> clusterTypes = clusters.get(id);
             for( BlockState ore : clusterTypes ) {
                 if(removedClustersByType.get(ore).contains(id)) continue;
-                existingClustersByType.get(ore).add(id);
+                tentativeClustersByType.get(ore).add(id);
             }
         }
     }
 
     //* API Methods
+
+    public boolean addNewCluster(BlockState clusterType, String chunkId, BlockPos pos)
+    {
+        this.tentativeClustersByType.get(clusterType).add(chunkId);
+        this.addedClustersByType.get(clusterType).add(chunkId);
+
+        if( this.forceReloadChunk(chunkId) ) {
+            ManagedOreClusterChunk chunk = this.loadedOreClusterChunks.get(chunkId);
+            Map<BlockState, BlockPos> clusterMap = new HashMap<>();
+            clusterMap.put(clusterType, pos);
+            chunk.addClusterTypes(clusterMap);
+            chunk.setStatus(OreClusterStatus.CLEANED);
+        }
+
+        this.forceProcessChunk(chunkId);
+
+        return true;
+    }
+
+    /**
+     * Attempts to load a ManagedOreClusterChunk into memory by forceloading the chunk, returns
+     * false if there is no instance in managedOreClusterChunks at the time this method returns;
+     * @param chunkId
+     * @return true if the chunk is in loadedOreClusterChunks, false otherwise
+     */
+    public boolean forceReloadChunk(String chunkId)
+    {
+        ManagedOreClusterChunk chunk = this.loadedOreClusterChunks.get(chunkId);
+        if( chunk != null ) return true;
+        try {
+
+            final int MAX_TRIES = 10; int count = 0;
+            while( chunk == null && count < MAX_TRIES ) {
+                sleep(10);
+                LevelChunk l =  ManagedChunkUtilityAccessor.getChunk(level, chunkId, true);
+                if( l != null ) this.forceLoadedChunks.put(chunkId, l);
+                chunk = this.loadedOreClusterChunks.get(chunkId);
+                count++;
+            }
+            if(this.forceLoadedChunks.get(chunkId) == null) return false;
+
+        } catch (InterruptedException e) {
+            return false;
+        }
+        return true;
+    }
 
     /**
      *
@@ -1202,16 +1254,11 @@ public class OreClusterManager {
         try {
 
             ManagedOreClusterChunk chunk = this.loadedOreClusterChunks.get(chunkId);
-            final int MAX_TRIES = 10; int count = 0;
-            while( chunk == null && count < MAX_TRIES ) {
-                sleep(10);
-                LevelChunk l =  ManagedChunkUtilityAccessor.getChunk(level, chunkId, true);
-                if( l != null ) this.forceLoadedChunks.put(chunkId, l);
-                chunk = this.loadedOreClusterChunks.get(chunkId);
-                count++;
+            if(chunk == null) {
+                this.forceReloadChunk(chunkId);
+                chunk = this.loadedOreClusterChunks.getOrDefault(chunkId, ManagedOreClusterChunk.getInstance(level, chunkId));
             }
-            if(this.forceLoadedChunks.get(chunkId) == null) return false;
-            chunk = this.loadedOreClusterChunks.getOrDefault(chunkId, ManagedOreClusterChunk.getInstance(level, chunkId));
+
             this.removeManagedChunk(chunk);
             this.loadedOreClusterChunks.put(chunkId, chunk);
 
@@ -1221,8 +1268,8 @@ public class OreClusterManager {
             if( determinedChunks.contains(chunkId))
             {
                 //add cluster from existing clusters by type
-                List<BlockState> clusters = new ArrayList<>(16);
-                existingClustersByType.entrySet().stream()
+                List<BlockState> clusters = new ArrayList<>(32);
+                tentativeClustersByType.entrySet().stream()
                     .filter(e -> e.getValue().contains(chunkId))
                     .forEach(e -> clusters.add(e.getKey()));
 
@@ -1270,13 +1317,16 @@ public class OreClusterManager {
 
     void triggerRegen()
     {
+        //0. Clear all health check data
+        this.clearHealthCheckData();
+
         //1. Get list of all chunkIds with clusters
         LinkedHashSet<String> regenableChunks = new LinkedHashSet<>();
-        for( BlockState clusterType : existingClustersByType.keySet() )
+        for( BlockState clusterType : tentativeClustersByType.keySet() )
         {
             OreClusterConfigModel model = this.config.getOreConfigByOre(clusterType);
             if( model == null || !model.oreClusterDoesRegenerate ) continue;
-            regenableChunks.addAll(existingClustersByType.get(clusterType));
+            regenableChunks.addAll(tentativeClustersByType.get(clusterType));
         }
 
         regenableChunks.forEach(this::triggerRegen);
@@ -1286,7 +1336,7 @@ public class OreClusterManager {
     void triggerRegen(String chunkId)
     {
         AtomicBoolean hasCluster = new AtomicBoolean(false);
-        existingClustersByType.values().forEach(list -> {
+        tentativeClustersByType.values().forEach(list -> {
             if( list.contains(chunkId) ) hasCluster.set(true);
         });
 
@@ -1312,6 +1362,10 @@ public class OreClusterManager {
      *              UTILITY SECTION
      */
 
+    private void clearHealthCheckData() {
+        //Clear all arrayLists in THREAD_TIMES
+        THREAD_TIMES.values().forEach(List::clear);
+    }
 
 
     /**
@@ -1405,31 +1459,6 @@ public class OreClusterManager {
 
         if( chunk.getLock().isLocked() )
             return Optional.empty();
-
-        //Deletables
-        if( !this.forceLoadedChunks.containsKey(chunk.getId()) )
-        {
-            if(chunk.getId().equals("0,0") && isDetermined(chunk)) {
-                this.removeManagedChunk(chunk);
-                return Optional.empty();
-            }
-
-            if(chunk.getId().equals("3,3") && isCleaned(chunk)) {
-                this.removeManagedChunk(chunk);
-                return Optional.empty();
-            }
-
-            if(chunk.getId().contains("5,5") && isCleaned(chunk)) {
-                this.removeManagedChunk(chunk);
-                return Optional.empty();
-            }
-
-            if(chunk.getId().contains("8,8") && isDetermined(chunk)) {
-                this.removeManagedChunk(chunk);
-                return Optional.empty();
-            }
-        }
-
 
         chunk.getLock().lock();
         consumer.accept(chunk);

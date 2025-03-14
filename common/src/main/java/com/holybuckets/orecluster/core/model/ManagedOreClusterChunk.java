@@ -2,6 +2,7 @@ package com.holybuckets.orecluster.core.model;
 
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil.ChunkUtil;
+import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
@@ -381,6 +382,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     public void addBlockStateUpdate(Pair<BlockState, BlockPos> pair, int index) {
         if(index < 0) index = blockStateUpdates.size();
+        if(pair.getLeft().equals(ModBlocks.empty.defaultBlockState())) return;
         blockStateUpdates.put(index, pair);
     }
 

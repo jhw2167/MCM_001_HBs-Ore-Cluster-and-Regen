@@ -23,8 +23,10 @@ import net.minecraft.world.level.block.state.BlockState;
 public class OreClusterConfigModel {
 
     public static final String CLASS_ID = "004";
+    public static Short ID_COUNTER = 0;
 
     public Long subSeed = null;
+    public String configId;
     public BlockState oreClusterType = null;
     public HashSet<Block> validOreClusterOreBlocks; //defaultConfigOnly
     public Integer oreClusterSpawnRate = COreClusters.DEF_ORE_CLUSTER_SPAWN_RATE.get();
@@ -46,21 +48,21 @@ public class OreClusterConfigModel {
     /**
         Creates a cluster for the given type of block with the default settings
      */
-    public OreClusterConfigModel(Block oreClusterBlock ) {
-        this.oreClusterType = oreClusterBlock.defaultBlockState();
-    }
-
     public OreClusterConfigModel(BlockState oreClusterBlockState ) {
+
+        //ID is a 4 digit 0 buffered number converted to a string
+        this.configId = String.format("%04d", ID_COUNTER++);
         this.oreClusterType = oreClusterBlockState;
     }
 
     public OreClusterConfigModel(String oreClusterJson) {
+        this((BlockState) null);
         deserialize(oreClusterJson);
     }
 
     public OreClusterConfigModel( OreClusterConfigData.COreClusters cOreClusters )
     {
-
+        this((BlockState) null);
         if( cOreClusters == null ) {
             return;
         }
