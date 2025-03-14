@@ -35,6 +35,7 @@ public class CommandList {
         CommandRegistry.register(LocateClusters::limitCountSpecifyBlockType);
         CommandRegistry.register(GetConfig::noArgs);
         CommandRegistry.register(GetConfig::withConfigId);
+        CommandRegistry.register(AddCluster::register);
     }
 
     //1. Locate Clusters
@@ -226,5 +227,60 @@ public class CommandList {
             return "null";
         }
         return object.getAsJsonPrimitive(property).getAsString();
+    }
+
+    //3. ADD CLUSTER
+    private static class AddCluster {
+        private static LiteralArgumentBuilder<CommandSourceStack> register() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("addCluster")
+                    .then(Commands.argument("x", IntegerArgumentType.integer())
+                    .then(Commands.argument("y", IntegerArgumentType.integer())
+                    .then(Commands.argument("z", IntegerArgumentType.integer())
+                        .executes(context -> execute(
+                            context.getSource(),
+                            IntegerArgumentType.getInteger(context, "x"),
+                            IntegerArgumentType.getInteger(context, "y"),
+                            IntegerArgumentType.getInteger(context, "z")
+                        ))
+                    ))));
+        }
+
+        private static int execute(CommandSourceStack source, int x, int y, int z) {
+            try {
+                OreClusterApi api = OreClusterApi.getInstance();
+                if(api == null) {
+                    source.sendFailure(Component.literal("oreClusterApi not initialized at this time"));
+                    return 1;
+                }
+
+                ServerPlayer player = source.getPlayerOrException();
+                BlockPos pos = new BlockPos(x, y, z);
+                BlockState blockState = player.level().getBlockState(pos);
+                
+                if(blockState == null || blockState.isAir()) {
+                    source.sendFailure(Component.literal("No block found at position " + x + "," + y + "," + z));
+                    return 1;
+                }
+
+                String chunkId = HBUtil.ChunkUtil.getId(pos);
+                boolean success = api.addCluster(player.level(), blockState, pos);
+
+                if(success) {
+                    source.sendSuccess(() -> Component.literal("Successfully added cluster of type " + 
+                        HBUtil.BlockUtil.blockToString(blockState.getBlock()) + " at " + x + "," + y + "," + z), true);
+                } else {
+                    source.sendFailure(Component.literal("Failed to add cluster"));
+                    return 1;
+                }
+
+            } catch (Exception e) {
+                LoggerProject.logError("010005", "Add Cluster Command exception: " + e.getMessage());
+                return 1;
+            }
+
+            LoggerProject.logDebug("010006", "Add Cluster Command executed successfully");
+            return 0;
+        }
     }
 }
