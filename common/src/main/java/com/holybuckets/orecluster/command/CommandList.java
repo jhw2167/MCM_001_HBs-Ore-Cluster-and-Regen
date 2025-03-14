@@ -37,7 +37,6 @@ public class CommandList {
     //1. Locate Clusters
     private static class LocateClusters
     {
-
         // Register the base command with no arguments
         private static LiteralArgumentBuilder<CommandSourceStack> noArgs() {
             return Commands.literal(PREFIX)
@@ -149,28 +148,13 @@ public class CommandList {
     //END COMMAND
 
 
-
-
-    //2. Locate Ore
-
-    /*
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
+    //2. GET config
+    //Returns the general config
+    private static class GetConfig
     {
-        return Commands.literal(PREFIX)
-            .then(Commands.argument("command", StringArgumentType.string())
-                .executes(context -> execute(context, ""))
-            .then(Commands.argument("arg1", StringArgumentType.string())
-                .executes(context -> execute(context, ""))
-            .then(Commands.argument("arg2", StringArgumentType.string())
-                .executes(context -> execute(context, ""))
-            .then(Commands.argument("arg3", StringArgumentType.string())
-                .executes(context -> execute(context, ""))
-            .then(Commands.argument("arg4", StringArgumentType.string())
-                .executes(context -> execute(context, "")))))))
-            .executes(context -> execute(context, "")));
 
     }
-    */
+
 
 
 
