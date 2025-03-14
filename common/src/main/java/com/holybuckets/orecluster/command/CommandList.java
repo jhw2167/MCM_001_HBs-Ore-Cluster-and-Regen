@@ -36,6 +36,7 @@ public class CommandList {
         CommandRegistry.register(GetConfig::noArgs);
         CommandRegistry.register(GetConfig::withConfigId);
         CommandRegistry.register(AddCluster::register);
+        CommandRegistry.register(TriggerRegen::register);
     }
 
     //1. Locate Clusters
@@ -227,6 +228,57 @@ public class CommandList {
             return "null";
         }
         return object.getAsJsonPrimitive(property).getAsString();
+    }
+
+    //4. TRIGGER REGEN
+    private static class TriggerRegen {
+        private static LiteralArgumentBuilder<CommandSourceStack> register() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("triggerRegen")
+                    .executes(context -> execute(context.getSource(), null, null))
+                    .then(Commands.argument("chunkX", IntegerArgumentType.integer())
+                    .then(Commands.argument("chunkZ", IntegerArgumentType.integer())
+                        .executes(context -> execute(
+                            context.getSource(),
+                            IntegerArgumentType.getInteger(context, "chunkX"),
+                            IntegerArgumentType.getInteger(context, "chunkZ")
+                        ))
+                    )));
+        }
+
+        private static int execute(CommandSourceStack source, Integer chunkX, Integer chunkZ) {
+            try {
+                OreClusterApi api = OreClusterApi.getInstance();
+                if(api == null) {
+                    source.sendFailure(Component.literal("oreClusterApi not initialized at this time"));
+                    return 1;
+                }
+
+                if(chunkX == null || chunkZ == null) {
+                    // Global regen
+                    api.triggerRegen();
+                    source.sendSuccess(() -> Component.literal("Global regeneration triggered"), true);
+                } else {
+                    // Single chunk regen
+                    ServerPlayer player = source.getPlayerOrException();
+                    String chunkId = chunkX + "," + chunkZ;
+                    try {
+                        api.triggerRegen(player.level(), chunkId);
+                        source.sendSuccess(() -> Component.literal("Regeneration triggered for chunk: " + chunkId), true);
+                    } catch (Exception e) {
+                        source.sendFailure(Component.literal("Failed to trigger regeneration for chunk: " + chunkId));
+                        return 1;
+                    }
+                }
+
+            } catch (Exception e) {
+                LoggerProject.logError("010007", "Trigger Regen Command exception: " + e.getMessage());
+                return 1;
+            }
+
+            LoggerProject.logDebug("010008", "Trigger Regen Command executed successfully");
+            return 0;
+        }
     }
 
     //3. ADD CLUSTER
