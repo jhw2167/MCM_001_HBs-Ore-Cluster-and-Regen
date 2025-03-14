@@ -292,7 +292,7 @@ public class CommandList {
                     .then(Commands.argument("z", IntegerArgumentType.integer())
                         .executes(context -> execute(
                             context.getSource(),
-                            StringArgumentType.getString(context, "configId"),
+                            StringArgumentType.getString(context, "blockType"),
                             IntegerArgumentType.getInteger(context, "x"),
                             IntegerArgumentType.getInteger(context, "y"),
                             IntegerArgumentType.getInteger(context, "z")
