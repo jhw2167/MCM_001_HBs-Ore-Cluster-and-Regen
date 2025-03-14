@@ -1,9 +1,12 @@
 package com.holybuckets.orecluster.core;
 
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.orecluster.LoggerProject;
+import com.holybuckets.orecluster.ModRealTimeConfig;
+import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import com.holybuckets.orecluster.core.model.OreClusterInfo;
 import net.minecraft.core.BlockPos;
@@ -24,9 +27,12 @@ public class OreClusterApi {
     public static final String CLASS_ID = "008";
     private static OreClusterApi INSTANCE;
 
-    public static OreClusterApi initInstance(Map<LevelAccessor, OreClusterManager> managers ) {
+    private final ModRealTimeConfig modConfig;
+    private final Map<LevelAccessor, OreClusterManager> managers;
+
+    public static OreClusterApi initInstance(Map<LevelAccessor, OreClusterManager> managers, ModRealTimeConfig modConfig ) {
         if(INSTANCE == null)
-            INSTANCE = new OreClusterApi(managers);
+            INSTANCE = new OreClusterApi(managers, modConfig);
         return INSTANCE;
     }
 
@@ -44,16 +50,40 @@ public class OreClusterApi {
         return INSTANCE;
     }
 
-    private final Map<LevelAccessor, OreClusterManager> MANAGERS;
-    private OreClusterApi(Map<LevelAccessor, OreClusterManager> managers ) {
-        this.MANAGERS = managers;
+    private OreClusterApi(Map<LevelAccessor, OreClusterManager> managers, ModRealTimeConfig modConfig ) {
+        this.modConfig = modConfig;
+        this.managers = managers;
     }
 
-    //Implement locateOreClusters method with parameters such as
-            //- LevelAccessor - find ore clusters in this level
-            //- BlockPos - find ore clusters near this position
-            //- Block oreType - find ore clusters of this type
-            // - int limit - limit the number of ore clusters to find
+
+    public JsonObject getConfigSummary()
+    {
+        JsonObject resp = new JsonObject();
+        //Return default config
+        OreClusterConfigModel config = modConfig.getDefaultConfig();
+        JsonArray allOresArray = new JsonArray();
+        for(OreClusterConfigModel ore : modConfig.getOreConfigs().values() )
+        {
+            JsonObject oreObj = new JsonObject();
+            oreObj.addProperty("header", "Ore With ConfigId: " + ore.configId + ":");
+            oreObj.addProperty("clusterType", HBUtil.BlockUtil.blockToString(ore.oreClusterType.getBlock()) );
+            oreObj.addProperty("clusterSpawnRate", config.oreClusterSpawnRate);
+            //oreObj.addProperty("biome", config.oreClusterSpawnRate);
+            allOresArray.add(oreObj);
+        }
+
+        resp.addProperty("header", "Configured ores:\n");
+        resp.add("value", allOresArray);
+
+        return resp;
+    }
+
+    public JsonObject getConfig(String configID)
+    {
+
+    }
+
+
 
     /**
      * Locate Ore Clusters in a level, optionally filtering by oreType and limiting the number of clusters
@@ -63,7 +93,6 @@ public class OreClusterApi {
      * @param limit
      * @return null if level or pos is null, or limit is less than 1
      */
-
     public List<OreClusterInfo> locateOreClusters(LevelAccessor level, BlockPos pos, BlockState oreType, int limit)
     {
         //1. Check if level is valid and get OreClusterManager for the level
@@ -76,12 +105,12 @@ public class OreClusterApi {
         if(limit <= 0)
             return null;
 
-        OreClusterManager manager = MANAGERS.get(level);
+        OreClusterManager manager = managers.get(level);
         if(manager == null)
             return null;
 
         //2. Get list of all oreClusters
-        Map<BlockState, Set<String>> clusters = manager.getExistingClustersByType();
+        Map<BlockState, Set<String>> clusters = manager.getTentativeClustersByType();
 
         LoggerProject.logInfo(null, "008000", "Found " + clusters.size() +
          " clusters in level: " + HBUtil.LevelUtil.toLevelId(level) + " with oreType: " + oreType );
@@ -133,6 +162,22 @@ public class OreClusterApi {
         LoggerProject.logInfo(null, "008002", "Sorted clusters by distance from: " + pos + " with limit  " + limit);
 
         return sortedClusters;
+    }
+
+    /**
+     * Add a cluster at a specified point
+     * @param oreType
+     * @param pos
+     * @return
+     */
+    public boolean addCluster(LevelAccessor level, BlockState oreType, BlockPos pos)
+    {
+        if(oreType == null || pos == null) return false;
+        OreClusterManager manager = managers.get(level);
+        if(manager == null) return false;
+
+        String chunkId = HBUtil.ChunkUtil.getId(pos);
+        return manager.addNewCluster(oreType, chunkId, pos);
     }
 
 
@@ -205,4 +250,5 @@ public class OreClusterApi {
         }
         return succeeded.get();
     }
+
 }
