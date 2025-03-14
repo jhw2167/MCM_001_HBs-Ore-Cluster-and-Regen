@@ -32,6 +32,8 @@ public class CommandList {
         CommandRegistry.register(LocateClusters::noArgs);
         CommandRegistry.register(LocateClusters::limitCount);
         CommandRegistry.register(LocateClusters::limitCountSpecifyBlockType);
+        CommandRegistry.register(GetConfig::noArgs);
+        CommandRegistry.register(GetConfig::withConfigId);
     }
 
     //1. Locate Clusters
@@ -152,7 +154,59 @@ public class CommandList {
     //Returns the general config
     private static class GetConfig
     {
+        // Register the base command with no arguments
+        private static LiteralArgumentBuilder<CommandSourceStack> noArgs() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("config")
+                    .executes(context -> execute(context.getSource(), null))
+                );
+        }
 
+        // Register command with configId argument
+        private static LiteralArgumentBuilder<CommandSourceStack> withConfigId() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("config")
+                    .then(Commands.argument("configId", StringArgumentType.string())
+                        .executes(context -> {
+                            String configId = StringArgumentType.getString(context, "configId");
+                            return execute(context.getSource(), configId);
+                        })
+                    )
+                );
+        }
+
+        private static int execute(CommandSourceStack source, String configId) {
+            try {
+                OreClusterApi api = OreClusterApi.getInstance();
+                if(api == null) {
+                    source.sendFailure(Component.literal("oreClusterApi not initialized at this time"));
+                    return 1;
+                }
+
+                JsonElement config;
+                if(configId == null) {
+                    config = api.getConfig();
+                } else {
+                    config = api.getConfig(configId);
+                }
+
+                if(config == null) {
+                    source.sendFailure(Component.literal("No config found" + (configId != null ? " for id: " + configId : "")));
+                    return 1;
+                }
+
+                MutableComponent response = Component.literal("Config: \n");
+                response.append(config.toString());
+                source.sendSuccess(() -> response, true);
+
+            } catch (Exception e) {
+                LoggerProject.logError("010003", "Get Config Command exception: " + e.getMessage());
+                return 1;
+            }
+
+            LoggerProject.logDebug("010004", "Get Config Command executed successfully");
+            return 0;
+        }
     }
 
 
