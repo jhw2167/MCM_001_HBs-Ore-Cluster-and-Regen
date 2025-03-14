@@ -78,9 +78,54 @@ public class OreClusterApi {
         return resp;
     }
 
-    public JsonObject getConfig(String configID)
+    public JsonObject getConfig(String configId)
     {
+        JsonObject resp = new JsonObject();
+        
+        // If no configId provided, return summary
+        if(configId == null) {
+            return getConfigSummary();
+        }
 
+        // Get config for specific ID
+        Map<BlockState, OreClusterConfigModel> configs = modConfig.getOreConfigs();
+        OreClusterConfigModel targetConfig = null;
+        BlockState targetOre = null;
+
+        // Find config with matching ID
+        for(Map.Entry<BlockState, OreClusterConfigModel> entry : configs.entrySet()) {
+            if(entry.getValue().configId.equals(configId)) {
+                targetConfig = entry.getValue();
+                targetOre = entry.getKey();
+                break;
+            }
+        }
+
+        // Return null if config not found
+        if(targetConfig == null) {
+            return null;
+        }
+
+        resp.addProperty("header", "Config summary for cluster config id: " + configId);
+        
+        JsonArray configArray = new JsonArray();
+        JsonObject configObj = new JsonObject();
+        
+        // Add ore type first
+        configObj.addProperty("oreClusterType", HBUtil.BlockUtil.blockToString(targetOre.getBlock()));
+        
+        // Add all other config properties
+        configObj.addProperty("configId", targetConfig.configId);
+        configObj.addProperty("oreClusterSpawnRate", targetConfig.oreClusterSpawnRate);
+        configObj.addProperty("oreClusterSize", targetConfig.oreClusterSize);
+        configObj.addProperty("oreClusterDoesRegenerate", targetConfig.oreClusterDoesRegenerate);
+        configObj.addProperty("oreClusterRegenerationTime", targetConfig.oreClusterRegenerationTime);
+        configObj.addProperty("oreVeinModifier", targetConfig.oreVeinModifier);
+        
+        configArray.add(configObj);
+        resp.add("value", configArray);
+
+        return resp;
     }
 
 
