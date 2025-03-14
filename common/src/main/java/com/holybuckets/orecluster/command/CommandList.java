@@ -234,11 +234,13 @@ public class CommandList {
         private static LiteralArgumentBuilder<CommandSourceStack> register() {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("addCluster")
+                    .then(Commands.argument("blockType", StringArgumentType.string())
                     .then(Commands.argument("x", IntegerArgumentType.integer())
                     .then(Commands.argument("y", IntegerArgumentType.integer())
                     .then(Commands.argument("z", IntegerArgumentType.integer())
                         .executes(context -> execute(
                             context.getSource(),
+                            StringArgumentType.getString(context, "configId"),
                             IntegerArgumentType.getInteger(context, "x"),
                             IntegerArgumentType.getInteger(context, "y"),
                             IntegerArgumentType.getInteger(context, "z")
@@ -246,7 +248,7 @@ public class CommandList {
                     ))));
         }
 
-        private static int execute(CommandSourceStack source, int x, int y, int z) {
+        private static int execute(CommandSourceStack source, String configId, int x, int y, int z) {
             try {
                 OreClusterApi api = OreClusterApi.getInstance();
                 if(api == null) {
@@ -256,19 +258,10 @@ public class CommandList {
 
                 ServerPlayer player = source.getPlayerOrException();
                 BlockPos pos = new BlockPos(x, y, z);
-                BlockState blockState = player.level().getBlockState(pos);
-                
-                if(blockState == null || blockState.isAir()) {
-                    source.sendFailure(Component.literal("No block found at position " + x + "," + y + "," + z));
-                    return 1;
-                }
-
-                String chunkId = HBUtil.ChunkUtil.getId(pos);
-                boolean success = api.addCluster(player.level(), blockState, pos);
+                boolean success = api.addCluster(player.level(), configId, pos);
 
                 if(success) {
-                    source.sendSuccess(() -> Component.literal("Successfully added cluster of type " + 
-                        HBUtil.BlockUtil.blockToString(blockState.getBlock()) + " at " + x + "," + y + "," + z), true);
+                    source.sendSuccess(() -> Component.literal("Successfully added cluster"), true);
                 } else {
                     source.sendFailure(Component.literal("Failed to add cluster"));
                     return 1;
