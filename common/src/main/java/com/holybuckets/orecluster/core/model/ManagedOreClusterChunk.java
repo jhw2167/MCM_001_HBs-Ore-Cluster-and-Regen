@@ -343,10 +343,12 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     /** Other Methods **/
     public void addClusterTypes(List<BlockState> clusters)
     {
-        if( clusters == null )
-            return;
+        if( clusters == null ) return;
+        if( this.clusterTypes == null ) this.clusterTypes = new HashMap<>();
+
         Map<BlockState, BlockPos> clusterMap = new HashMap<>();
         for(BlockState state : clusters) {
+            if(this.clusterTypes.containsKey(state)) continue;
             clusterMap.put(state, null);
         }
         this.addClusterTypes(clusterMap);

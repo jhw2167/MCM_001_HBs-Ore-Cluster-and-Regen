@@ -222,14 +222,6 @@ public class CommandList {
     }
 
 
-
-    private static String s(JsonObject object, String property) {
-        if(!object.has(property) || object.get(property) == null || !object.get(property).isJsonPrimitive()) {
-            return "null";
-        }
-        return object.getAsJsonPrimitive(property).getAsString();
-    }
-
     //4. TRIGGER REGEN
     private static class TriggerRegen {
         private static LiteralArgumentBuilder<CommandSourceStack> register() {
@@ -261,7 +253,7 @@ public class CommandList {
                 } else {
                     // Single chunk regen
                     ServerPlayer player = source.getPlayerOrException();
-                    String chunkId = chunkX + "," + chunkZ;
+                    String chunkId = HBUtil.ChunkUtil.getId(chunkX, chunkZ);
                     try {
                         api.triggerRegen(player.level(), chunkId);
                         source.sendSuccess(() -> Component.literal("Regeneration triggered for chunk: " + chunkId), true);
@@ -286,18 +278,18 @@ public class CommandList {
         private static LiteralArgumentBuilder<CommandSourceStack> register() {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("addCluster")
-                    .then(Commands.argument("blockType", StringArgumentType.string())
+                    .then(Commands.argument("clusterConfigId", StringArgumentType.string())
                     .then(Commands.argument("x", IntegerArgumentType.integer())
                     .then(Commands.argument("y", IntegerArgumentType.integer())
                     .then(Commands.argument("z", IntegerArgumentType.integer())
                         .executes(context -> execute(
                             context.getSource(),
-                            StringArgumentType.getString(context, "blockType"),
+                            StringArgumentType.getString(context, "clusterConfigId"),
                             IntegerArgumentType.getInteger(context, "x"),
                             IntegerArgumentType.getInteger(context, "y"),
                             IntegerArgumentType.getInteger(context, "z")
                         ))
-                    ))));
+                    )))));
         }
 
         private static int execute(CommandSourceStack source, String configId, int x, int y, int z) {
@@ -328,4 +320,16 @@ public class CommandList {
             return 0;
         }
     }
+
+
+
+    private static String s(JsonObject object, String property) {
+        if(!object.has(property) || object.get(property) == null || !object.get(property).isJsonPrimitive()) {
+            return "null";
+        }
+        return object.getAsJsonPrimitive(property).getAsString();
+    }
+
+
 }
+//END CLASS COMMANDLIST

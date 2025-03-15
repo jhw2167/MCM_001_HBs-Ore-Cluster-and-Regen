@@ -131,7 +131,7 @@ public class OreClusterRegenManager {
     private void triggerChunkRegen(LevelAccessor level, String chunkId) throws InvalidId {
         OreClusterManager manager = managers.get(level);
         if(manager == null) throw new InvalidId("Could not find manager for level" + HBUtil.LevelUtil.toLevelId(level));
-        manager.triggerRegen(chunkId);
+        manager.triggerRegen(chunkId, true);
     }
 
 

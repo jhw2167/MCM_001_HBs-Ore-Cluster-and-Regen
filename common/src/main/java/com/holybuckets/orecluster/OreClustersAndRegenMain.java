@@ -23,7 +23,7 @@ public class OreClustersAndRegenMain
     public static final String CLASS_ID = "001";    //unused variable, value will be used for logging messages
 
     // Define mod id in a common place for everything to reference
-    public static final String MODID = "hbs_ore_clusters_and_regen";
+    public static final String MODID = Constants.MOD_ID;
     public static final String NAME = "HBs Ore Clusters and Regen";
     public static final String VERSION = "1.0.0f";
     public static final Boolean DEBUG = false;
@@ -98,7 +98,7 @@ public class OreClustersAndRegenMain
 
     public void onUnloadWorld(LevelLoadingEvent.Unload event)
     {
-        //LoggerProject.logDebug("001004", "**** WORLD UNLOAD EVENT ****");
+        LoggerProject.logDebug("001004", "**** WORLD UNLOAD EVENT ****");
         LevelAccessor level = event.getLevel();
         if( level.isClientSide() ) return;
 

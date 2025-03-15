@@ -138,6 +138,7 @@ public class OreClusterApi {
      * @param oreType
      * @param limit
      * @return null if level or pos is null, or limit is less than 1
+     * locateClusters
      */
     public List<OreClusterInfo> locateOreClusters(LevelAccessor level, BlockPos pos, BlockState oreType, int limit)
     {
@@ -156,7 +157,7 @@ public class OreClusterApi {
             return null;
 
         //2. Get list of all oreClusters
-        Map<BlockState, Set<String>> clusters = manager.getTentativeClustersByType();
+        Map<BlockState, Set<String>> clusters = manager.getExistingClustersByType();
 
         LoggerProject.logInfo(null, "008000", "Found " + clusters.size() +
          " clusters in level: " + HBUtil.LevelUtil.toLevelId(level) + " with oreType: " + oreType );
@@ -208,6 +209,12 @@ public class OreClusterApi {
         LoggerProject.logInfo(null, "008002", "Sorted clusters by distance from: " + pos + " with limit  " + limit);
 
         return sortedClusters;
+    }
+
+
+    public boolean addCluster(LevelAccessor level, String configId, BlockPos pos) {
+        BlockState oreType = modConfig.getOreConfigByConfigId(configId).oreClusterType;
+        return addCluster(level, oreType, pos);
     }
 
     /**
