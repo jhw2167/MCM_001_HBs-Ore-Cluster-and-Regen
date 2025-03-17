@@ -78,6 +78,7 @@ public class ModRealTimeConfig
     {
         OreClusterConfigData.COreClusters clusterConfig = OreClusterConfig.getActive().cOreClusters;
         this.defaultConfig = new OreClusterConfigModel(clusterConfig);
+        defaultConfig.setConfigId();
 
         //Create new oreConfig for each element in cOreClusters list
         this.oreConfigs = new HashMap<>();
@@ -102,8 +103,8 @@ public class ModRealTimeConfig
         defaultConfig.setOreClusterType( (BlockState) null);
 
         //Particular configs will overwrite the default data
-        for (OreClusterConfigModel oreConfig : jsonOreConfigs.getOreClusterConfigs())
-        {
+        for (OreClusterConfigModel oreConfig : jsonOreConfigs.getOreClusterConfigs()) {
+            oreConfig.setConfigId();
             oreConfigs.put(oreConfig.oreClusterType, oreConfig);
         }
 

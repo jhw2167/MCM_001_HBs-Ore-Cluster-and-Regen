@@ -149,7 +149,7 @@ public class OreClusterHealthCheck {
         try {
             while(managers.size() > 0) {
                 sleep(1000);
-                chunkLoadsHealthCheck();
+                //chunkLoadsHealthCheck();
             }
         } catch (InterruptedException e) {
         }

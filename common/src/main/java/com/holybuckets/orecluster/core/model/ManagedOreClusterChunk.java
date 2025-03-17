@@ -58,7 +58,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private static final String CLASS_ID = "003";
     private static final String NBT_KEY_HEADER = "managedOreClusterChunk";
     
-    public static final String TEST_ID = "-15,-15";
+    public static final String TEST_ID = "-1,0";
 
 
     public static final int MAX_ORIGINAL_ORES = 8;
@@ -297,13 +297,23 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     }
 
-    public boolean hasOreClusterSourcePos(BlockState b) {
+    public boolean hasOreClusterSourcePos(BlockState b)
+    {
+        if(this.clusterTypes != null) {
+            if(this.clusterTypes.get(b) != null)
+                return true;
+        }
         if(this.originalOres == null) return false;
         if(!this.originalOres.containsKey(b)) return false;
         return this.originalOres.get(b).getLeft() != null;
     }
 
-    public BlockPos getOreClusterSourcePos(BlockState b) {
+    public BlockPos getOreClusterSourcePos(BlockState b)
+    {
+        if(this.clusterTypes != null) {
+            if(this.clusterTypes.get(b) != null)
+                return this.clusterTypes.get(b);
+        }
         if(this.originalOres == null) return null;
         if(!this.originalOres.containsKey(b)) return null;
         return this.originalOres.get(b).getLeft();
@@ -608,7 +618,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
 
         if( this.hasBlockUpdates() )
-            details.putString("status", OreClusterStatus.DETERMINED.toString());
+            details.putString("status", OreClusterStatus.CLEANED.toString());
         else
             details.putString("status", this.status.toString() );
 

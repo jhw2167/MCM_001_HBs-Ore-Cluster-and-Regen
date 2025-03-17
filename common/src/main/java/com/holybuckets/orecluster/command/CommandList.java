@@ -307,7 +307,7 @@ public class CommandList {
                 if(success) {
                     source.sendSuccess(() -> Component.literal("Successfully added cluster"), true);
                 } else {
-                    source.sendFailure(Component.literal("Failed to add cluster"));
+                    source.sendFailure(Component.literal("Failed to add cluster, check logs for more info"));
                     return 1;
                 }
 

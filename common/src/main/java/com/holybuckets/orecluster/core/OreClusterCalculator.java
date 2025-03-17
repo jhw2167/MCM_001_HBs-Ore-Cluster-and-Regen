@@ -555,7 +555,6 @@ public class OreClusterCalculator {
 
         //4. Determine if we are near an open cave and which side it is on
         //LoggerProject.logInfo("013009", "Determining air offset" );
-        TripleInt airOffset;
         List<Pair<Integer,List<Integer>>> relativePosData = new ArrayList<>();
         relativePosData.add(Pair.of(VOL.x, Xs)); relativePosData.add(Pair.of(VOL.y, Ys)); relativePosData.add(Pair.of(VOL.z, Zs));
 
@@ -566,7 +565,9 @@ public class OreClusterCalculator {
             return null;
         }
 
-        airOffset = generator.calculateAvoidAirOffset();
+        TripleInt airOffset = new TripleInt(0,0,0);
+        if( HBUtil.BlockUtil.blockToString(oreType.getBlock()).toLowerCase().contains("ore") )
+            airOffset = generator.calculateAvoidAirOffset();
 
         //5. Apply Density function
         List<BlockState> clusterBlockStates = generator.applyRadialDensityFunction();

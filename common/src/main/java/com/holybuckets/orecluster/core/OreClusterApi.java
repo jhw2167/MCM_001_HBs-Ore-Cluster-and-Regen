@@ -211,9 +211,49 @@ public class OreClusterApi {
         return sortedClusters;
     }
 
+    public JsonObject getManagedChunkDetails(LevelAccessor level, String chunkId) {
+        OreClusterManager manager = managers.get(level);
+        if(manager == null) return null;
+        ManagedOreClusterChunk chunk = manager.getManagedOreClusterChunk(chunkId);
+        if(chunk == null) return null;
+
+        //Collect info on ManagedOreClusterChunk
+        //id
+        //Status
+        //Clusters: blockState : position
+
+        String id = chunk.getId();
+        JsonObject chunkDetails = new JsonObject();
+        chunkDetails.addProperty("id", id);
+        chunkDetails.addProperty("status", chunk.getStatus().toString());
+        if(chunk.hasClusters()) {
+            JsonArray clusterArray = new JsonArray();
+            chunk.getClusterTypes().entrySet().forEach( e -> {
+                String block = HBUtil.BlockUtil.blockToString(e.getKey().getBlock());
+                String pos = e.getValue().toString();
+                clusterArray.add(block + ": " + pos);
+            });
+            chunkDetails.add("clusters", clusterArray);
+        } else {
+            chunkDetails.addProperty("clusters", "No clusters found");
+        }
+
+        return chunkDetails;
+    }
+
+    public boolean forceChunkReload(LevelAccessor level, String chunkId) {
+        OreClusterManager manager = managers.get(level);
+        if(manager == null) return false;
+        return manager.forceReloadChunk(chunkId);
+    }
 
     public boolean addCluster(LevelAccessor level, String configId, BlockPos pos) {
-        BlockState oreType = modConfig.getOreConfigByConfigId(configId).oreClusterType;
+        OreClusterConfigModel config = modConfig.getOreConfigByConfigId(configId);
+        if(config == null) {
+            LoggerProject.logWarning(CLASS_ID, "008003", "Could not find config for id: " + configId);
+            return false;
+        }
+        BlockState oreType = config.oreClusterType;
         return addCluster(level, oreType, pos);
     }
 
@@ -247,7 +287,10 @@ public class OreClusterApi {
      * @param chunkId
      */
     public void triggerRegen(LevelAccessor level, String chunkId) throws InvalidId {
-        this.regenManager.triggerRegen(level, chunkId);
+    //Thread it and join after 10 seconds
+        if(level == null || chunkId == null) return;
+        if(!managers.containsKey(level)) return;
+        regenManager.triggerRegen(level, chunkId);
     }
 
     /**
@@ -308,7 +351,11 @@ public class OreClusterApi {
             .collect(HashSet::new, HashSet::add, HashSet::addAll);
 
         loaded.addAll(unloaded);
-        return loaded;
+        Set<String> incompleteChunks = loaded.stream()
+            .filter( c -> !m.forceLoadedChunks.containsKey(c))
+            .collect(HashSet::new, HashSet::add, HashSet::addAll);
+
+        return incompleteChunks;
     }
 
     public boolean debugForceLoadChunk(OreClusterManager m, String chunkId, AtomicBoolean succeeded) {

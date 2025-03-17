@@ -51,7 +51,6 @@ public class OreClusterConfigModel {
     public OreClusterConfigModel(BlockState oreClusterBlockState ) {
 
         //ID is a 4 digit 0 buffered number converted to a string
-        this.configId = String.format("%04d", ID_COUNTER++);
         this.oreClusterType = oreClusterBlockState;
     }
 
@@ -229,6 +228,10 @@ public class OreClusterConfigModel {
         @javadoc
         Setter Functions
      */
+
+     public void setConfigId() {
+         this.configId = String.format("%04d", ID_COUNTER++);
+     }
 
      public void setOreClusterType(BlockState oreClusterType) {
         this.oreClusterType = oreClusterType;
