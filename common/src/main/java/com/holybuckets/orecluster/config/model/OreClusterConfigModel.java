@@ -42,6 +42,7 @@ public class OreClusterConfigModel {
     public HashSet<BlockState> oreClusterNonReplaceableBlocks = processStringIntoBlockStateHashSet(COreClusters.DEF_ORE_CLUSTER_NONREPLACEABLE_BLOCKS);
     public HashSet<BlockState> oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(COreClusters.DEF_ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS);
     public Boolean oreClusterDoesRegenerate = COreClusters.DEF_REGENERATE_ORE_CLUSTERS;
+    public String oreClusterDimensionId = COreClusters.DEF_ORE_CLUSTER_DIMENSION_ID;
     public Map<String, Integer> oreClusterRegenPeriods; //defaultConfigOnly
 
     private static final Gson gson = new GsonBuilder().create();
@@ -387,6 +388,15 @@ public class OreClusterConfigModel {
         this.oreClusterDoesRegenerate = Validator.parseBoolean(oreClusterDoesRegenerate);
     }
 
+    public void setOreClusterDimensionId(String oreClusterDimensionId) {
+        if (oreClusterDimensionId == null || oreClusterDimensionId.isEmpty()) {
+            this.oreClusterDimensionId = COreClusters.DEF_ORE_CLUSTER_DIMENSION_ID;
+            logPropertyWarning("Invalid dimension ID", this.oreClusterType, null, this.oreClusterDimensionId);
+        } else {
+            this.oreClusterDimensionId = oreClusterDimensionId;
+        }
+    }
+
 
     private static void logPropertyWarning(String message, BlockState ore, String defaultMessage, String defaultValue)
     {
@@ -436,6 +446,7 @@ public class OreClusterConfigModel {
         jsonObject.addProperty("oreClusterReplaceableEmptyBlocks",
             c.oreClusterReplaceableEmptyBlocks.stream().map(bs -> bs.getBlock()).map(BlockUtil::blockToString).collect(Collectors.joining(", ")));
         jsonObject.addProperty("oreClusterDoesRegenerate", c.oreClusterDoesRegenerate);
+        jsonObject.addProperty("oreClusterDimensionId", c.oreClusterDimensionId);
 
         //System.err.println("jsonObject: " + jsonObject);
         return gson.toJson(jsonObject);
@@ -536,6 +547,13 @@ public class OreClusterConfigModel {
             setOreClusterDoesRegenerate(jsonObject.get("oreClusterDoesRegenerate").getAsString());
         } catch (Exception e) {
             LoggerProject.logError("004013", "Error parsing oreClusterDoesRegenerate" +
+            " for ore: " + this.oreClusterType + ". " + e.getMessage());
+        }
+
+        try {
+            setOreClusterDimensionId(jsonObject.get("oreClusterDimensionId").getAsString());
+        } catch (Exception e) {
+            LoggerProject.logError("004016", "Error parsing oreClusterDimensionId" +
             " for ore: " + this.oreClusterType + ". " + e.getMessage());
         }
 
