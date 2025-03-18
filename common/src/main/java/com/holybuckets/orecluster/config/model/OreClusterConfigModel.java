@@ -35,6 +35,7 @@ public class OreClusterConfigModel {
     public Float oreClusterDensity = COreClusters.DEF_ORE_CLUSTER_DENSITY.get();
     public String oreClusterShape = COreClusters.DEF_ORE_CLUSTER_SHAPE;
     public Integer oreClusterMaxYLevelSpawn = COreClusters.DEF_ORE_CLUSTER_MAX_Y_LEVEL_SPAWN.get();
+    public Integer oreClusterMinYLevelSpawn = COreClusters.DEF_ORE_CLUSTER_MIN_Y_LEVEL_SPAWN.get();
     public Integer minChunksBetweenOreClusters = COreClusters.DEF_MIN_CHUNKS_BETWEEN_ORE_CLUSTERS.get();
     public Integer maxChunksBetweenOreClusters = COreClusters.DEF_MAX_CHUNKS_BETWEEN_ORE_CLUSTERS.get();
     public Float oreVeinModifier = COreClusters.DEF_ORE_VEIN_MODIFIER.get();
@@ -293,6 +294,16 @@ public class OreClusterConfigModel {
             this.oreClusterMaxYLevelSpawn = oreClusterMaxYLevelSpawn;
     }
 
+    public void setOreClusterMinYLevelSpawn(Integer oreClusterMinYLevelSpawn)
+    {
+        Boolean validConfig = Validator.validateNumber(oreClusterMinYLevelSpawn,
+            oreClusterDefaultConfigs.DEF_ORE_CLUSTER_MIN_Y_LEVEL_SPAWN,
+            "for ore: " + this.oreClusterType);
+
+        if( validConfig )
+            this.oreClusterMinYLevelSpawn = oreClusterMinYLevelSpawn;
+    }
+
     public void setMinChunksBetweenOreClusters(Integer minChunksBetweenOreClusters)
     {
         String minChunksLogicError = "minChunksBetweenOreClusters is too high for the spawnrate of the cluster";
@@ -415,6 +426,7 @@ public class OreClusterConfigModel {
         jsonObject.addProperty("oreClusterDensity", c.oreClusterDensity);
         jsonObject.addProperty("oreClusterShape", c.oreClusterShape);
         jsonObject.addProperty("oreClusterMaxYLevelSpawn", c.oreClusterMaxYLevelSpawn);
+        jsonObject.addProperty("oreClusterMinYLevelSpawn", c.oreClusterMinYLevelSpawn);
         jsonObject.addProperty("minChunksBetweenOreClusters", c.minChunksBetweenOreClusters);
         //jsonObject.addProperty("maxChunksBetweenOreClusters", maxChunksBetweenOreClusters);
 
@@ -475,6 +487,13 @@ public class OreClusterConfigModel {
             setOreClusterMaxYLevelSpawn(jsonObject.get("oreClusterMaxYLevelSpawn").getAsInt());
         } catch (Exception e) {
             LoggerProject.logError("004007","Error parsing oreClusterMaxYLevelSpawn" +
+            " for ore: " + this.oreClusterType + ". " + e.getMessage());
+        }
+
+        try {
+            setOreClusterMinYLevelSpawn(jsonObject.get("oreClusterMinYLevelSpawn").getAsInt());
+        } catch (Exception e) {
+            LoggerProject.logError("004015","Error parsing oreClusterMinYLevelSpawn" +
             " for ore: " + this.oreClusterType + ". " + e.getMessage());
         }
 
