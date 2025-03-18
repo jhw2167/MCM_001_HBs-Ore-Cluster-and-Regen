@@ -549,22 +549,5 @@ public class OreClusterConfigModel {
     }
 
 
-    //* Static Utility
-
-    /**
-     *
-     * @param pos
-     * @param config
-     * @return true if no config is provided or if the pos is in config range, false otherwise
-     */
-    public static boolean validYSpawn(BlockPos pos, OreClusterConfigModel config) {
-        if( config == null ) return true;
-        if( config.oreClusterMaxYLevelSpawn == null ) return true;
-        if( pos.getY() > config.oreClusterMaxYLevelSpawn ) return false;
-        if( pos.getY() < config.oreClusterMinYLevelSpawn ) return false;
-
-        return true;
-    }
-
 }
 
