@@ -230,6 +230,7 @@ public class OreClusterConfigModel {
      */
 
      public void setConfigId() {
+        if(this.oreClusterType == null ) ID_COUNTER = 0;
          this.configId = String.format("%04d", ID_COUNTER++);
      }
 

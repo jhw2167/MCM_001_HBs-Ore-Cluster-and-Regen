@@ -1125,7 +1125,7 @@ public class OreClusterManager {
         for( String id : chunkIds)
         {
             ChunkPos pos = HBUtil.ChunkUtil.getPos(id);
-            HBUtil.ChunkUtil.getLevelChunk(level, pos.x, pos.z, true);
+            HBUtil.ChunkUtil.getLevelChunk(level, pos.x, pos.z, false);
             while( !this.determinedChunks.contains(id) )
             {
                 try {
@@ -1184,6 +1184,7 @@ public class OreClusterManager {
      */
     public boolean addNewCluster(BlockState clusterType, String chunkId, BlockPos pos)
     {
+        if(clusterType == null) return false;
         if(this.config.getOreConfigByOre(clusterType) == null) return false;
 
         ManagedOreClusterChunk chunk = this.loadedOreClusterChunks.get(chunkId);
@@ -1220,7 +1221,7 @@ public class OreClusterManager {
             final int MAX_TRIES = 10; int count = 0;
             while( chunk == null && count < MAX_TRIES ) {
                 sleep(10);
-                LevelChunk l =  ManagedChunkUtilityAccessor.getChunk(level, chunkId, true);
+                LevelChunk l =  ManagedChunkUtilityAccessor.getChunk(level, chunkId, false);
                 if( l != null ) this.forceLoadedChunks.put(chunkId, l);
                 chunk = this.loadedOreClusterChunks.get(chunkId);
                 count++;

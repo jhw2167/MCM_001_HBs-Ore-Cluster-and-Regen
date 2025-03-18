@@ -36,7 +36,7 @@ public class OreClusterCalculator {
     private OreClusterManager manager;
     private ModRealTimeConfig C;
     private Set<String> determinedChunks;
-    private ConcurrentHashMap<BlockState, Set<String>> existingClustersByType;
+    private ConcurrentHashMap<BlockState, Set<String>> localAreaClustersByType;
 
 
 
@@ -46,7 +46,7 @@ public class OreClusterCalculator {
         this.manager = manager;
         this.C = manager.getConfig();
         this.determinedChunks = manager.getDeterminedChunks();
-        this.existingClustersByType = manager.getTentativeClustersByType();
+        this.localAreaClustersByType = manager.getTentativeClustersByType();
     }
 
     public Map<String, List<BlockState>> calculateClusterLocations(List<String> chunks, Random rng)
@@ -107,7 +107,7 @@ public class OreClusterCalculator {
 
         //3. Stream existingClustersByType into a linkedHashSet, filtering for any chunks that have clusters
         LinkedHashSet<String> localExistingClusters = new LinkedHashSet<>();
-        existingClustersByType.values().stream()
+        localAreaClustersByType.values().stream()
             .forEach( ids -> localExistingClusters.addAll(ids));
          
 
@@ -242,7 +242,7 @@ public class OreClusterCalculator {
              for (BlockState oreType : oreClusterTypes)
              {
                  OreClusterConfigModel config = clusterConfigs.get(oreType);
-                 HashSet<String> allChunksWithClusterType = existingClustersByType.get(oreType).stream().collect(Collectors.toCollection(HashSet::new));
+                 HashSet<String> allChunksWithClusterType = localAreaClustersByType.get(oreType).stream().collect(Collectors.toCollection(HashSet::new));
                  //allChunksWithClusterType.removeIf( c -> !localExistingClusters.contains(c) );
                  final int MIN_SPACING_SPECIFIC_CLUSTER_VALIDATOR_CUTOFF_RADIUS = Math.min(allChunksWithClusterType.size(),
                      (int) Math.pow(config.minChunksBetweenOreClusters, 2));

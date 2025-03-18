@@ -313,6 +313,7 @@ public class CommandList {
 
             } catch (Exception e) {
                 LoggerProject.logError("010005", "Add Cluster Command exception: " + e.getMessage());
+                source.sendFailure(Component.literal("Failed to add cluster, check logs for more info"));
                 return 1;
             }
 

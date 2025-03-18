@@ -407,6 +407,9 @@ existingClustersByType.get(Blocks.IRON_ORE.defaultBlockState()).contains("229,24
 41.   Additional Cluster tests
 ---  
 
+	- Make a cluster from modded zinc
+		- 
+
 	- Make a cluster of many different kinds of ore
 	- Make cluster out of a none ore block
 		- Andesite,

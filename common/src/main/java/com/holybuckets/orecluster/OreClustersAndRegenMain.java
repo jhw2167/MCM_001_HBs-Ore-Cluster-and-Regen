@@ -26,7 +26,7 @@ public class OreClustersAndRegenMain
     public static final String MODID = Constants.MOD_ID;
     public static final String NAME = "HBs Ore Clusters and Regen";
     public static final String VERSION = "1.0.0f";
-    public static final Boolean DEBUG = false;
+    public static final Boolean DEBUG = true;
 
     public static OreClustersAndRegenMain INSTANCE;
     public ModRealTimeConfig modRealTimeConfig;
