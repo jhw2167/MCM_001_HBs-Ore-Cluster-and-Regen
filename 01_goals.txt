@@ -465,6 +465,29 @@ existingClustersByType.get(Blocks.IRON_ORE.defaultBlockState()).contains("229,24
 
 	Touchups:
 
+TEST ORES:
+---
+
+1. Create zinc_ore cluster
+	create:zinc_ore
+
+	- works
+	- cluster seems very dense for 0.2
+	- clusters seems quite close for spawnrate of 6
+
+2. oak log
+	minecraft:oak_log
+
+	- works - found in registry as [axis=y] variant. happens to be same as trees
+	
+
+
+3. ancient debris (nether)
+	minecraft:ancient_debris
+	
+	- upon nether load, feature placer code throws null pointer on null manager for level
+	- neurina also deleted the world? cannot have this
+	- ancient debris is trying to spawn in the overworld
 
 			
 TEST CASES

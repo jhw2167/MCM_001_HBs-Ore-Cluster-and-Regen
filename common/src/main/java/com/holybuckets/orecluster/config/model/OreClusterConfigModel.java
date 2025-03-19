@@ -31,6 +31,7 @@ public class OreClusterConfigModel {
     public BlockState oreClusterType = null;
     public HashSet<Block> validOreClusterOreBlocks; //defaultConfigOnly
     public Integer oreClusterSpawnRate = COreClusters.DEF_ORE_CLUSTER_SPAWN_RATE.get();
+    public String oreClusterDimensionId = COreClusters.DEF_ORE_CLUSTER_DIMENSION_ID;
     public TripleInt oreClusterVolume = processVolume( COreClusters.DEF_ORE_CLUSTER_VOLUME);
     public Float oreClusterDensity = COreClusters.DEF_ORE_CLUSTER_DENSITY.get();
     public String oreClusterShape = COreClusters.DEF_ORE_CLUSTER_SHAPE;
@@ -42,7 +43,6 @@ public class OreClusterConfigModel {
     public HashSet<BlockState> oreClusterNonReplaceableBlocks = processStringIntoBlockStateHashSet(COreClusters.DEF_ORE_CLUSTER_NONREPLACEABLE_BLOCKS);
     public HashSet<BlockState> oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(COreClusters.DEF_ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS);
     public Boolean oreClusterDoesRegenerate = COreClusters.DEF_REGENERATE_ORE_CLUSTERS;
-    public String oreClusterDimensionId = COreClusters.DEF_ORE_CLUSTER_DIMENSION_ID;
     public Map<String, Integer> oreClusterRegenPeriods; //defaultConfigOnly
 
     private static final Gson gson = new GsonBuilder().create();
@@ -76,6 +76,7 @@ public class OreClusterConfigModel {
         this.validOreClusterOreBlocks = new HashSet<Block>(
             processValidOreClusterOreBlocks(cOreClusters.validOreClusterOreBlocks));
         this.oreClusterSpawnRate = cOreClusters.oreClusterSpawnRate;
+        this.oreClusterDimensionId = cOreClusters.oreClusterDimensionId;
         this.oreClusterVolume = processVolume(cOreClusters.oreClusterVolume);
         this.oreClusterDensity = cOreClusters.oreClusterDensity;
         this.oreClusterShape = cOreClusters.oreClusterShape;
@@ -423,12 +424,21 @@ public class OreClusterConfigModel {
         return serialize(this);
     }
 
-    public static String serialize( OreClusterConfigModel c )
+    public JsonObject serializeJson() {
+        return serializeJson(this);
+    }
+
+    public static String serialize( OreClusterConfigModel c ) {
+        return gson.toJson(serializeJson(c));
+    }
+
+    public static JsonObject serializeJson( OreClusterConfigModel c )
     {
         JsonObject jsonObject = new JsonObject();
         String oreClusterTypeString = BlockUtil.blockToString(c.oreClusterType.getBlock());
         jsonObject.addProperty("oreClusterType", oreClusterTypeString);
         jsonObject.addProperty("oreClusterSpawnRate", c.oreClusterSpawnRate);
+        jsonObject.addProperty("oreClusterDimensionId", c.oreClusterDimensionId);
         jsonObject.addProperty("oreClusterVolume", c.oreClusterVolume.x
                 + "x" + c.oreClusterVolume.y
                 + "x" + c.oreClusterVolume.z
@@ -446,12 +456,8 @@ public class OreClusterConfigModel {
         jsonObject.addProperty("oreClusterReplaceableEmptyBlocks",
             c.oreClusterReplaceableEmptyBlocks.stream().map(bs -> bs.getBlock()).map(BlockUtil::blockToString).collect(Collectors.joining(", ")));
         jsonObject.addProperty("oreClusterDoesRegenerate", c.oreClusterDoesRegenerate);
-        jsonObject.addProperty("oreClusterDimensionId", c.oreClusterDimensionId);
 
-        //System.err.println("jsonObject: " + jsonObject);
-        return gson.toJson(jsonObject);
-                //replace("\",", "\"," + System.getProperty("line.separator") ).
-                        //replace('"', "'".toCharArray()[0]);
+        return jsonObject;
     }
 
     public void deserialize(String jsonString)

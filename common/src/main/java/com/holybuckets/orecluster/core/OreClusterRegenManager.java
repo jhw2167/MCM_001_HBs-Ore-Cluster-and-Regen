@@ -150,8 +150,13 @@ public class OreClusterRegenManager {
 
         JsonObject object = wrapper.getAsJsonObject();
 
+        if(!object.has("periodTickStart") || object.get("periodTickStart").isJsonNull()) return false;
         periodTickStart = object.get("periodTickStart").getAsLong();
+
+        if(!object.has("periodTickEnd") || object.get("periodTickEnd").isJsonNull()) return false;
         periodTickEnd = object.get("periodTickEnd").getAsLong();
+
+        if(!object.has("periodTickLength") || object.get("periodTickLength").isJsonNull()) return false;
         periodTickLength = object.get("periodTickLength").getAsLong();
 
         return true;

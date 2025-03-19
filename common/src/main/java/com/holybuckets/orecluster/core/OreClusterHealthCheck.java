@@ -92,8 +92,10 @@ public class OreClusterHealthCheck {
             List<String> playerChunks = players.stream()
                     .filter(p -> p.serverLevel() == m.getLevel())
                     .map(p -> c_util.getId(p.chunkPosition())).toList();
+
             List<String> localAreaChunks = new ArrayList<>(playerChunks.size()*10);
-            playerChunks.stream().map(c -> c_util.getPos(c)).forEach( cp -> {
+
+            playerChunks.stream().map(c -> c_util.getChunkPos(c)).forEach( cp -> {
                 localAreaChunks.addAll(c_util.getLocalChunkIds(cp,1));
             });
 

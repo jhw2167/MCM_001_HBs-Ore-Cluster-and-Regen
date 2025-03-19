@@ -7,10 +7,12 @@ import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.config.OreClusterConfigData;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 /*
  *  Represents the JSON configuration values for Mod
@@ -36,31 +38,18 @@ public class OreClusterJsonConfig implements IStringSerializable
     /**
      * Private constructor to set default value
      */
-    private OreClusterJsonConfig()
-    {
+    private OreClusterJsonConfig() {
         super();
-        final OreClusterConfigModel IRON = new OreClusterConfigModel(Blocks.IRON_ORE.defaultBlockState());
-            IRON.oreClusterSpawnRate = 16;
-            IRON.oreClusterVolume = new HBUtil.TripleInt(12, 8, 12);
-            IRON.oreClusterDensity = 0.1f;
-            IRON.oreClusterReplaceableEmptyBlocks = new HashSet<>();
-        final OreClusterConfigModel DPSLT_DIAMOND = new OreClusterConfigModel(Blocks.DEEPSLATE_DIAMOND_ORE.defaultBlockState());
-            DPSLT_DIAMOND.oreClusterSpawnRate = 10;
-            DPSLT_DIAMOND.oreClusterVolume = new HBUtil.TripleInt(5, 4, 5);
-            DPSLT_DIAMOND.oreClusterDensity = 0.75f;
-            DPSLT_DIAMOND.oreClusterReplaceableEmptyBlocks = new HashSet<>();
-            DPSLT_DIAMOND.oreClusterReplaceableEmptyBlocks.add(Blocks.DEEPSLATE.defaultBlockState());
+    }
 
-        this.oreClusterConfigs = new ArrayList<>()
-        {{
-            add( JsonParser.parseString(OreClusterConfigModel.serialize(IRON)).getAsJsonObject());
-            add( JsonParser.parseString(OreClusterConfigModel.serialize(DPSLT_DIAMOND)).getAsJsonObject());
-        }};
-
+    public OreClusterJsonConfig(Map<BlockState, OreClusterConfigModel> configs) {
+        super();
+        initFromMap(configs);
     }
 
     public OreClusterJsonConfig(String jsonString) {
         super();
+        initDefaults();
         deserialize(jsonString);
     }
 
@@ -83,6 +72,34 @@ public class OreClusterJsonConfig implements IStringSerializable
         }
 
         return oreClusterConfigModels;
+    }
+
+    private void initFromMap(Map<BlockState, OreClusterConfigModel> configs) {
+        this.oreClusterConfigs = new ArrayList<>();
+        for (OreClusterConfigModel model : configs.values()) {
+            this.oreClusterConfigs.add( model.serializeJson() );
+        }
+    }
+
+    private void initDefaults()
+    {
+        final OreClusterConfigModel IRON = new OreClusterConfigModel(Blocks.IRON_ORE.defaultBlockState());
+        IRON.oreClusterSpawnRate = 16;
+        IRON.oreClusterVolume = new HBUtil.TripleInt(12, 8, 12);
+        IRON.oreClusterDensity = 0.1f;
+        IRON.oreClusterReplaceableEmptyBlocks = new HashSet<>();
+        final OreClusterConfigModel DPSLT_DIAMOND = new OreClusterConfigModel(Blocks.DEEPSLATE_DIAMOND_ORE.defaultBlockState());
+        DPSLT_DIAMOND.oreClusterSpawnRate = 10;
+        DPSLT_DIAMOND.oreClusterVolume = new HBUtil.TripleInt(5, 4, 5);
+        DPSLT_DIAMOND.oreClusterDensity = 0.75f;
+        DPSLT_DIAMOND.oreClusterReplaceableEmptyBlocks = new HashSet<>();
+        DPSLT_DIAMOND.oreClusterReplaceableEmptyBlocks.add(Blocks.DEEPSLATE.defaultBlockState());
+
+        this.oreClusterConfigs = new ArrayList<>()
+        {{
+            add( JsonParser.parseString(OreClusterConfigModel.serialize(IRON)).getAsJsonObject());
+            add( JsonParser.parseString(OreClusterConfigModel.serialize(DPSLT_DIAMOND)).getAsJsonObject());
+        }};
     }
 
 

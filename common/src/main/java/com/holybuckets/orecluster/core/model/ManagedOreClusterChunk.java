@@ -4,7 +4,7 @@ import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil.ChunkUtil;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.model.ManagedChunk;
-import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
+import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.ModRealTimeConfig;
@@ -28,7 +28,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.holybuckets.foundation.HBUtil.*;
@@ -80,6 +79,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private HashMap<BlockState, BlockPos> clusterTypes;
     private Map<BlockState, Pair<BlockPos, MutableInt>> originalOres;
     private Map<Integer, Pair<BlockState, BlockPos>> blockStateUpdates;
+    private int updatesSize;
 
     private Random managedRandom;
     private ReentrantLock lock = new ReentrantLock();
@@ -102,6 +102,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.isReady = false;
         this.clusterTypes = null;
         this.blockStateUpdates = new ConcurrentHashMap<>();
+        this.updatesSize = 0;
         this.originalOres = new HashMap<>();
 
     }
@@ -111,7 +112,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
      {
         this(level);
         this.setId(id);
-        this.pos = ChunkUtil.getPos( id );
+        this.pos = ChunkUtil.getChunkPos( id );
     }
 
 
@@ -128,35 +129,26 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         ManagedChunk parent = ManagedOreClusterChunk.getParent(level, id);
         if(parent == null) return null;
 
-        return parent.getChunk(forceLoad);
+        return parent.getLevelChunk();
+    }
+
+    public ManagedChunk getParent() {
+        return ManagedOreClusterChunk.getParent(level, id);
     }
 
     public LevelChunk getChunk() {
         return getChunk(false);
     }
 
-    public boolean testChunkStatusOrAfter(ChunkStatus status)
-    {
-        ManagedChunk parent = ManagedOreClusterChunk.getParent(level, id);
-        if(parent == null) return false;
-
-        ChunkAccess chunk = parent.getChunk(false);
-        if(chunk == null) return false;
-        LevelChunk c;
-
-        try { return chunk.getStatus().isOrAfter(status); }
-        catch(Exception e) { return false; }
-    }
-
     public boolean testChunkLoadedAndEditable() {
-        return ManagedChunkUtilityAccessor.isChunkFullyLoaded(this.level, this.id);
+        return getParent().util.isChunkFullyLoaded(this.id);
     }
 
     public boolean hasChunk() {
         return getChunk(false) != null;
     }
 
-    public ChunkPos getPos() {
+    public ChunkPos getChunkPos() {
         return pos;
     }
 
@@ -191,8 +183,25 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return ready;
     }
 
+    public int countUpdatesRemaining() {
+        return this.blockStateUpdates.size();
+    }
+
     public List<Pair<BlockState, BlockPos>> getBlockStateUpdates() {
         return new ArrayList<>(blockStateUpdates.values());
+    }
+
+    public List<Pair<BlockState, BlockPos>> getBlockStateUpdates(int limit) {
+        return blockStateUpdates.values().stream().limit(limit).toList();
+    }
+
+    public void removeBlockStateUpdates(List<Integer> indicies) {
+        for(Integer i : indicies) {
+            blockStateUpdates.remove(i);
+        }
+        if (blockStateUpdates.size() == 0) {
+            this.updatesSize = 0;
+        }
     }
 
     /**
@@ -225,7 +234,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     public boolean isReady() { return isReady; }
 
     public Random getChunkRandom() {
-        return ManagedChunkUtilityAccessor.getChunkRandom(this.pos, ModRealTimeConfig.CLUSTER_SEED );
+        return getParent().util.getChunkRandom(this.pos, ModRealTimeConfig.CLUSTER_SEED );
     }
 
     public synchronized ReentrantLock getLock() {
@@ -238,8 +247,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     public void setId(String id) {
         if(id == null) return;
         this.id = id;
-        this.pos = ChunkUtil.getPos(id);
-        this.managedRandom = ManagedChunkUtilityAccessor.getChunkRandom(this.pos);
+        this.pos = ChunkUtil.getChunkPos(id);
+        this.managedRandom = getParent().util.getChunkRandom(this.pos);
     }
 
     @Override
@@ -260,10 +269,17 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
      * @param state
      * @return
      */
-    public boolean sampleAddOre(BlockState state)
+    public boolean sampleAddOre(BlockState state, int sectionNum)
     {
         if(this.originalOres == null)
             return false;
+
+        if(state != null) {
+        ModRealTimeConfig c = OreClustersAndRegenMain.INSTANCE.modRealTimeConfig;
+            if(!c.validYSpawn(state, sectionNum) ) {
+                return false;
+            }
+        }
 
         if(!this.originalOres.containsKey(state)) {
             this.originalOres.put(state, Pair.of(null, new MutableInt(1)));
@@ -290,7 +306,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         }
 
         //Count was incremented by the previous call to sampleAddOre or this one
-        if(force || sampleAddOre(state)) {
+        int sectionNumber = (pos.getY() / 16) + (pos.getY() % 16);
+        if(force || sampleAddOre(state, sectionNumber)) {
             pair = Pair.of(pos, pair.getRight());
             this.originalOres.put(state, pair);
         }
@@ -339,11 +356,11 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     /**
-     * Updates time with specified time if ManagedChunkUtilityAccessor.isLoaded returns true
+     * Updates time with specified time if getParent().util.isLoaded returns true
      * @param currentTime
      */
     public boolean updateTimeLastLoaded(Long currentTime) {
-        if(ManagedChunkUtilityAccessor.isLoaded(this.level, this.id)) {
+        if(getParent().util.isLoaded(this.id)) {
             this.timeLastLoaded = currentTime;
             return true;
         }
@@ -395,7 +412,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     public void addBlockStateUpdate(Pair<BlockState, BlockPos> pair, int index) {
         if(index < 0) index = blockStateUpdates.size();
         if(pair.getLeft().equals(ModBlocks.empty.defaultBlockState())) return;
-        blockStateUpdates.put(index, pair);
+        blockStateUpdates.put(updatesSize++, pair);
     }
 
 
@@ -443,7 +460,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public void clearBlockStateUpdates() {
-        this.blockStateUpdates.clear(); 
+        this.blockStateUpdates.clear();
+        this.updatesSize = 0;
     }
 
     public ManagedOreClusterChunk getEarliest(Map<String, ManagedOreClusterChunk> loadedChunks) {
@@ -548,7 +566,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public static ManagedChunk getParent(LevelAccessor level, String id) {
-        return ManagedChunkUtilityAccessor.getManagedChunk(level, id);
+        ManagedChunkUtility instance = ManagedChunkUtility.getInstance(level);
+        return instance.getManagedChunk(id);
     }
 
     public  static boolean isNoStatus(ManagedOreClusterChunk chunk) {
@@ -588,7 +607,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public static boolean isLoaded(ManagedOreClusterChunk chunk) {
-        return ManagedChunkUtilityAccessor.isLoaded( chunk.getLevel(), chunk.getId() );
+        return chunk.getParent().util.isLoaded(chunk.getId());
     }
 
     /**
@@ -687,7 +706,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
             return;
 
         deserializedIds.add(this.id);
-        this.pos = ChunkUtil.getPos( this.id );
+        this.pos = ChunkUtil.getChunkPos( this.id );
         this.tickLoaded = tag.getLong("tickLoaded");
         this.timeUnloaded = -1;
         this.status = OreClusterStatus.valueOf( tag.getString("status") );

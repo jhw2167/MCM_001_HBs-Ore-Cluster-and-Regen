@@ -16,6 +16,8 @@ import net.minecraft.util.KeyDispatchDataCodec;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 
@@ -34,6 +36,7 @@ public class OreClusterCalculator {
     public static final String CLASS_ID = "003";    //value used in logs
 
     private OreClusterManager manager;
+    private LevelAccessor level;
     private ModRealTimeConfig C;
     private Set<String> determinedChunks;
     private ConcurrentHashMap<BlockState, Set<String>> localAreaClustersByType;
@@ -44,18 +47,42 @@ public class OreClusterCalculator {
     public OreClusterCalculator( final OreClusterManager manager)
     {
         this.manager = manager;
+        this.level = manager.getLevel();
         this.C = manager.getConfig();
         this.determinedChunks = manager.getDeterminedChunks();
         this.localAreaClustersByType = manager.getTentativeClustersByType();
     }
 
+    /**
+     *
+     * @param chunks
+     * @param rng
+     * @return
+     * determineClusters
+     * determineChunks
+     */
     public Map<String, List<BlockState>> calculateClusterLocations(List<String> chunks, Random rng)
     {
         //long startTime = System.nanoTime();
 
         // Get list of all ore cluster types
-        Map<BlockState, OreClusterConfigModel> clusterConfigs = C.getOreConfigs();
+        Map<BlockState, OreClusterConfigModel> clusterConfigs = new HashMap<>();
+        for( BlockState oreType : C.getOreConfigs().keySet() )
+        {
+            OreClusterConfigModel config = C.getOreConfigs().get(oreType);
+            if( config.oreClusterSpawnRate <= 0 ) continue;
+            if( HBUtil.LevelUtil.toLevel(LevelUtil.LevelNameSpace.SERVER, config.oreClusterDimensionId) != this.level ) continue;
+            clusterConfigs.put(oreType, config);
+        }
+
+        HashMap<String, List<BlockState>> clusterPositions = new HashMap<>();
         List<BlockState> oreClusterTypes = new ArrayList<>(clusterConfigs.keySet());
+        if(oreClusterTypes.isEmpty()) {
+            for( String chunkId : chunks ) {
+                clusterPositions.put(chunkId, null);
+            }
+            return clusterPositions;
+        }
 
         HashMap<BlockState, Integer> clusterCounts = new HashMap<>();
 
@@ -89,7 +116,7 @@ public class OreClusterCalculator {
          String startChunk =  chunks.get(0);
          int minSpacing = C.getDefaultConfig().minChunksBetweenOreClusters;
 
-        /** If the spacing between clusters is large, there will be fewer cluster chunks, so we can check all against
+        /* If the spacing between clusters is large, there will be fewer cluster chunks, so we can check all against
         *   all existing clusters instead of calculating the area around each chunk
         *   If the spacing is small, we will have many cluster chunks, better to check the radius
          */
@@ -117,7 +144,7 @@ public class OreClusterCalculator {
 
          for(String id : localExistingClusters )
          {
-                ChunkPos pos = ChunkUtil.getPos(id);
+                ChunkPos pos = ChunkUtil.getChunkPos(id);
                 if( pos.x < minX )
                     minX = pos.x;
                 if( pos.x > maxX )
@@ -204,18 +231,8 @@ public class OreClusterCalculator {
 
         }
         //END cluster placing algorithm
-        //LoggerBase.logDebug("3. Cluster Placement Algorithm Complete");
-        //LoggerBase.logDebug(chunksToBePopulated.toString());
-
-        //long step3Time = System.nanoTime();
-        //LoggerBase.logDebug("Step 3 (Determine distribution of clusters) took " + LoggerBase.getTime(step2Time, step3Time) + " ms");
 
         //4. Using the Map of aggregate clusters, pick chunks for each cluster type
-
-        // Maps <ChunkId, <OreType, BlockPos>>
-        HashMap<String, List<BlockState>> clusterPositions = new HashMap<>();
-
-        //Order OreCluster types by spawnRate ascending
         oreClusterTypes.sort(Comparator.comparingInt( o -> -1*clusterConfigs.get(o).oreClusterSpawnRate ));
         LinkedHashSet<String> selectedChunks = new LinkedHashSet<>();
 
@@ -368,7 +385,7 @@ public class OreClusterCalculator {
         private LinkedHashSet<String> getChunkIdsInRadius( String chunkId, int radius )
         {
             LinkedHashSet<String> chunks = new LinkedHashSet<>();
-            ChunkPos center = ChunkUtil.getPos(chunkId);
+            ChunkPos center = ChunkUtil.getChunkPos(chunkId);
             for( int x = center.x - radius; x <= center.x + radius; x++ )
             {
                 for( int z = center.z - radius; z <= center.z + radius; z++ )
@@ -420,7 +437,7 @@ public class OreClusterCalculator {
                         BlockState blockState = states.get(x, y, z);
                         if (COUNTABLE_ORES.contains(blockState)) {
                           BlockState s = states.get(x, y, z);
-                          if( chunk.sampleAddOre(s) ) {
+                          if( chunk.sampleAddOre(s,i) ) {
                             HBUtil.TripleInt relativePos = new HBUtil.TripleInt(x, y, z);
                               HBUtil.WorldPos pos = new HBUtil.WorldPos(relativePos, i, levelChunk);
                               chunk.addOre(s, pos.getWorldPos(), true);
@@ -532,6 +549,9 @@ public class OreClusterCalculator {
         //HBUtil.TripleInt volume = config.oreClusterVolume;
         //String shape = config.oreClusterShape;
         final OreClusterConfigModel config = C.getOreConfigs().get(oreType);
+        if(config.oreClusterDimensionId.contains("end")) {
+            int i = 0;
+        }
 
        //2. Generate Cube
        final TripleInt VOL = config.oreClusterVolume;

@@ -1,5 +1,6 @@
 package com.holybuckets.orecluster.config;
 
+import com.google.gson.JsonArray;
 import com.holybuckets.foundation.HBUtil.Validator.ConfigNumber;
 import com.holybuckets.orecluster.Constants;
 import net.blay09.mods.balm.api.config.BalmConfigData;
@@ -25,13 +26,15 @@ public class OreClusterConfigData implements BalmConfigData {
         public static final String DEF_SUB_SEED = "";
 
         public static final String DEF_VALID_ORE_CLUSTER_ORE_BLOCKS = "minecraft:iron_ore";
+        public static final String DEF_ORE_CLUSTER_DIMENSION_ID = "minecraft:overworld";
 
         public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_SPAWN_RATE = new ConfigNumber<>("oreClusterSpawnrate", 16, 0, DEF_ORE_CLUSTER_SPAWNRATE_AREA);
         public static final String DEF_ORE_CLUSTER_VOLUME = "8x8x4";
 
         public static final ConfigNumber<Float> DEF_ORE_CLUSTER_DENSITY = new ConfigNumber<>("oreClusterDensity", 1f, 0f, 1f);
         public static final String DEF_ORE_CLUSTER_SHAPE = "any";
-        public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_MAX_Y_LEVEL_SPAWN = new ConfigNumber<>("oreClusterMaxYLevelSpawn", 256, 0, 512);
+        public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_MAX_Y_LEVEL_SPAWN = new ConfigNumber<>("oreClusterMaxYLevelSpawn", 256, 0, 64000);
+        public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_MIN_Y_LEVEL_SPAWN = new ConfigNumber<>("oreClusterMaxYLevelSpawn", 0, 0, 64000);
         public static final ConfigNumber<Integer> DEF_MIN_CHUNKS_BETWEEN_ORE_CLUSTERS = new ConfigNumber<>("minChunksBetweenOreClusters", 0, 0, 32);
         public static final ConfigNumber<Integer> DEF_MAX_CHUNKS_BETWEEN_ORE_CLUSTERS = new ConfigNumber<>("maxChunksBetweenOreClusters", 2, 2, 32);
         public static final ConfigNumber<Float> DEF_ORE_VEIN_MODIFIER = new ConfigNumber<>("oreVeinModifier", 1f, 0f, 1f);
@@ -50,7 +53,6 @@ public class OreClusterConfigData implements BalmConfigData {
         public static final HashSet<String> DEF_ORE_CLUSTER_VALID_SHAPES = new HashSet<>(Arrays.asList("bowl", "anvil", "shale", "any"));
 
 
-
         @Comment("Sub-seed used to generate random numbers for ore cluster generation - by default, Ore cluster generation uses the world seed to determine which chunks have ore clusters and their shape and size. By assigning a sub-seed, you can adjust this randomness for the same world")
         public String subSeed = DEF_SUB_SEED;
 
@@ -59,6 +61,9 @@ public class OreClusterConfigData implements BalmConfigData {
 
         @Comment("Defines the default frequency of ore clusters. Takes an integer as the number of expected ore clusters per 1000 chunks")
         public int oreClusterSpawnRate = DEF_ORE_CLUSTER_SPAWN_RATE.get();
+
+        @Comment("Defines the default dimension in which ore clusters will spawn. This is a single string value. e.g. minecraft:overworld or minecraft:the_nether. Currently you cannot have clusters of the same ore in two different dimensions")
+        public String oreClusterDimensionId = DEF_ORE_CLUSTER_DIMENSION_ID;
 
         @Comment("Specifies the default dimensions of a cluster. <X>x<Y>x<Z>. The true cluster will always be smaller than this box because it will choose a shape that roughly fits inside it, max 64x64x64 else it will revert to the default 16x16x16")
         public String oreClusterVolume = DEF_ORE_CLUSTER_VOLUME;

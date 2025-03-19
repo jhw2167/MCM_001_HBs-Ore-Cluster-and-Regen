@@ -1,9 +1,11 @@
 package com.holybuckets.orecluster.mixin;
 
+import com.holybuckets.foundation.util.MixinManager;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.core.OreClusterBlockStateTracker;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraft.world.level.levelgen.placement.PlacementContext;
@@ -31,12 +33,20 @@ public class PlacedFeatureMixin {
         }
         else
         {
-            PlacedFeature f = placementContext.topFeature().orElse(null);
-            if(f == null ) return;
+            if(MixinManager.isEnabled("PlacedFeatureMixin::onPlaceWithContext")) {
+                try {
+                    PlacedFeature f = placementContext.topFeature().orElse(null);
+                    if(f == null ) return;
 
-            ChunkAccess c = placementContext.getLevel().getChunk(blockPos);
-            ServerLevel l = placementContext.getLevel().getLevel();
-            OreClusterBlockStateTracker.setTrackingChunk( l, c, blockPos );
+                    ChunkAccess c = placementContext.getLevel().getChunk(blockPos);
+                    ServerLevel l = placementContext.getLevel().getLevel();
+                    OreClusterBlockStateTracker.setTrackingChunk( l, c, blockPos );    }
+                catch (Exception e) {
+                    MixinManager.recordError("PlacedFeatureMixin::onPlaceWithContext", e);
+                }
+
+            }
+
         }
     }
 

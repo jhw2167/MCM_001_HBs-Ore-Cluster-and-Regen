@@ -90,7 +90,7 @@ public class OreClustersAndRegenMain
 
         if( !oreClusterManagers.containsKey( level ) )
         {
-            if( DEBUG && ( !HBUtil.LevelUtil.toLevelId( level ).contains("overworld") )) return;
+            //if( DEBUG && ( !HBUtil.LevelUtil.toLevelId( level ).contains("overworld") )) return;
             oreClusterManagers.put( level, new OreClusterManager( level,  modRealTimeConfig ) );
         }
 

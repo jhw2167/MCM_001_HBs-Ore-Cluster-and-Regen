@@ -13,7 +13,7 @@ import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
-import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
+import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.holybuckets.orecluster.Constants;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.ModRealTimeConfig;
@@ -89,6 +89,7 @@ public class OreClusterManager {
 
     public static final String CLASS_ID = "002";    //value used in logs
     public static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
+    private final ManagedChunkUtility chunkUtil;
     
     // Worker thread control map
     private static final Map<String, Boolean> WORKER_THREAD_ENABLED = new HashMap<>() {{
@@ -169,6 +170,7 @@ public class OreClusterManager {
         super();
         this.level = level;
         this.config = config;
+        this.chunkUtil = ManagedChunkUtility.getInstance(level);
 
         this.existingClustersByType = new ConcurrentHashMap<BlockState, Set<String>>();
         this.tentativeClustersByType = new ConcurrentHashMap<BlockState, Set<String>>();
@@ -311,8 +313,8 @@ public class OreClusterManager {
 
                     for (ManagedOreClusterChunk chunk : expired_chunks) {
                         String id = chunk.getId();
-                        LevelChunk levelChunk = ManagedChunkUtilityAccessor.getChunk(level, id, true);
-                        levelChunk.setUnsaved(true);
+                        LevelChunk levelChunk = chunkUtil.getChunk(id,false);
+                        if( levelChunk != null) levelChunk.setUnsaved(true);
                         sleep(SLEEP_TIME_PER_CHUNK_MILLIS ); //Sleep for chunks to write data out and unload
                     }
 
@@ -650,7 +652,7 @@ public class OreClusterManager {
             return;
 
         final Predicate<ManagedOreClusterChunk> IS_ADJACENT_CHUNKS_LOADED = chunk -> {
-            ChunkPos pos = HBUtil.ChunkUtil.getPos(chunk.getId());
+            ChunkPos pos = HBUtil.ChunkUtil.getChunkPos(chunk.getId());
             //give me a nested for loop over x, z coordinates from -1 to 1
             for (int x = -1; x <= 1; x++) {
                 for (int z = -1; z <= 1; z++) {
@@ -860,7 +862,8 @@ public class OreClusterManager {
             ManagedOreClusterChunk chunk = loadedOreClusterChunks.getOrDefault(id, ManagedOreClusterChunk.getInstance(level, id) );
             this.loadedOreClusterChunks.put(id, chunk);
 
-            chunk.addClusterTypes(clusters.get(id));
+            if( clusters.get(id) != null )
+                chunk.addClusterTypes(clusters.get(id));
             chunk.setStatus(OreClusterStatus.DETERMINED);
             this.chunksPendingCleaning.put(id, chunk);
             this.determinedChunks.add(id);
@@ -871,6 +874,7 @@ public class OreClusterManager {
         // #4. Add clusters to tenativeClustersByType
         for( Map.Entry<String, List<BlockState>> clusterChunk : clusters.entrySet())
         {
+            if( clusterChunk.getValue() == null ) continue;
             for( BlockState clusterOreType : clusterChunk.getValue() )
             {
                 tentativeClustersByType.get(clusterOreType).add(clusterChunk.getKey());
@@ -890,6 +894,8 @@ public class OreClusterManager {
      *
      * handleCleanClusters
      * handleChunkCleaning
+     * cleanClusters
+     * cleanChunks
      * @param chunk
      */
      private static int totalCleaned = 0;
@@ -935,8 +941,7 @@ public class OreClusterManager {
                 if( oreClusterTypes.stream().anyMatch(o -> !chunk.hasOreClusterSourcePos(o)) )
                 {
                     //Ensure chunk is here
-                    if( chunk.getChunk() == null || !chunk.testChunkStatusOrAfter(ChunkStatus.FULL ) )
-                        return;
+                    if( chunk.getChunk() == null ) return;
 
                     boolean isSuccessful = oreClusterCalculator.cleanChunkFindAllOres(chunk, COUNTABLE_ORES);
                     if( !isSuccessful ) return;
@@ -1005,6 +1010,8 @@ public class OreClusterManager {
      * handleChunkClusterGeneration
      * clusterGeneration
      * clusterPregeneration
+     * chunkPregeneration
+     * chunkGeneration
      * generation
      * generateClusters(
      */
@@ -1050,7 +1057,7 @@ public class OreClusterManager {
 
             //Offset for DEBUG
             Vec3i sourceOffset = new Vec3i(0, 0, 0);
-            if(DEBUG) sourceOffset = new Vec3i(0, 120 - sourcePos.getY(), 0);
+            //if(DEBUG) sourceOffset = new Vec3i(0, 120 - sourcePos.getY(), 0);
             Map<BlockPos, Integer> existingBlockStateUpdates = chunk.getMapBlockStateUpdates();
             for( Pair<BlockState, BlockPos> pos : clusterPos )
             {
@@ -1098,8 +1105,15 @@ public class OreClusterManager {
         {
             LevelChunk levelChunk = chunk.getChunk(false);
             if (levelChunk == null) return;
-            List<Pair<BlockState, BlockPos>> updates = chunk.getBlockStateUpdates();
+            List<Pair<BlockState, BlockPos>> updates = chunk.getBlockStateUpdates(16);
+            Map<BlockPos, Integer> map = chunk.getMapBlockStateUpdates();
             isSuccessful = ManagedChunk.updateChunkBlockStates(level, updates);
+            if( isSuccessful ) {
+                List<Integer> removables = updates.stream().map(p -> p.getRight()).map(p -> map.get(p)).toList();
+                chunk.removeBlockStateUpdates(removables);
+                if( chunk.countUpdatesRemaining() > 0 )
+                    isSuccessful = false;
+            }
         }
 
         if( isSuccessful )
@@ -1124,7 +1138,7 @@ public class OreClusterManager {
         Long start = System.nanoTime();
         for( String id : chunkIds)
         {
-            ChunkPos pos = HBUtil.ChunkUtil.getPos(id);
+            ChunkPos pos = HBUtil.ChunkUtil.getChunkPos(id);
             HBUtil.ChunkUtil.getLevelChunk(level, pos.x, pos.z, false);
             while( !this.determinedChunks.contains(id) )
             {
@@ -1221,7 +1235,7 @@ public class OreClusterManager {
             final int MAX_TRIES = 10; int count = 0;
             while( chunk == null && count < MAX_TRIES ) {
                 sleep(10);
-                LevelChunk l =  ManagedChunkUtilityAccessor.getChunk(level, chunkId, false);
+                LevelChunk l =  chunkUtil.getChunk(chunkId, false);
                 if( l != null ) this.forceLoadedChunks.put(chunkId, l);
                 chunk = this.loadedOreClusterChunks.get(chunkId);
                 count++;
@@ -1378,7 +1392,7 @@ public class OreClusterManager {
     private LinkedHashSet<String> getBatchedChunkList(int batchSize, String startId)
     {
         LinkedHashSet<String> chunkIds = new LinkedHashSet<>();
-        ChunkPos pos = HBUtil.ChunkUtil.getPos(startId);
+        ChunkPos pos = HBUtil.ChunkUtil.getChunkPos(startId);
         ChunkGenerationOrderHandler chunkIdGeneratorHandler = mainSpiral;
         if (mainSpiral.testMainSpiralRangeExceeded()) {
             chunkIdGeneratorHandler = new ChunkGenerationOrderHandler(pos);
@@ -1478,11 +1492,11 @@ public class OreClusterManager {
 
         managerRunning = false;
 
-        threadPoolLoadedChunks.shutdown();
-        threadPoolClusterDetermination.shutdown();
-        threadPoolClusterCleaning.shutdown();
-        threadPoolClusterGenerating.shutdown();
-        threadPoolChunkEditing.shutdown();
+        threadPoolLoadedChunks.shutdownNow();
+        threadPoolClusterDetermination.shutdownNow();
+        threadPoolClusterCleaning.shutdownNow();
+        threadPoolClusterGenerating.shutdownNow();
+        threadPoolChunkEditing.shutdownNow();
         threadInitSerializedChunks.interrupt();
         threadWatchManagedOreChunkLifetime.interrupt();
 

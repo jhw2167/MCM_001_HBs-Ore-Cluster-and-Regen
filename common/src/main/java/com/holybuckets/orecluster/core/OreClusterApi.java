@@ -61,7 +61,12 @@ public class OreClusterApi {
         //Return default config
         OreClusterConfigModel config = modConfig.getDefaultConfig();
         JsonArray allOresArray = new JsonArray();
-        for(OreClusterConfigModel ore : modConfig.getOreConfigs().values() )
+
+        //sort oreconfigs by configId 0000 to 9999
+        List<OreClusterConfigModel> ores = modConfig.getOreConfigs().values().stream()
+            .sorted(Comparator.comparingInt(a -> Integer.parseInt(a.configId)))
+            .toList();
+        for(OreClusterConfigModel ore : ores )
         {
             JsonObject oreObj = new JsonObject();
             oreObj.addProperty("header", "Ore With ConfigId: " + ore.configId + ":");

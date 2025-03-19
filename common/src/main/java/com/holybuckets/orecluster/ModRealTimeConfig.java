@@ -3,6 +3,7 @@ package com.holybuckets.orecluster;
 //MC Imports
 
 //Forge Imports
+import com.google.gson.JsonObject;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
@@ -12,6 +13,7 @@ import com.holybuckets.orecluster.config.model.OreClusterJsonConfig;
 import net.blay09.mods.balm.api.event.BalmEvents;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
 
 //Java Imports
@@ -118,6 +120,9 @@ public class ModRealTimeConfig
             CLUSTER_SEED = GeneralConfig.getInstance().getWorldSeed();
         }
 
+        //serializer for consistency
+        OreClusterJsonConfig newJsonOreConfigs = new OreClusterJsonConfig(oreConfigs);
+        HBUtil.FileIO.serializeJsonConfigs( configFile, newJsonOreConfigs.serialize() );
     }
 
         /**
@@ -194,6 +199,36 @@ public class ModRealTimeConfig
 
          }
      }
+
+    //* Static Utility
+
+    /**
+     *
+     * @param sectionNum
+     * @param state
+     * @return true if no config is provided or if the pos is in config range, false otherwise
+     */
+    public boolean validYSpawn(BlockState state, int sectionNum) {
+        if(sectionNum < 0) return false;
+        BlockPos pos = new BlockPos(0,(sectionNum*16) + 15,0);
+        return  validYSpawn( getOreConfigByOre(state), pos);
+    }
+
+    /**
+     *
+     * @param pos
+     * @param config
+     * @return true if no config is provided or if the pos is in config range, false otherwise
+     */
+    public static boolean validYSpawn(OreClusterConfigModel config, BlockPos pos) {
+        if( config == null ) return true;
+        if( config.oreClusterMaxYLevelSpawn == null ) return true;
+        if( pos.getY() > config.oreClusterMaxYLevelSpawn ) return false;
+        if( pos.getY() < config.oreClusterMinYLevelSpawn ) return false;
+
+        return true;
+    }
+
 
 
 }
