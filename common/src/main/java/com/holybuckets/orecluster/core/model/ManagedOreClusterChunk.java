@@ -1,6 +1,7 @@
 package com.holybuckets.orecluster.core.model;
 
 import com.holybuckets.foundation.GeneralConfig;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.HBUtil.ChunkUtil;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.model.ManagedChunk;
@@ -141,7 +142,9 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public boolean testChunkLoadedAndEditable() {
-        return getParent().util.isChunkFullyLoaded(this.id);
+        ManagedChunk parent = getParent();
+        if(parent == null || parent.util == null) return false;
+        return parent.util.isChunkFullyLoaded(this.id);
     }
 
     public boolean hasChunk() {
@@ -210,11 +213,9 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
      */
     public Map<BlockPos, Integer> getMapBlockStateUpdates() {
         Map<BlockPos, Integer> map = new HashMap<>();
-        int i = 0;
-        for(Pair<BlockState, BlockPos> pair : blockStateUpdates.values())
-        {
-            map.put(pair.getRight(), i);
-            i++;
+        for(Map.Entry<Integer, Pair<BlockState, BlockPos>> entry : blockStateUpdates.entrySet())
+            {
+            map.put(entry.getValue().getRight(), entry.getKey());
         }
         return map;
     }
@@ -234,7 +235,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     public boolean isReady() { return isReady; }
 
     public Random getChunkRandom() {
-        return getParent().util.getChunkRandom(this.pos, ModRealTimeConfig.CLUSTER_SEED );
+        return ManagedChunkUtility.getChunkRandom(this.pos, ModRealTimeConfig.CLUSTER_SEED );
     }
 
     public synchronized ReentrantLock getLock() {
@@ -248,7 +249,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         if(id == null) return;
         this.id = id;
         this.pos = ChunkUtil.getChunkPos(id);
-        this.managedRandom = getParent().util.getChunkRandom(this.pos);
+        this.managedRandom = this.getChunkRandom();
     }
 
     @Override
@@ -359,8 +360,12 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
      * Updates time with specified time if getParent().util.isLoaded returns true
      * @param currentTime
      */
-    public boolean updateTimeLastLoaded(Long currentTime) {
-        if(getParent().util.isLoaded(this.id)) {
+    public boolean updateTimeLastLoaded(Long currentTime)
+    {
+        ManagedChunk parent = getParent();
+        if(parent == null || parent.util==null) return false;
+
+        if(parent.util.isLoaded(this.id)) {
             this.timeLastLoaded = currentTime;
             return true;
         }
@@ -607,6 +612,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public static boolean isLoaded(ManagedOreClusterChunk chunk) {
+        if(chunk == null) return false;
+        if(chunk.getParent() == null) return false;
         return chunk.getParent().util.isLoaded(chunk.getId());
     }
 

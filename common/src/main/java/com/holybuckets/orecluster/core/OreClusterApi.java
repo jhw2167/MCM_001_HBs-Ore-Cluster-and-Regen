@@ -249,13 +249,13 @@ public class OreClusterApi {
     public boolean forceChunkReload(LevelAccessor level, String chunkId) {
         OreClusterManager manager = managers.get(level);
         if(manager == null) return false;
-        return manager.forceReloadChunk(chunkId);
+        return manager.forceProcessChunk(chunkId);
     }
 
     public boolean addCluster(LevelAccessor level, String configId, BlockPos pos) {
         OreClusterConfigModel config = modConfig.getOreConfigByConfigId(configId);
         if(config == null) {
-            LoggerProject.logWarning(CLASS_ID, "008003", "Could not find config for id: " + configId);
+            LoggerProject.logWarning("008003", "Could not find config for id: " + configId);
             return false;
         }
         BlockState oreType = config.oreClusterType;

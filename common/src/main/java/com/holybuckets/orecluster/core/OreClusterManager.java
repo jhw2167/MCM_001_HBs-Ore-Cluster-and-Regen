@@ -29,7 +29,6 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.apache.commons.lang3.tuple.Pair;
 import oshi.annotation.concurrent.ThreadSafe;
@@ -276,6 +275,8 @@ public class OreClusterManager {
      */
      private static final Long MAX_DETERMINED_CHUNK_LIFETIME_MILLIS = (DEBUG)
         ? 30_000 : 150_000L;
+    private static final Long MIN_EXPIRATION_CHECK_TICK_ALIVE_COUNT = (DEBUG)
+        ? 120L : 1200L;
      //timeout
      private static final Long SLEEP_TIME_PER_CHUNK_MILLIS = (DEBUG)
         ? 100L : 100L;
@@ -289,6 +290,7 @@ public class OreClusterManager {
                 throw new RuntimeException(e);
             }
         }
+            boolean errorThrown = false;
             while(managerRunning)
             {
                 try {
@@ -297,11 +299,25 @@ public class OreClusterManager {
                         continue;
                     }
 
+                    if(errorThrown) {
+                        sleep(1000);
+                        errorThrown = false;
+                    }
+
+                     //Get current time
+
                     Long systemTime = System.currentTimeMillis();
-                    List<ManagedOreClusterChunk> expired_chunks = new ArrayList<>();
+                    Long currentTick = GeneralConfig.getInstance().getTotalTickCount();
+                    List<ManagedOreClusterChunk> expired_chunks;
+
+                    Set<String> oldChunks = loadedOreClusterChunks.values().stream()
+                        .filter(c -> currentTick - c.getTickLoaded() > MIN_EXPIRATION_CHECK_TICK_ALIVE_COUNT)
+                        .map(ManagedOreClusterChunk::getId)
+                        .collect(Collectors.toSet());
 
                     //We need to limit because we will be force loading these chunks so they can save
                     expired_chunks = loadedOreClusterChunks.values().stream()
+                        .filter(c -> oldChunks.contains(c.getId()))
                         .filter(c -> !c.updateTimeLastLoaded(systemTime))
                         .filter(c -> (systemTime - c.getTimeLastLoaded()) > MAX_DETERMINED_CHUNK_LIFETIME_MILLIS)
                         .limit(MAX_EXPIRATIONS)
@@ -324,9 +340,14 @@ public class OreClusterManager {
                     }
 
                 }
+                catch (InterruptedException e) {
+                    //continue
+                }
                 catch (Exception e) {
-                        LoggerProject.logError("002002", "Error in threadWatchManagedOreChunkLifetime: " + e.getMessage());
-                    }
+                    e.printStackTrace();
+                    throw new RuntimeException("Uncaught", e);
+                }
+
 
             }
 
@@ -905,11 +926,6 @@ public class OreClusterManager {
         if( chunk == null|| chunk.getChunk() == null )
             return;
 
-        if( !chunk.testChunkLoadedAndEditable() ) return;
-
-
-            //LoggerProject.logDebug("002025", "Cleaning chunk: " + chunk.getId());
-
         try {
 
             //0. Add a gold_block to blockStateUpdates
@@ -1089,9 +1105,14 @@ public class OreClusterManager {
      * updateChunkBlocks
      * updateBlockStates
      */
+     private static Map<String, Integer> manifestUpdates = new ConcurrentHashMap<>();
     private void handleChunkManifestation(ManagedOreClusterChunk chunk)
     {
         //LoggerProject.logDebug("002033","Editing chunk: " + chunk.getId());
+        manifestUpdates.putIfAbsent(chunk.getId(), 0);
+        if( manifestUpdates.get(chunk.getId()) > 50 ) {
+            int i = 0;
+        }
 
         if( chunk.getId().equals(TEST_ID) ) {
             int i = 0;
@@ -1105,11 +1126,12 @@ public class OreClusterManager {
         {
             LevelChunk levelChunk = chunk.getChunk(false);
             if (levelChunk == null) return;
-            List<Pair<BlockState, BlockPos>> updates = chunk.getBlockStateUpdates(16);
+            List<Pair<BlockState, BlockPos>> updates = chunk.getBlockStateUpdates(64);
             Map<BlockPos, Integer> map = chunk.getMapBlockStateUpdates();
             isSuccessful = ManagedChunk.updateChunkBlockStates(level, updates);
             if( isSuccessful ) {
-                List<Integer> removables = updates.stream().map(p -> p.getRight()).map(p -> map.get(p)).toList();
+                manifestUpdates.put(chunk.getId(), manifestUpdates.get(chunk.getId()) + 1);
+                List<Integer> removables = updates.stream().map(p -> map.get(p.getRight())).toList();
                 chunk.removeBlockStateUpdates(removables);
                 if( chunk.countUpdatesRemaining() > 0 )
                     isSuccessful = false;
@@ -1230,22 +1252,17 @@ public class OreClusterManager {
     {
         ManagedOreClusterChunk chunk = this.loadedOreClusterChunks.get(chunkId);
         if( chunk != null ) return true;
-        try {
-
             final int MAX_TRIES = 10; int count = 0;
             while( chunk == null && count < MAX_TRIES ) {
-                sleep(10);
-                LevelChunk l =  chunkUtil.getChunk(chunkId, false);
+                ManagedChunk parent = chunkUtil.getManagedChunk(chunkId);
+                if( parent == null ) return false;
+                LevelChunk l =  parent.getCachedLevelChunk();
                 if( l != null ) this.forceLoadedChunks.put(chunkId, l);
                 chunk = this.loadedOreClusterChunks.get(chunkId);
                 count++;
             }
             if(this.forceLoadedChunks.get(chunkId) == null) return false;
-
-        } catch (InterruptedException e) {
-            return false;
-        }
-        return chunk  != null;
+        return chunk != null;
     }
 
     public boolean forceProcessChunk(String chunkId) {
@@ -1268,7 +1285,7 @@ public class OreClusterManager {
 
             ManagedOreClusterChunk chunk = this.loadedOreClusterChunks.get(chunkId);
             if(chunk == null) {
-                this.forceReloadChunk(chunkId);
+                if( !forceReloadChunk(chunkId) ) return false;
                 chunk = this.loadedOreClusterChunks.getOrDefault(chunkId, ManagedOreClusterChunk.getInstance(level, chunkId));
                 fromStatus = OreClusterStatus.NONE;
                 chunk.setStatus(OreClusterStatus.NONE);

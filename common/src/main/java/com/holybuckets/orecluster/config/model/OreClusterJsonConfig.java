@@ -125,7 +125,7 @@ public class OreClusterJsonConfig implements IStringSerializable
         JsonObject jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
 
         try {
-            this.oreClusterConfigs = new ArrayList<>();
+            List<JsonObject> oreClusterConfigs = new ArrayList<>();
             if( !jsonObject.has("oreClusterConfigs") )
                 return;
 
@@ -134,13 +134,14 @@ public class OreClusterJsonConfig implements IStringSerializable
             for (int i = 0; i < clusterConfigs.size(); i++)
             {
                 try {
-                    this.oreClusterConfigs.add( clusterConfigs.get(i).getAsJsonObject() );
+                    oreClusterConfigs.add( clusterConfigs.get(i).getAsJsonObject() );
                 } catch (Exception e) {
                     LoggerProject.logError("006001", "Error deserializing OreClusterJsonConfig: " + e.getMessage());
                 }
             }
             //END FOR
 
+            this.oreClusterConfigs = oreClusterConfigs;
 
         } catch (Exception e) {
             LoggerProject.logError("006002", "Error deserializing OreClusterJsonConfig: " + e.getMessage());
