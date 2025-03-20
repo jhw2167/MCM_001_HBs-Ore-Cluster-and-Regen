@@ -38,6 +38,7 @@ import oshi.annotation.concurrent.ThreadSafe;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -156,8 +157,23 @@ public class OreClusterManager {
     private final Thread threadInitSerializedChunks = new Thread(this::load);
     private final Thread threadWatchManagedOreChunkLifetime = new Thread(this::threadWatchManagedOreChunkLifetime);
 
+    // Execution counters
+    private final AtomicInteger loadedChunksCount = new AtomicInteger();
+    private final AtomicInteger clusterDeterminationCount = new AtomicInteger();
+    private final AtomicInteger clusterCleaningCount = new AtomicInteger();
+    private final AtomicInteger clusterGeneratingCount = new AtomicInteger();
+    private final AtomicInteger chunkEditingCount = new AtomicInteger();
+
+    private ThreadFactory createThreadFactory(String namePrefix, AtomicInteger counter) {
+        return r -> {
+            Thread t = new Thread(r);
+            t.setName(namePrefix + "-" + counter.incrementAndGet());
+            return t;
+        };
+    }
+
     private final ExecutorService threadPoolLoadedChunks;
-    private final ExecutorService threadPoolClusterDetermination;
+    private final ExecutorService threadPoolClusterDetermination; 
     private final ThreadPoolExecutor threadPoolClusterCleaning;
     private final ThreadPoolExecutor threadPoolClusterGenerating;
     private final ThreadPoolExecutor threadPoolChunkEditing;
@@ -195,16 +211,24 @@ public class OreClusterManager {
         this.mainSpiral = new ChunkGenerationOrderHandler(null);
         //Thread pool needs to have one thread max, use Synchronous queue and discard policy
         this.threadPoolLoadedChunks = new ThreadPoolExecutor(1, 1, 1L,
-         TimeUnit.SECONDS, new SynchronousQueue<>(), new ThreadPoolExecutor.DiscardPolicy());
-        //Thread pool
+         TimeUnit.SECONDS, new SynchronousQueue<>(), 
+         createThreadFactory("ChunkLoader", loadedChunksCount),
+         new ThreadPoolExecutor.DiscardPolicy());
+        
         this.threadPoolClusterDetermination = new ThreadPoolExecutor(1, 1,
-         30L, TimeUnit.SECONDS, new SynchronousQueue<>(), new ThreadPoolExecutor.DiscardPolicy());
+         30L, TimeUnit.SECONDS, new SynchronousQueue<>(),
+         createThreadFactory("ClusterDeterminer", clusterDeterminationCount),
+         new ThreadPoolExecutor.DiscardPolicy());
 
         this.threadPoolClusterCleaning = new ThreadPoolExecutor(1, 1,
-            30L, TimeUnit.SECONDS, new SynchronousQueue<>(), new ThreadPoolExecutor.DiscardPolicy());
+            30L, TimeUnit.SECONDS, new SynchronousQueue<>(),
+            createThreadFactory("ClusterCleaner", clusterCleaningCount),
+            new ThreadPoolExecutor.DiscardPolicy());
 
         this.threadPoolClusterGenerating = new ThreadPoolExecutor(1, 1,
-            30L, TimeUnit.SECONDS, new SynchronousQueue<>(), new ThreadPoolExecutor.DiscardPolicy());
+            30L, TimeUnit.SECONDS, new SynchronousQueue<>(),
+            createThreadFactory("ClusterGenerator", clusterGeneratingCount),
+            new ThreadPoolExecutor.DiscardPolicy());
 
         /*
         this.threadPoolChunkProcessing = new ThreadPoolExecutor(1, 1,
@@ -212,7 +236,9 @@ public class OreClusterManager {
          */
 
         this.threadPoolChunkEditing = new ThreadPoolExecutor(1, 1,
-            300L, TimeUnit.SECONDS, new SynchronousQueue<>(), new ThreadPoolExecutor.DiscardPolicy());
+            300L, TimeUnit.SECONDS, new SynchronousQueue<>(),
+            createThreadFactory("ChunkEditor", chunkEditingCount),
+            new ThreadPoolExecutor.DiscardPolicy());
 
 
         init(level);
