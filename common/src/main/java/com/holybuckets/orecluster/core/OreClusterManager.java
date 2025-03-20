@@ -1521,8 +1521,13 @@ public class OreClusterManager {
             return Optional.empty();
 
         chunk.getLock().lock();
+    try {
         consumer.accept(chunk);
+    } finally {
         chunk.getLock().unlock();
+    }
+
+
 
         return Optional.ofNullable(chunk);
     }
