@@ -332,10 +332,16 @@ public class CommandList {
         private static LiteralArgumentBuilder<CommandSourceStack> register() {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("healthCheck")
-                    .executes(context -> execute(context.getSource())));
+                    .executes(context -> execute(context.getSource(), null))
+                    .then(Commands.argument("dimensionId", StringArgumentType.string())
+                        .executes(context -> execute(
+                            context.getSource(),
+                            StringArgumentType.getString(context, "dimensionId")
+                        ))
+                    ));
         }
 
-        private static int execute(CommandSourceStack source) {
+        private static int execute(CommandSourceStack source, String dimensionId) {
             try {
                 OreClusterApi api = OreClusterApi.getInstance();
                 if(api == null) {
@@ -345,10 +351,38 @@ public class CommandList {
 
                 source.sendSuccess(() -> Component.literal("Health Check Results:"), true);
 
+                // Get all available level IDs
                 List<String> levelIds = GeneralConfig.getInstance().getLevels().keySet().stream().toList();
-                LevelAccessor level = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, stringArg);
-                JsonObject healthCheck = api.healthCheckStatistics();
-                LoggerProject.logInfo("010011", "Health Check Results: " + healthCheck.toString();
+
+                if (dimensionId != null) {
+                    // Try to get specific level
+                    LevelAccessor level = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, dimensionId);
+                    if (level == null) {
+                        source.sendFailure(Component.literal("Dimension ID not found: " + dimensionId));
+                        source.sendSuccess(() -> Component.literal("Available dimensions: " + String.join(", ", levelIds)), false);
+                        return 1;
+                    }
+                    
+                    JsonObject healthCheck = api.healthCheckStatistics(level);
+                    if (healthCheck != null) {
+                        source.sendSuccess(() -> Component.literal("Statistics for dimension " + dimensionId + ":"), false);
+                        source.sendSuccess(() -> Component.literal(healthCheck.toString()), false);
+                    }
+                } else {
+                    // Get stats for all levels
+                    for (String levelId : levelIds) {
+                        LevelAccessor level = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, levelId);
+                        if (level != null) {
+                            JsonObject healthCheck = api.healthCheckStatistics(level);
+                            if (healthCheck != null) {
+                                source.sendSuccess(() -> Component.literal("Statistics for dimension " + levelId + ":"), false);
+                                source.sendSuccess(() -> Component.literal(healthCheck.toString()), false);
+                            }
+                        }
+                    }
+                }
+
+                LoggerProject.logInfo("010011", "Health Check command completed successfully");
 
             } catch (Exception e) {
                 LoggerProject.logError("010009", "Health Check Command exception: " + e.getMessage());
