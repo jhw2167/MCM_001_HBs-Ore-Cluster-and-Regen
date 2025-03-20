@@ -20,8 +20,7 @@ import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
-import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
-import net.blay09.mods.balm.api.event.EventPriority;
+import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.ChunkPos;
@@ -105,14 +104,14 @@ public class OreClusterManager {
     }
 
     //NEED TO CLEAR TO RETAIN MEMORY
-    final Map<String, List<Long>> THREAD_TIMES = new ConcurrentHashMap<>() {{
+    final Map<String, List<Long>> THREAD_TIMES = DEBUG ? new ConcurrentHashMap<>() {{
         put("workerThreadLoadedChunk", new ArrayList<>());
         put("handleChunkInitialization", new ArrayList<>());
         put("handleChunkDetermination", new ArrayList<>());
         put("handleChunkCleaning", new ArrayList<>());
         put("handleChunkClusterPreGeneration", new ArrayList<>());
         put("handleChunkManifestation", new ArrayList<>());
-    }};
+    }} : null;
 
     /** Variables **/
     private Integer LOADS = 0;
@@ -267,12 +266,15 @@ public class OreClusterManager {
 
 
     /** Behavior **/
-    public void init(LevelAccessor level)
+    public void init(LevelAccessor level) 
     {
+        if (DEBUG) {
+            EventRegistrar.getInstance().registerServerTickEvent(this::on1200Ticks);
+        }
 
         if (ModRealTimeConfig.CLUSTER_SEED == null)
             ModRealTimeConfig.CLUSTER_SEED = GENERAL_CONFIG.getWorldSeed();
-        long seed = ModRealTimeConfig.CLUSTER_SEED;
+        long seed = ModRealTimeConfig.CLUSTER_SEED; 
         this.randSeqClusterPositionGen = new Random(seed);
         //this.randSeqClusterBuildGen = new Random(seed);
 
@@ -560,7 +562,9 @@ public class OreClusterManager {
                 long end = System.nanoTime();
                 //Remove duplicates
                 chunksPendingHandling.remove(chunkId);
-                THREAD_TIMES.get("workerThreadLoadedChunk").add((end - start) / 1_000_000);
+                if (DEBUG && THREAD_TIMES != null) {
+                    THREAD_TIMES.get("workerThreadLoadedChunk").add((end - start) / 1_000_000);
+                }
             }
         }
         catch (InterruptedException e)
@@ -1423,8 +1427,15 @@ public class OreClusterManager {
      */
 
     private void clearHealthCheckData() {
-        //Clear all arrayLists in THREAD_TIMES
-        THREAD_TIMES.values().forEach(List::clear);
+        if (DEBUG && THREAD_TIMES != null) {
+            THREAD_TIMES.values().forEach(List::clear);
+        }
+    }
+
+    private void on1200Ticks(ServerTickEvent event) {
+        if (event.getTickCount() % 1200 == 0) {
+            clearHealthCheckData();
+        }
     }
 
 
