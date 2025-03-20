@@ -37,6 +37,7 @@ public class CommandList {
         CommandRegistry.register(GetConfig::withConfigId);
         CommandRegistry.register(AddCluster::register);
         CommandRegistry.register(TriggerRegen::register);
+        CommandRegistry.register(HealthCheck::register);
     }
 
     //1. Locate Clusters
@@ -323,6 +324,65 @@ public class CommandList {
     }
 
 
+
+    //5. HEALTH CHECK
+    private static class HealthCheck {
+        private static LiteralArgumentBuilder<CommandSourceStack> register() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("healthCheck")
+                    .executes(context -> execute(context.getSource())));
+        }
+
+        private static int execute(CommandSourceStack source) {
+            try {
+                OreClusterApi api = OreClusterApi.getInstance();
+                if(api == null) {
+                    source.sendFailure(Component.literal("oreClusterApi not initialized at this time"));
+                    return 1;
+                }
+
+                source.sendSuccess(() -> Component.literal("Health Check Results:"), true);
+
+                // Get thread times from OreClusterManager
+                if (api.getManager() != null && api.getManager().THREAD_TIMES != null) {
+                    source.sendSuccess(() -> Component.literal("\nThread Execution Times (ms):"), false);
+                    
+                    api.getManager().THREAD_TIMES.forEach((threadName, times) -> {
+                        if (times != null && !times.isEmpty()) {
+                            double avg = times.stream().mapToLong(Long::valueOf).average().orElse(0.0);
+                            source.sendSuccess(() -> Component.literal(String.format(
+                                "  %s: avg=%.2fms, count=%d", 
+                                threadName, avg, times.size()
+                            )), false);
+                        }
+                    });
+                }
+
+                // Get thread status
+                source.sendSuccess(() -> Component.literal("\nThread Status:"), false);
+                api.getManager().WORKER_THREAD_ENABLED.forEach((threadName, enabled) -> {
+                    source.sendSuccess(() -> Component.literal(String.format(
+                        "  %s: %s", threadName, enabled ? "ENABLED" : "DISABLED"
+                    )), false);
+                });
+
+                // Get chunk counts
+                source.sendSuccess(() -> Component.literal("\nChunk Statistics:"), false);
+                source.sendSuccess(() -> Component.literal(String.format(
+                    "  Loaded/Unloaded: %d/%d",
+                    api.getManager().LOADS,
+                    api.getManager().UNLOADS
+                )), false);
+
+            } catch (Exception e) {
+                LoggerProject.logError("010009", "Health Check Command exception: " + e.getMessage());
+                return 1;
+            }
+
+            LoggerProject.logDebug("010010", "Health Check Command executed successfully");
+            return 0;
+        }
+    }
 
     private static String s(JsonObject object, String property) {
         if(!object.has(property) || object.get(property) == null || !object.get(property).isJsonPrimitive()) {
