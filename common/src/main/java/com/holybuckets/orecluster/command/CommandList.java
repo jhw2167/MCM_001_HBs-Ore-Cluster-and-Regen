@@ -4,6 +4,7 @@ package com.holybuckets.orecluster.command;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.orecluster.LoggerProject;
@@ -18,6 +19,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.*;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -343,36 +345,10 @@ public class CommandList {
 
                 source.sendSuccess(() -> Component.literal("Health Check Results:"), true);
 
-                // Get thread times from OreClusterManager
-                if (api.getManager() != null && api.getManager().THREAD_TIMES != null) {
-                    source.sendSuccess(() -> Component.literal("\nThread Execution Times (ms):"), false);
-                    
-                    api.getManager().THREAD_TIMES.forEach((threadName, times) -> {
-                        if (times != null && !times.isEmpty()) {
-                            double avg = times.stream().mapToLong(Long::valueOf).average().orElse(0.0);
-                            source.sendSuccess(() -> Component.literal(String.format(
-                                "  %s: avg=%.2fms, count=%d", 
-                                threadName, avg, times.size()
-                            )), false);
-                        }
-                    });
-                }
-
-                // Get thread status
-                source.sendSuccess(() -> Component.literal("\nThread Status:"), false);
-                api.getManager().WORKER_THREAD_ENABLED.forEach((threadName, enabled) -> {
-                    source.sendSuccess(() -> Component.literal(String.format(
-                        "  %s: %s", threadName, enabled ? "ENABLED" : "DISABLED"
-                    )), false);
-                });
-
-                // Get chunk counts
-                source.sendSuccess(() -> Component.literal("\nChunk Statistics:"), false);
-                source.sendSuccess(() -> Component.literal(String.format(
-                    "  Loaded/Unloaded: %d/%d",
-                    api.getManager().LOADS,
-                    api.getManager().UNLOADS
-                )), false);
+                List<String> levelIds = GeneralConfig.getInstance().getLevels().keySet().stream().toList();
+                LevelAccessor level = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, stringArg);
+                JsonObject healthCheck = api.healthCheckStatistics();
+                LoggerProject.logInfo("010011", "Health Check Results: " + healthCheck.toString();
 
             } catch (Exception e) {
                 LoggerProject.logError("010009", "Health Check Command exception: " + e.getMessage());
