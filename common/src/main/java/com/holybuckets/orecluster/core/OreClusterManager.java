@@ -155,6 +155,7 @@ public class OreClusterManager {
     //Threads
     private volatile boolean managerRunning = false;
     private volatile boolean initializing = false;
+    private final Object initLock = new Object();
     private final ConcurrentHashMap<String, Long> threadstarts = new ConcurrentHashMap<>();
     private final Thread threadInitSerializedChunks = new Thread(this::load);
     private final Thread threadWatchManagedOreChunkLifetime = new Thread(this::threadWatchManagedOreChunkLifetime);
@@ -314,11 +315,13 @@ public class OreClusterManager {
     private static final Long MAX_EXPIRATIONS = 100L;
     private void threadWatchManagedOreChunkLifetime()
     {
-        while(!managerRunning) {
-            try {
-                sleep(10);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+        synchronized(initLock) {
+            while(!managerRunning) {
+                try {
+                    initLock.wait();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
             boolean errorThrown = false;
@@ -553,8 +556,11 @@ public class OreClusterManager {
             while( !chunksPendingHandling.isEmpty() )
             {
                 if( this.initializing ) {
-                    sleep(10);
-                    continue;
+                    synchronized(initLock) {
+                        while(this.initializing) {
+                            initLock.wait();
+                        }
+                    }
                 }
 
                 String chunkId = chunksPendingHandling.poll(1, TimeUnit.SECONDS);
@@ -1561,10 +1567,10 @@ public class OreClusterManager {
 
     }
 
-    private void load()
-    {
-        this.managerRunning = false;
-        this.initializing = true;
+    private void load() {
+        synchronized(initLock) {
+            this.managerRunning = false;
+            this.initializing = true;
         DataStore ds = GeneralConfig.getInstance().getDataStore();
         LevelSaveData levelData = ds.getOrCreateLevelSaveData(Constants.MOD_ID, level);
 
@@ -1628,9 +1634,10 @@ public class OreClusterManager {
             }
         }
 
-        this.initializing = false;
-        this.managerRunning = true;
-
+            this.initializing = false;
+            this.managerRunning = true;
+            initLock.notifyAll();
+        }
     }
 
 
