@@ -12,6 +12,7 @@ import com.holybuckets.foundation.datastructure.ConcurrentLinkedSet;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
+import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.holybuckets.orecluster.Constants;
@@ -20,6 +21,7 @@ import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
+import io.netty.util.CharsetUtil;
 import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
@@ -88,6 +90,7 @@ public class OreClusterManager {
 
     public static final String CLASS_ID = "002";    //value used in logs
     public static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
+    public static Map<LevelAccessor, OreClusterManager> MANAGERS;
     private final ManagedChunkUtility chunkUtil;
     
     // Worker thread control map
@@ -185,6 +188,7 @@ public class OreClusterManager {
         this.level = level;
         this.config = config;
         this.chunkUtil = ManagedChunkUtility.getInstance(level);
+        MANAGERS.put(level, this);
 
         this.existingClustersByType = new ConcurrentHashMap<BlockState, Set<String>>();
         this.tentativeClustersByType = new ConcurrentHashMap<BlockState, Set<String>>();
@@ -262,15 +266,16 @@ public class OreClusterManager {
     }
 
 
-
+    public static void init(EventRegistrar reg) {
+        MANAGERS = new HashMap<>();
+        reg.registerOnDataSave(OreClusterManager::save, EventPriority.High);
+        reg.registerOnServerTick(EventRegistrar.TickType.ON_1200_TICKS, OreClusterManager::on1200Ticks);
+    }
 
 
     /** Behavior **/
     public void init(LevelAccessor level) 
     {
-        if (DEBUG) {
-            EventRegistrar.getInstance().registerServerTickEvent(this::on1200Ticks);
-        }
 
         if (ModRealTimeConfig.CLUSTER_SEED == null)
             ModRealTimeConfig.CLUSTER_SEED = GENERAL_CONFIG.getWorldSeed();
@@ -288,8 +293,6 @@ public class OreClusterManager {
 
        this.threadInitSerializedChunks.start();
        this.threadWatchManagedOreChunkLifetime.start();
-
-       EventRegistrar.getInstance().registerOnDataSave(this::save, EventPriority.High);
     }
 
     /**
@@ -566,12 +569,14 @@ public class OreClusterManager {
                     THREAD_TIMES.get("workerThreadLoadedChunk").add((end - start) / 1_000_000);
                 }
             }
+
         }
         catch (InterruptedException e)
         {
             LoggerProject.logError("002003","OreClusterManager::onNewlyAddedChunk() thread interrupted: "
                 + e.getMessage());
         }
+
 
     }
 
@@ -809,7 +814,8 @@ public class OreClusterManager {
 
                 }
 
-                //sleep(10000);   //10 seconds
+                if( readyChunks.size() < 256 )
+                    sleep(100);
             }
 
         }
@@ -1432,12 +1438,6 @@ public class OreClusterManager {
         }
     }
 
-    private void on1200Ticks(ServerTickEvent event) {
-        if (event.getTickCount() % 1200 == 0) {
-            clearHealthCheckData();
-        }
-    }
-
 
     /**
      * Batch process that determines the location of clusters in the next n chunks
@@ -1637,11 +1637,10 @@ public class OreClusterManager {
     /**
      * Description: Saves the determinedSourceChunks to levelSavedata
       */
-    private void save(DatastoreSaveEvent event)
+    private void save(DataStore ds)
     {
         //Create new Mod Datastore, if one does not exist for this mod,
         //read determinedSourceChunks into an array and save it to levelSavedata
-        DataStore ds = event.getDataStore();
         if (ds == null) return;
 
         LevelSaveData levelData = ds.getOrCreateLevelSaveData(Constants.MOD_ID, level);
@@ -1680,9 +1679,9 @@ public class OreClusterManager {
 
     }
 
-    /** STATIC METHODS **/
+    //* STATIC METHODS
 
-    public static void onChunkLoad(ChunkLoadingEvent.Load event)
+    static void onChunkLoad(ChunkLoadingEvent.Load event)
     {
         LevelAccessor level = event.getLevel();
         if( level == null || level.isClientSide() )
@@ -1695,7 +1694,7 @@ public class OreClusterManager {
     }
     //END onChunkLoad
 
-    public static void addManagedOreClusterChunk(ManagedOreClusterChunk managedChunk )
+    static void addManagedOreClusterChunk(ManagedOreClusterChunk managedChunk )
     {
         OreClusterManager manager = OreClustersAndRegenMain.getManagers().get( managedChunk.getLevel() );
         if( manager != null ) {
@@ -1703,7 +1702,7 @@ public class OreClusterManager {
         }
     }
 
-    public static void onChunkUnload(ChunkLoadingEvent.Unload event)
+    static void onChunkUnload(ChunkLoadingEvent.Unload event)
     {
         LevelAccessor level = event.getLevel();
         if( level !=null && level.isClientSide() ) {
@@ -1748,6 +1747,19 @@ public class OreClusterManager {
     }
 
 
+    //* EVENTS
+
+    private static void save(DatastoreSaveEvent event) {
+        for( OreClusterManager m : MANAGERS.values() ) {
+            m.save(event);
+        }
+    }
+
+    private static void on1200Ticks(ServerTickEvent event) {
+        for (OreClusterManager m : MANAGERS.values()) {
+            m.clearHealthCheckData();
+        }
+    }
 
     /** ############### **/
 
