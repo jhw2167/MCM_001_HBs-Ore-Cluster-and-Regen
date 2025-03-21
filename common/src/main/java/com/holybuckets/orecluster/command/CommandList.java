@@ -9,6 +9,7 @@ import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.core.OreClusterApi;
+import com.holybuckets.orecluster.core.OreClusterManager;
 import com.holybuckets.orecluster.core.model.OreClusterInfo;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -359,11 +360,11 @@ public class CommandList {
                     LevelAccessor level = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, dimensionId);
                     if (level == null) {
                         source.sendFailure(Component.literal("Dimension ID not found: " + dimensionId));
-                        source.sendSuccess(() -> Component.literal("Available dimensions: " + String.join(", ", levelIds)), false);
+                        source.sendSuccess(() -> Component.literal("Available dimensions: \n  " + String.join("\n  ", levelIds)), false);
                         return 1;
                     }
-                    
-                    JsonObject healthCheck = api.healthCheckStatistics(level);
+                    OreClusterManager manager = OreClusterManager.getManager(level);
+                    JsonObject healthCheck = api.healthCheckStatistics(manager);
                     if (healthCheck != null) {
                         source.sendSuccess(() -> Component.literal("Statistics for dimension " + dimensionId + ":"), false);
                         source.sendSuccess(() -> Component.literal(healthCheck.toString()), false);
@@ -373,7 +374,8 @@ public class CommandList {
                     for (String levelId : levelIds) {
                         LevelAccessor level = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, levelId);
                         if (level != null) {
-                            JsonObject healthCheck = api.healthCheckStatistics(level);
+                            OreClusterManager manager = OreClusterManager.getManager(level);
+                            JsonObject healthCheck = api.healthCheckStatistics(manager);
                             if (healthCheck != null) {
                                 source.sendSuccess(() -> Component.literal("Statistics for dimension " + levelId + ":"), false);
                                 source.sendSuccess(() -> Component.literal(healthCheck.toString()), false);

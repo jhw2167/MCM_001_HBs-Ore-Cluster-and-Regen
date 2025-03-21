@@ -26,7 +26,7 @@ public class OreClustersAndRegenMain
     public static final String MODID = Constants.MOD_ID;
     public static final String NAME = "HBs Ore Clusters and Regen";
     public static final String VERSION = "1.0.0f";
-    public static final Boolean DEBUG = true;
+    public static final Boolean DEBUG = false;
 
     public static OreClustersAndRegenMain INSTANCE;
     public ModRealTimeConfig modRealTimeConfig;
@@ -53,11 +53,13 @@ public class OreClustersAndRegenMain
         CommandList.register();
         EventRegistrar eventRegistrar = EventRegistrar.getInstance();
 
-        this.oreClusterManagers = new HashMap<>();
+        OreClusterManager.init( eventRegistrar );
+        this.oreClusterManagers = OreClusterManager.MANAGERS;
         this.modRealTimeConfig = new ModRealTimeConfig(eventRegistrar);
         this.regenManager = new OreClusterRegenManager( eventRegistrar, modRealTimeConfig, oreClusterManagers);
         this.oreClusterApi = new OreClusterApi(oreClusterManagers, modRealTimeConfig, regenManager);
         this.oreClusterHealthCheck = new OreClusterHealthCheck( eventRegistrar, oreClusterApi, oreClusterManagers);
+
 
         eventRegistrar.registerOnLevelLoad( this::onLoadWorld, EventPriority.High );
         eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );
