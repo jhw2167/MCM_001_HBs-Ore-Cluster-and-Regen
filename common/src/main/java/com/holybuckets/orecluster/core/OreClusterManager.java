@@ -546,7 +546,7 @@ public class OreClusterManager {
         threadstarts.put("workerThreadLoadedChunk", System.currentTimeMillis());
         try
         {
-            while( !chunksPendingHandling.isEmpty() )
+            while( managerRunning )
             {
                 if( this.initializing ) {
                     synchronized(initLock) {
@@ -557,7 +557,10 @@ public class OreClusterManager {
                 }
 
                 String chunkId = chunksPendingHandling.poll(1, TimeUnit.SECONDS);
-                if( chunkId == null ) continue;
+                if( chunkId == null ) {
+                    sleep(10000); // Sleep for 10 seconds when queue is empty
+                    continue;
+                }
 
                 long start = System.nanoTime();
                 handleChunkLoaded(chunkId);
@@ -595,8 +598,8 @@ public class OreClusterManager {
             while( this.managerRunning )
             {
 
-                if( loadedOreClusterChunks.size() > MAX_LOADED_CHUNKS ) {
-                    sleep(1000);
+                if( loadedOreClusterChunks.size() > MAX_LOADED_CHUNKS || chunksPendingDeterminations.isEmpty() ) {
+                    sleep(10000); // Sleep for 10 seconds when queue is empty or too many chunks
                     continue;
                 }
 
@@ -656,7 +659,10 @@ public class OreClusterManager {
                     .filter(c -> c.hasChunk())
                     .collect(Collectors.toCollection(LinkedList::new));
 
-                if( chunksToClean.size() == 0 ) return;
+                if( chunksToClean.size() == 0 ) {
+                    sleep(10000); // Sleep for 10 seconds when no chunks to clean
+                    continue;
+                }
                 //LoggerProject.logDebug("002026", "workerThreadCleanClusters cleaning chunks: " + chunksToClean.size());
 
                 for (ManagedOreClusterChunk chunk : chunksToClean)
@@ -721,7 +727,10 @@ public class OreClusterManager {
                     .filter(c -> c.hasReadyClusters())
                     .collect(Collectors.toCollection(LinkedList::new));
 
-                if( chunksToGenerate.size() == 0 ) return;
+                if( chunksToGenerate.size() == 0 ) {
+                    sleep(10000); // Sleep for 10 seconds when no chunks to generate
+                    continue; 
+                }
 
                 for (ManagedOreClusterChunk chunk : chunksToGenerate)
                 {
@@ -765,7 +774,10 @@ public class OreClusterManager {
             {
                 //sleep(1000);
                 //Sleep if loaded chunks is empty, else iterate over them
-                if( loadedOreClusterChunks.isEmpty() ) return;
+                if( loadedOreClusterChunks.isEmpty() ) {
+                    sleep(10000); // Sleep for 10 seconds when no chunks loaded
+                    continue;
+                }
 
                 if( loadedOreClusterChunks.containsKey(TEST_ID)
                 && ManagedOreClusterChunk.isPregenerated(loadedOreClusterChunks.get(TEST_ID)) )
