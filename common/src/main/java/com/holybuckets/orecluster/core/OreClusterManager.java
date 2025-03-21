@@ -106,14 +106,14 @@ public class OreClusterManager {
     }
 
     //NEED TO CLEAR TO RETAIN MEMORY
-    final Map<String, List<Long>> THREAD_TIMES = DEBUG ? new ConcurrentHashMap<>() {{
+    final Map<String, List<Long>> THREAD_TIMES = new ConcurrentHashMap<>() {{
         put("workerThreadLoadedChunk", new ArrayList<>());
         put("handleChunkInitialization", new ArrayList<>());
         put("handleChunkDetermination", new ArrayList<>());
         put("handleChunkCleaning", new ArrayList<>());
         put("handleChunkClusterPreGeneration", new ArrayList<>());
         put("handleChunkManifestation", new ArrayList<>());
-    }} : null;
+    }};
 
     /** Variables **/
     private Integer LOADS = 0;
@@ -558,7 +558,7 @@ public class OreClusterManager {
 
                 String chunkId = chunksPendingHandling.poll(1, TimeUnit.SECONDS);
                 if( chunkId == null ) {
-                    sleep(10000); // Sleep for 10 seconds when queue is empty
+                    sleep(100);
                     continue;
                 }
 
@@ -599,7 +599,7 @@ public class OreClusterManager {
             {
 
                 if( loadedOreClusterChunks.size() > MAX_LOADED_CHUNKS || chunksPendingDeterminations.isEmpty() ) {
-                    sleep(10000); // Sleep for 10 seconds when queue is empty or too many chunks
+                    sleep(100);
                     continue;
                 }
 
@@ -609,7 +609,8 @@ public class OreClusterManager {
                     long start = System.nanoTime();
                     handleChunkDetermination(ModRealTimeConfig.ORE_CLUSTER_DTRM_BATCH_SIZE_TOTAL, chunkId);
                     long end = System.nanoTime();
-                    THREAD_TIMES.get("handleChunkDetermination").add((end - start) / 1_000_000);
+                    if(DEBUG)
+                        THREAD_TIMES.get("handleChunkDetermination").add((end - start) / 1_000_000);
                     this.threadPoolClusterCleaning.submit(this::workerThreadCleanClusters);
                 }
 
@@ -660,7 +661,7 @@ public class OreClusterManager {
                     .collect(Collectors.toCollection(LinkedList::new));
 
                 if( chunksToClean.size() == 0 ) {
-                    sleep(10000); // Sleep for 10 seconds when no chunks to clean
+                    sleep(100);
                     continue;
                 }
                 //LoggerProject.logDebug("002026", "workerThreadCleanClusters cleaning chunks: " + chunksToClean.size());
@@ -671,7 +672,8 @@ public class OreClusterManager {
                             long start = System.nanoTime();
                             editManagedChunk(chunk, this::handleChunkCleaning);
                             long end = System.nanoTime();
-                            THREAD_TIMES.get("handleChunkCleaning").add((end - start) / 1_000_000);
+                            if(DEBUG)
+                                THREAD_TIMES.get("handleChunkCleaning").add((end - start) / 1_000_000);
                         }
                         catch (Exception e) {
                             e.printStackTrace();
@@ -728,7 +730,7 @@ public class OreClusterManager {
                     .collect(Collectors.toCollection(LinkedList::new));
 
                 if( chunksToGenerate.size() == 0 ) {
-                    sleep(10000); // Sleep for 10 seconds when no chunks to generate
+                    sleep(100);
                     continue; 
                 }
 
@@ -737,7 +739,8 @@ public class OreClusterManager {
                     long start = System.nanoTime();
                     editManagedChunk(chunk, this::handleChunkClusterPreGeneration);
                     long end = System.nanoTime();
-                    THREAD_TIMES.get("handleChunkClusterPreGeneration").add((end - start) / 1_000_000);
+                    if(DEBUG)
+                        THREAD_TIMES.get("handleChunkClusterPreGeneration").add((end - start) / 1_000_000);
 
                     if( ManagedOreClusterChunk.isPregenerated(chunk)
                      || ManagedOreClusterChunk.isRegenerated(chunk) ) {
@@ -775,7 +778,7 @@ public class OreClusterManager {
                 //sleep(1000);
                 //Sleep if loaded chunks is empty, else iterate over them
                 if( loadedOreClusterChunks.isEmpty() ) {
-                    sleep(10000); // Sleep for 10 seconds when no chunks loaded
+                    sleep(100);
                     continue;
                 }
 
@@ -806,7 +809,8 @@ public class OreClusterManager {
                     long start = System.nanoTime();
                     editManagedChunk(chunk, this::handleChunkManifestation);
                     long end = System.nanoTime();
-                    THREAD_TIMES.get("handleChunkManifestation").add((end - start) / 1_000_000);
+                    if(DEBUG)
+                        THREAD_TIMES.get("handleChunkManifestation").add((end - start) / 1_000_000);
 
                 }
 
@@ -1205,7 +1209,8 @@ public class OreClusterManager {
 
         }
         Long end = System.nanoTime();
-        THREAD_TIMES.get("handleChunkInitialization").add((end - start) / 1_000_000); // Convert to milliseconds
+        if(DEBUG)
+            THREAD_TIMES.get("handleChunkInitialization").add((end - start) / 1_000_000); // Convert to milliseconds
 
     }
 
@@ -1527,14 +1532,9 @@ public class OreClusterManager {
         if( chunk.getLock().isLocked() )
             return Optional.empty();
 
-        chunk.getLock().lock();
-    try {
-        consumer.accept(chunk);
-    } finally {
         chunk.getLock().unlock();
-    }
-
-
+        consumer.accept(chunk);
+        chunk.getLock().unlock();
 
         return Optional.ofNullable(chunk);
     }
@@ -1552,10 +1552,10 @@ public class OreClusterManager {
         threadPoolClusterCleaning.shutdownNow();
         threadPoolClusterGenerating.shutdownNow();
         threadPoolChunkEditing.shutdownNow();
-        if( threadLoad != null )
-            threadLoad.interrupt();
-        if( threadWatchManagedOreChunkLifetime != null )
-            threadWatchManagedOreChunkLifetime.interrupt();
+        if( this.threadLoad != null )
+            this.threadLoad.interrupt();
+        if( this.threadWatchManagedOreChunkLifetime != null )
+            this.threadWatchManagedOreChunkLifetime.interrupt();
 
     }
 
