@@ -710,8 +710,6 @@ public class OreClusterManager {
         }
         threadstarts.put("workerThreadGenerateClusters", System.currentTimeMillis());
         Throwable thrown = null;
-        if(!managerRunning)
-            return;
 
         final Predicate<ManagedOreClusterChunk> IS_ADJACENT_CHUNKS_LOADED = chunk -> {
             ChunkPos pos = HBUtil.ChunkUtil.getChunkPos(chunk.getId());
