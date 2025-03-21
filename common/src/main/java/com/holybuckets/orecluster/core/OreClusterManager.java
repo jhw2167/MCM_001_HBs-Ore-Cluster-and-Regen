@@ -153,8 +153,6 @@ public class OreClusterManager {
 
     //Threads
     private volatile boolean managerRunning = false;
-    private volatile boolean initializing = false;
-    private final Object initLock = new Object();
     private final ConcurrentHashMap<String, Long> threadstarts = new ConcurrentHashMap<>();
     private Thread threadLoad;
     private Thread threadWatchManagedOreChunkLifetime;
@@ -313,15 +311,8 @@ public class OreClusterManager {
     private static final Long MAX_EXPIRATIONS = 100L;
     private void threadWatchManagedOreChunkLifetime()
     {
-        synchronized(initLock) {
-            while(!managerRunning) {
-                try {
-                    initLock.wait();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
+        if(!managerRunning)
+            return;
             boolean errorThrown = false;
             while(managerRunning)
             {
@@ -1568,9 +1559,7 @@ public class OreClusterManager {
     }
 
     private void load() {
-        synchronized(initLock) {
-            this.managerRunning = false;
-            this.initializing = true;
+        this.managerRunning = false;
         DataStore ds = GeneralConfig.getInstance().getDataStore();
         LevelSaveData levelData = ds.getOrCreateLevelSaveData(Constants.MOD_ID, level);
 
@@ -1634,10 +1623,7 @@ public class OreClusterManager {
             }
         }
 
-            this.initializing = false;
             this.managerRunning = true;
-            initLock.notifyAll();
-        }
     }
 
 
