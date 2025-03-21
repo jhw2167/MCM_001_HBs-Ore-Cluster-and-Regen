@@ -21,7 +21,6 @@ import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
-import io.netty.util.CharsetUtil;
 import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
@@ -157,8 +156,8 @@ public class OreClusterManager {
     private volatile boolean initializing = false;
     private final Object initLock = new Object();
     private final ConcurrentHashMap<String, Long> threadstarts = new ConcurrentHashMap<>();
-    private final Thread threadInitSerializedChunks = new Thread(this::load);
-    private final Thread threadWatchManagedOreChunkLifetime = new Thread(this::threadWatchManagedOreChunkLifetime);
+    private Thread threadLoad;
+    private Thread threadWatchManagedOreChunkLifetime;
 
     // Execution counters
     private final AtomicInteger loadedChunksCount = new AtomicInteger();
@@ -291,9 +290,8 @@ public class OreClusterManager {
             tentativeClustersByType.put(oreType, new ConcurrentSet<>());
             removedClustersByType.put(oreType, new ConcurrentSet<>());
         });
-
-       this.threadInitSerializedChunks.start();
-       this.threadWatchManagedOreChunkLifetime.start();
+        this.threadLoad = new Thread(this::load);
+       this.threadLoad.start();
     }
 
     /**
@@ -328,18 +326,10 @@ public class OreClusterManager {
             while(managerRunning)
             {
                 try {
-                    if (this.loadedOreClusterChunks.isEmpty()) {
-                        sleep(10);
-                        continue;
-                    }
-
-                    if(errorThrown) {
-                        sleep(1000);
-                        errorThrown = false;
-                    }
+                    if (this.loadedOreClusterChunks.isEmpty())
+                        return;
 
                      //Get current time
-
                     Long systemTime = System.currentTimeMillis();
                     Long currentTick = GeneralConfig.getInstance().getTotalTickCount();
                     List<ManagedOreClusterChunk> expired_chunks;
@@ -380,6 +370,9 @@ public class OreClusterManager {
                 catch (Exception e) {
                     e.printStackTrace();
                     throw new RuntimeException("Uncaught", e);
+                }
+                finally {
+                    this.threadWatchManagedOreChunkLifetime = null;
                 }
 
 
@@ -607,10 +600,6 @@ public class OreClusterManager {
                     continue;
                 }
 
-                if( chunksPendingDeterminations.size() == 0 ) {
-                    sleep(10);
-                    continue;
-                }
                 String chunkId = chunksPendingDeterminations.poll();
                 
                 while( !this.determinedChunks.contains(chunkId) ) {
@@ -667,10 +656,7 @@ public class OreClusterManager {
                     .filter(c -> c.hasChunk())
                     .collect(Collectors.toCollection(LinkedList::new));
 
-                if( chunksToClean.size() == 0 ) {
-                    sleep(10);
-                    continue;
-                }
+                if( chunksToClean.size() == 0 ) return;
                 //LoggerProject.logDebug("002026", "workerThreadCleanClusters cleaning chunks: " + chunksToClean.size());
 
                 for (ManagedOreClusterChunk chunk : chunksToClean)
@@ -735,10 +721,7 @@ public class OreClusterManager {
                     .filter(c -> c.hasReadyClusters())
                     .collect(Collectors.toCollection(LinkedList::new));
 
-                if( chunksToGenerate.size() == 0 ) {
-                    sleep(10);
-                    continue;
-                }
+                if( chunksToGenerate.size() == 0 ) return;
 
                 for (ManagedOreClusterChunk chunk : chunksToGenerate)
                 {
@@ -773,8 +756,7 @@ public class OreClusterManager {
         }
         threadstarts.put("workerThreadEditChunk", System.currentTimeMillis());
         Throwable thrown = null;
-        if(!managerRunning)
-            return;
+        if(!managerRunning) return;
 
         try
         {
@@ -783,11 +765,7 @@ public class OreClusterManager {
             {
                 //sleep(1000);
                 //Sleep if loaded chunks is empty, else iterate over them
-                if( loadedOreClusterChunks.isEmpty() )
-                {
-                    sleep(10);
-                    continue;
-                }
+                if( loadedOreClusterChunks.isEmpty() ) return;
 
                 if( loadedOreClusterChunks.containsKey(TEST_ID)
                 && ManagedOreClusterChunk.isPregenerated(loadedOreClusterChunks.get(TEST_ID)) )
@@ -1562,8 +1540,10 @@ public class OreClusterManager {
         threadPoolClusterCleaning.shutdownNow();
         threadPoolClusterGenerating.shutdownNow();
         threadPoolChunkEditing.shutdownNow();
-        threadInitSerializedChunks.interrupt();
-        threadWatchManagedOreChunkLifetime.interrupt();
+        if( threadLoad != null )
+            threadLoad.interrupt();
+        if( threadWatchManagedOreChunkLifetime != null )
+            threadWatchManagedOreChunkLifetime.interrupt();
 
     }
 
@@ -1688,7 +1668,7 @@ public class OreClusterManager {
 
     //* STATIC METHODS
 
-    static void onChunkLoad(ChunkLoadingEvent.Load event)
+    public static void onChunkLoad(ChunkLoadingEvent.Load event)
     {
         LevelAccessor level = event.getLevel();
         if( level == null || level.isClientSide() )
@@ -1701,7 +1681,7 @@ public class OreClusterManager {
     }
     //END onChunkLoad
 
-    static void addManagedOreClusterChunk(ManagedOreClusterChunk managedChunk )
+    public static void addManagedOreClusterChunk(ManagedOreClusterChunk managedChunk)
     {
         OreClusterManager manager = OreClustersAndRegenMain.getManagers().get( managedChunk.getLevel() );
         if( manager != null ) {
@@ -1709,7 +1689,7 @@ public class OreClusterManager {
         }
     }
 
-    static void onChunkUnload(ChunkLoadingEvent.Unload event)
+    public static void onChunkUnload(ChunkLoadingEvent.Unload event)
     {
         LevelAccessor level = event.getLevel();
         if( level !=null && level.isClientSide() ) {
@@ -1758,13 +1738,17 @@ public class OreClusterManager {
 
     private static void save(DatastoreSaveEvent event) {
         for( OreClusterManager m : MANAGERS.values() ) {
-            m.save(event);
+            m.save(event.getDataStore());
         }
     }
 
     private static void on1200Ticks(ServerTickEvent event) {
         for (OreClusterManager m : MANAGERS.values()) {
             m.clearHealthCheckData();
+            if(m.threadWatchManagedOreChunkLifetime == null) {
+                m.threadWatchManagedOreChunkLifetime = new Thread(m::threadWatchManagedOreChunkLifetime);
+                m.threadWatchManagedOreChunkLifetime.start();
+            }
         }
     }
 
