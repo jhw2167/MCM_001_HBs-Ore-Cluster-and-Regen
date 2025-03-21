@@ -546,15 +546,14 @@ public class OreClusterManager {
         threadstarts.put("workerThreadLoadedChunk", System.currentTimeMillis());
         try
         {
-            while( managerRunning )
-            {
-                if( this.initializing ) {
-                    synchronized(initLock) {
-                        while(this.initializing) {
-                            initLock.wait();
-                        }
-                    }
+            synchronized(initLock) {
+                while(!managerRunning) {
+                    initLock.wait();
                 }
+            }
+            
+            while(managerRunning)
+            {
 
                 String chunkId = chunksPendingHandling.poll(1, TimeUnit.SECONDS);
                 if( chunkId == null ) {
@@ -590,12 +589,16 @@ public class OreClusterManager {
         }
         threadstarts.put("workerThreadDetermineClusters", System.currentTimeMillis());
         Throwable thrown = null;
-        if(!this.managerRunning)
-            return;
 
         try
         {
-            while( this.managerRunning )
+            synchronized(initLock) {
+                while(!managerRunning) {
+                    initLock.wait();
+                }
+            }
+
+            while(managerRunning)
             {
 
                 if( loadedOreClusterChunks.size() > MAX_LOADED_CHUNKS || chunksPendingDeterminations.isEmpty() ) {
@@ -647,13 +650,16 @@ public class OreClusterManager {
         }
         threadstarts.put("workerThreadCleanClusters", System.currentTimeMillis());
         Throwable thrown = null;
-        if(!managerRunning)
-            return;
-
 
         try
         {
-            while( managerRunning )
+            synchronized(initLock) {
+                while(!managerRunning) {
+                    initLock.wait();
+                }
+            }
+
+            while(managerRunning)
             {
 
                 Queue<ManagedOreClusterChunk> chunksToClean = chunksPendingCleaning.values().stream()
@@ -768,12 +774,16 @@ public class OreClusterManager {
         }
         threadstarts.put("workerThreadEditChunk", System.currentTimeMillis());
         Throwable thrown = null;
-        if(!managerRunning) return;
 
         try
         {
+            synchronized(initLock) {
+                while(!managerRunning) {
+                    initLock.wait();
+                }
+            }
 
-            while( managerRunning )
+            while(managerRunning)
             {
                 //sleep(1000);
                 //Sleep if loaded chunks is empty, else iterate over them
