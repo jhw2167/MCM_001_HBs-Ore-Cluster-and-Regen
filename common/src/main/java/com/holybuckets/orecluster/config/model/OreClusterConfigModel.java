@@ -5,7 +5,6 @@ import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.orecluster.Constants;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.config.OreClusterConfigData;
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
 
 //Java
@@ -18,7 +17,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class OreClusterConfigModel {
@@ -40,8 +38,9 @@ public class OreClusterConfigModel {
     public Integer minChunksBetweenOreClusters = COreClusters.DEF_MIN_CHUNKS_BETWEEN_ORE_CLUSTERS.get();
     public Integer maxChunksBetweenOreClusters = COreClusters.DEF_MAX_CHUNKS_BETWEEN_ORE_CLUSTERS.get();
     public Float oreVeinModifier = COreClusters.DEF_ORE_VEIN_MODIFIER.get();
-    public HashSet<BlockState> oreClusterNonReplaceableBlocks = processStringIntoBlockStateHashSet(COreClusters.DEF_ORE_CLUSTER_NONREPLACEABLE_BLOCKS);
-    public HashSet<BlockState> oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(COreClusters.DEF_ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS);
+    public HashSet<BlockState> oreClusterNonReplaceableBlocks = processStringIntoBlockStateList(COreClusters.DEF_ORE_CLUSTER_NONREPLACEABLE_BLOCKS)
+        .stream().collect(Collectors.toCollection(HashSet::new));
+    public List<BlockState> oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(COreClusters.DEF_ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS);
     public Boolean oreClusterDoesRegenerate = COreClusters.DEF_REGENERATE_ORE_CLUSTERS;
     public Map<String, Integer> oreClusterRegenPeriods; //defaultConfigOnly
 
@@ -84,7 +83,8 @@ public class OreClusterConfigModel {
         this.minChunksBetweenOreClusters = cOreClusters.minChunksBetweenOreClusters;
         //this.maxChunksBetweenOreClusters = cOreClusters.maxChunksBetweenOreClusters;
         this.oreVeinModifier = cOreClusters.oreVeinModifier;
-        this.oreClusterNonReplaceableBlocks = processStringIntoBlockStateHashSet(cOreClusters.oreClusterNonreplaceableBlocks );
+        this.oreClusterNonReplaceableBlocks = processStringIntoBlockStateList(cOreClusters.oreClusterNonreplaceableBlocks )
+            .stream().collect(Collectors.toCollection(HashSet::new));
         this.oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(cOreClusters.oreClusterReplaceableEmptyBlocks);
         this.oreClusterDoesRegenerate = cOreClusters.regenerateOreClusters;
 
@@ -118,23 +118,23 @@ public class OreClusterConfigModel {
     }
 
     //Setup static methods to process oreClusterReplaceableBlocks and oreClusterReplaceableEmptyBlock
-    public static HashSet<BlockState> processStringIntoBlockStateHashSet(String replaceableBlocks) {
+    public static List<BlockState> processStringIntoBlockStateList(String replaceableBlocks) {
 
-        HashSet<Block> blocks = Arrays.stream(replaceableBlocks.split(",")) //Split the string by commas
+        List<Block> blocks = Arrays.stream(replaceableBlocks.split(",")) //Split the string by commas
                 .map(OreClusterConfigModel::blockNameToBlock)
-                .collect(Collectors.toCollection(HashSet::new));
+                .collect(Collectors.toList());
 
         //map blocks to defaultBlockState
         return blocks.stream()
                 .map(Block::defaultBlockState)
-                .collect(Collectors.toCollection(HashSet::new));
+                .collect(Collectors.toList());
     }
 
-    public static HashSet<BlockState> processReplaceableEmptyBlocks(String replaceableBlocks) {
-        HashSet<BlockState> blocks = processStringIntoBlockStateHashSet(replaceableBlocks);
+    public static List<BlockState> processReplaceableEmptyBlocks(String replaceableBlocks) {
+        List<BlockState> blocks = processStringIntoBlockStateList(replaceableBlocks);
         LoggerProject.logDebug("004000", "Blocks: " + blocks);
         if( blocks == null )
-            blocks = new HashSet<>();
+            blocks = new ArrayList<>();
 
         if( blocks.isEmpty() || blocks.contains(null))
             blocks.remove(null);
@@ -378,7 +378,8 @@ public class OreClusterConfigModel {
     }
 
     public void setOreClusterNonReplaceableBlocks(String oreClusterNonReplaceableBlocks) {
-        this.oreClusterNonReplaceableBlocks = processStringIntoBlockStateHashSet(oreClusterNonReplaceableBlocks);
+        this.oreClusterNonReplaceableBlocks = processStringIntoBlockStateList(oreClusterNonReplaceableBlocks)
+            .stream().collect(Collectors.toCollection(HashSet::new));
     }
 
     public void setOreClusterReplaceableEmptyBlocks(String oreClusterReplaceableEmptyBlocks) {

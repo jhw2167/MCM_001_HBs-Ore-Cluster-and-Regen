@@ -3,16 +3,15 @@ package com.holybuckets.orecluster.config.model;
 
 import com.google.gson.*;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.config.OreClusterConfigData;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /*
  *  Represents the JSON configuration values for Mod
@@ -81,24 +80,78 @@ public class OreClusterJsonConfig implements IStringSerializable
         }
     }
 
+    private BlockState bs(Block b) {
+        return b.defaultBlockState();
+    }
+
+    final Set<BlockState> baseListNonReplaceable = Set.of(
+    bs(Blocks.END_PORTAL_FRAME),
+    bs(Blocks.BEDROCK)
+    );
+
     private void initDefaults()
     {
         final OreClusterConfigModel IRON = new OreClusterConfigModel(Blocks.IRON_ORE.defaultBlockState());
-        IRON.oreClusterSpawnRate = 16;
-        IRON.oreClusterVolume = new HBUtil.TripleInt(12, 8, 12);
-        IRON.oreClusterDensity = 0.1f;
-        IRON.oreClusterReplaceableEmptyBlocks = new HashSet<>();
+            IRON.oreClusterSpawnRate = 8;
+            IRON.oreClusterVolume = new HBUtil.TripleInt(16, 12, 16);
+            IRON.oreClusterDensity = 0.25f;
+            IRON.oreClusterMaxYLevelSpawn = 64;
+            IRON.oreClusterReplaceableEmptyBlocks = new ArrayList<>();
+            IRON.oreClusterNonReplaceableBlocks = new HashSet<>(baseListNonReplaceable);
+                IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.AIR));
+                IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.DIRT));
+                IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.GRASS));
+
+        final OreClusterConfigModel COAL = new OreClusterConfigModel(Blocks.COAL_ORE.defaultBlockState());
+            COAL.oreClusterSpawnRate = 32;
+            COAL.oreClusterVolume = new HBUtil.TripleInt(8, 8, 8);
+            COAL.oreClusterShape = "SPHERE";
+            COAL.oreClusterDensity = 0.4f;
+            COAL.oreClusterMaxYLevelSpawn = 64;
+            COAL.oreClusterReplaceableEmptyBlocks = List.of(
+                bs(Blocks.STONE),
+                bs(Blocks.STONE),
+                bs(Blocks.AIR)
+            );
+            COAL.oreClusterDoesRegenerate = false;
+
+        COAL.oreClusterNonReplaceableBlocks = new HashSet<>(baseListNonReplaceable);
+            COAL.oreClusterNonReplaceableBlocks.add(bs(Blocks.AIR));
+            COAL.oreClusterNonReplaceableBlocks.add(bs(Blocks.DIRT));
+            COAL.oreClusterNonReplaceableBlocks.add(bs(Blocks.GRASS));
+
         final OreClusterConfigModel DPSLT_DIAMOND = new OreClusterConfigModel(Blocks.DEEPSLATE_DIAMOND_ORE.defaultBlockState());
-        DPSLT_DIAMOND.oreClusterSpawnRate = 10;
-        DPSLT_DIAMOND.oreClusterVolume = new HBUtil.TripleInt(5, 4, 5);
-        DPSLT_DIAMOND.oreClusterDensity = 0.75f;
-        DPSLT_DIAMOND.oreClusterReplaceableEmptyBlocks = new HashSet<>();
-        DPSLT_DIAMOND.oreClusterReplaceableEmptyBlocks.add(Blocks.DEEPSLATE.defaultBlockState());
+            DPSLT_DIAMOND.oreClusterSpawnRate = 2;
+            DPSLT_DIAMOND.oreClusterVolume = new HBUtil.TripleInt(5, 4, 5);
+            DPSLT_DIAMOND.oreClusterDensity = 0.32f;
+            DPSLT_DIAMOND.oreClusterMaxYLevelSpawn = -32;
+            DPSLT_DIAMOND.oreClusterReplaceableEmptyBlocks = new ArrayList<>();
+            DPSLT_DIAMOND.oreClusterReplaceableEmptyBlocks.add(Blocks.DEEPSLATE.defaultBlockState());
+        final OreClusterConfigModel DPSLT_LAPIS = new OreClusterConfigModel(Blocks.DEEPSLATE_LAPIS_ORE.defaultBlockState());
+            DPSLT_LAPIS.oreClusterSpawnRate = 10;
+            DPSLT_LAPIS.oreClusterShape = "SPHERE";
+            DPSLT_LAPIS.oreClusterVolume = new HBUtil.TripleInt(4, 6, 4);
+            DPSLT_LAPIS.oreClusterDensity = 0.1f;
+            DPSLT_LAPIS.oreClusterMaxYLevelSpawn = 0;
+            DPSLT_LAPIS.oreClusterReplaceableEmptyBlocks = List.of(
+                bs(Blocks.DEEPSLATE_REDSTONE_ORE),
+                bs(Blocks.DEEPSLATE_DIAMOND_ORE),
+                bs(Blocks.DEEPSLATE_EMERALD_ORE),
+                bs(Blocks.DEEPSLATE),
+                bs(Blocks.DEEPSLATE),
+                bs(Blocks.DEEPSLATE),
+                bs(Blocks.DEEPSLATE),
+                bs(Blocks.DEEPSLATE),
+                bs(Blocks.DEEPSLATE) //6
+            );
+            DPSLT_LAPIS.oreClusterDoesRegenerate = false;
 
         this.oreClusterConfigs = new ArrayList<>()
         {{
             add( JsonParser.parseString(OreClusterConfigModel.serialize(IRON)).getAsJsonObject());
+            add( JsonParser.parseString(OreClusterConfigModel.serialize(COAL)).getAsJsonObject());
             add( JsonParser.parseString(OreClusterConfigModel.serialize(DPSLT_DIAMOND)).getAsJsonObject());
+            add( JsonParser.parseString(OreClusterConfigModel.serialize(DPSLT_LAPIS)).getAsJsonObject());
         }};
     }
 

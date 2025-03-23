@@ -489,8 +489,21 @@ TEST ORES:
 	- neurina also deleted the world? cannot have this
 	- ancient debris is trying to spawn in the overworld
 
+
+4. Create cluster of mixed ores, random blocks
+	- Diamond, emerald, redstone, enderChest
+
+5. Create cluster in twilight forest
+	- with random blocks like doors and saplings
+
+6.
+
 			
 TEST CASES
+
+/execute in twilightforest:twilight_forest run tp @p 0 100 0
+
+
 ---
 
 	OreClusterManager

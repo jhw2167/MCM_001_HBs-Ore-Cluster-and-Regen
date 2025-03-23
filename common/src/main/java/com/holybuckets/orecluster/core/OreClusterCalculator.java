@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.orecluster.ModRealTimeConfig;
+import com.holybuckets.orecluster.config.OreClusterConfigData;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
@@ -547,16 +548,30 @@ public class OreClusterCalculator {
 
         //1. Determine the cluster size and shape
         //HBUtil.TripleInt volume = config.oreClusterVolume;
-        //String shape = config.oreClusterShape;
         final OreClusterConfigModel config = C.getOreConfigs().get(oreType);
-        if(config.oreClusterDimensionId.contains("end")) {
-            int i = 0;
-        }
 
        //2. Generate Cube
        final TripleInt VOL = config.oreClusterVolume;
-       Fast3DArray positions = ShapeUtil.getCube(VOL.x, VOL.z, VOL.y);
-       //Fast3DArray positions = ShapeUtil.getCircle(VOL.x);
+       String SHAPE = config.oreClusterShape;
+
+        int randSeed = HBUtil.BlockUtil.mapTo1DNumber( sourcePos );
+        List<String> validShapes = OreClusterConfigData.COreClusters.DEF_ORE_CLUSTER_VALID_SHAPES.stream().toList();
+        if( SHAPE.equals("ANY") || SHAPE.equals("NONE") ) {
+            int offset = validShapes.size();
+            SHAPE = validShapes.get( randSeed % offset );
+        }
+
+        Fast3DArray positions;
+       if( SHAPE.equals("SPHERE") ) {
+            int radius = Math.min(VOL.x, VOL.z);
+           positions = ShapeUtil.getSphere(radius, VOL.y);
+       }
+       else //(SHAPE.equals("CUBE"))
+       {
+            positions = ShapeUtil.getCube(VOL.x, VOL.z, VOL.y);
+       }
+
+
 
 
        //3. Convert cube to BlockPos

@@ -368,6 +368,7 @@ public class CommandList {
                     if (healthCheck != null) {
                         source.sendSuccess(() -> Component.literal("Statistics for dimension " + dimensionId + ":"), false);
                         source.sendSuccess(() -> Component.literal(healthCheck.toString()), false);
+                        LoggerProject.logInfo("010012", healthCheck.toString());
                     }
                 } else {
                     // Get stats for all levels
@@ -379,6 +380,7 @@ public class CommandList {
                             if (healthCheck != null) {
                                 source.sendSuccess(() -> Component.literal("Statistics for dimension " + levelId + ":"), false);
                                 source.sendSuccess(() -> Component.literal(healthCheck.toString()), false);
+                                LoggerProject.logInfo("010012", healthCheck.toString());
                             }
                         }
                     }

@@ -50,7 +50,8 @@ public class OreClusterConfigData implements BalmConfigData {
         //Ranges
         public static final String DEF_MIN_ORE_CLUSTER_VOLUME = "0x0x0";
         public static final String DEF_MAX_ORE_CLUSTER_VOLUME = "64x64x64";
-        public static final HashSet<String> DEF_ORE_CLUSTER_VALID_SHAPES = new HashSet<>(Arrays.asList("bowl", "anvil", "shale", "any"));
+        public static final HashSet<String> DEF_ORE_CLUSTER_VALID_SHAPES = new HashSet<>(Arrays.asList("CUBE", "SPHERE", "ANY"));
+        //BOWL, MOUND, TOWER, SHALE, ANVIL
 
 
         @Comment("Sub-seed used to generate random numbers for ore cluster generation - by default, Ore cluster generation uses the world seed to determine which chunks have ore clusters and their shape and size. By assigning a sub-seed, you can adjust this randomness for the same world")
@@ -71,7 +72,7 @@ public class OreClusterConfigData implements BalmConfigData {
         @Comment("Determines the density of ore within a cluster. To reduce density ore blocks within the cluster will be replaced with blocks from 'defaultOreClusterReplaceableEmptyBlock' below")
         public float oreClusterDensity = DEF_ORE_CLUSTER_DENSITY.get();
 
-        @Comment("Defines the shape of the ore cluster. Options are 'bowl', 'anvil', 'shale', 'flat' or 'any'. Defaults to any, which takes a random shape")
+        @Comment("Defines the shape of the ore cluster. Options are 'SPHERE', 'CUBE', 'ANY'. Defaults to ANY, which takes a random shape each generation")
         public String oreClusterShape = DEF_ORE_CLUSTER_SHAPE;
 
         @Comment("Maximum Y-level at which clusters can spawn")
