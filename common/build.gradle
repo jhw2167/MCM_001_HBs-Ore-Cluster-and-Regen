@@ -53,7 +53,12 @@ publishing {
     }
     repositories {
         maven {
-            url "file:///C:/Users/jack/Desktop/docs/11_Minecraft/00-Releases"
+            name = 'local'
+            url = "file://" + System.getenv("local_maven")
+        }
+        maven {
+            name = 'releases'
+            url = "file://${release_dir}"
         }
     }
 }
