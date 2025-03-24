@@ -464,7 +464,8 @@ public class OreClusterManager {
             return;
         } else if( chunk.hasClusters() ) {
             chunk.getClusterTypes().forEach((oreType, pos) -> {
-                existingClustersByType.get(oreType).add(chunkId);
+                if(pos != null)
+                    existingClustersByType.get(oreType).add(chunkId);
             });
         }
 
@@ -1032,6 +1033,8 @@ public class OreClusterManager {
      * @param chunk
      * handleChunkClusterGeneration
      * clusterGeneration
+     * handleChunkPreGeneration
+     * hanldeClusterPregeneration
      * clusterPregeneration
      * chunkPregeneration
      * chunkGeneration
@@ -1724,7 +1727,7 @@ public class OreClusterManager {
     private static void on1200Ticks(ServerTickEvent event) {
         for (OreClusterManager m : MANAGERS.values()) {
             m.clearHealthCheckData();
-            if(!m.threadWatchManagedOreChunkLifetime.isAlive()) {
+            if(m.threadWatchManagedOreChunkLifetime == null || !m.threadWatchManagedOreChunkLifetime.isAlive()) {
                 m.threadWatchManagedOreChunkLifetime = new Thread(m::watchLoadedChunkExpiration);
                 m.threadWatchManagedOreChunkLifetime.start();
             }

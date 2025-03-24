@@ -13,6 +13,8 @@ import java.util.HashSet;
 
 @Config(Constants.MOD_ID)
 public class OreClusterConfigData implements BalmConfigData {
+
+    @Comment("NOTE: This is not the JSON config for specific clusters, these are generl configs for the mod and default configs for the clusters. The JSON belongs in the file specified by 'oreClusterFileConfigPath'")
     public COreClusters cOreClusters = new COreClusters();
 
     public static class COreClusters
@@ -33,8 +35,8 @@ public class OreClusterConfigData implements BalmConfigData {
 
         public static final ConfigNumber<Float> DEF_ORE_CLUSTER_DENSITY = new ConfigNumber<>("oreClusterDensity", 1f, 0f, 1f);
         public static final String DEF_ORE_CLUSTER_SHAPE = "any";
-        public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_MAX_Y_LEVEL_SPAWN = new ConfigNumber<>("oreClusterMaxYLevelSpawn", 256, 0, 64000);
-        public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_MIN_Y_LEVEL_SPAWN = new ConfigNumber<>("oreClusterMaxYLevelSpawn", 0, 0, 64000);
+        public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_MAX_Y_LEVEL_SPAWN = new ConfigNumber<>("oreClusterMaxYLevelSpawn", 256, -64000, 64000);
+        public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_MIN_Y_LEVEL_SPAWN = new ConfigNumber<>("oreClusterMaxYLevelSpawn", -64000, -64000, 64000);
         public static final ConfigNumber<Integer> DEF_MIN_CHUNKS_BETWEEN_ORE_CLUSTERS = new ConfigNumber<>("minChunksBetweenOreClusters", 0, 0, 32);
         public static final ConfigNumber<Integer> DEF_MAX_CHUNKS_BETWEEN_ORE_CLUSTERS = new ConfigNumber<>("maxChunksBetweenOreClusters", 2, 2, 32);
         public static final ConfigNumber<Float> DEF_ORE_VEIN_MODIFIER = new ConfigNumber<>("oreVeinModifier", 1f, 0f, 1f);
@@ -58,6 +60,7 @@ public class OreClusterConfigData implements BalmConfigData {
         public String subSeed = DEF_SUB_SEED;
 
         @Comment("List of blocks that the mod will attempt to create clusters for upon chunk load. Clusters created from these blocks will take all default ore cluster parameters unless overridden. If you are going to override the default parameters for an ore anyways, you don't need to include it in this list")
+        @IgnoreConfig("Too Confusing, will only use explicit list")
         public String validOreClusterOreBlocks = DEF_VALID_ORE_CLUSTER_ORE_BLOCKS;
 
         @Comment("Defines the default frequency of ore clusters. Takes an integer as the number of expected ore clusters per 1000 chunks")
@@ -75,13 +78,17 @@ public class OreClusterConfigData implements BalmConfigData {
         @Comment("Defines the shape of the ore cluster. Options are 'SPHERE', 'CUBE', 'ANY'. Defaults to ANY, which takes a random shape each generation")
         public String oreClusterShape = DEF_ORE_CLUSTER_SHAPE;
 
-        @Comment("Maximum Y-level at which clusters can spawn")
+        @Comment("Clusters will not spawn above this Y level")
         public int oreClusterMaxYLevelSpawn = DEF_ORE_CLUSTER_MAX_Y_LEVEL_SPAWN.get();
+
+        @Comment("Clusters will not spawn below this Y level")
+        public int oreClusterMinYLevelSpawn = DEF_ORE_CLUSTER_MIN_Y_LEVEL_SPAWN.get();
 
         @Comment("Minimum number of chunks between ore any clusters - AFFECTS ALL ORE CLUSTERS - this is a rough guideline, the random generation is not perfect")
         public int minChunksBetweenOreClusters = DEF_MIN_CHUNKS_BETWEEN_ORE_CLUSTERS.get();
 
         @Comment("Maximum number of chunks between ore any clusters - AFFECTS ALL ORE CLUSTERS - this is a rough guideline, the random generation is not perfect")
+        @IgnoreConfig("Not used")
         public int maxChunksBetweenOreClusters = DEF_MAX_CHUNKS_BETWEEN_ORE_CLUSTERS.get();
 
         @Comment("Scales the presence of normal (small) ore veins between 0 and 1. This mod replaces existing ore veins in real time with the specified first block in 'defaultOreClusterReplaceableEmptyBlock' block so can only reduce the frequency of ore veins, not increase it")
@@ -103,6 +110,7 @@ public class OreClusterConfigData implements BalmConfigData {
         public String regenerateOreClusterPeriodLengths = DEF_REGENERATE_ORE_CLUSTER_PERIOD_LENGTHS;
 
         @Comment("Comma separated list of items that will be used to reduce the number of days between cluster regeneration. If the first value is NOT 'default', then clusters will not regenerate until the specified item has been sacrificed. In game, use the 'sacrificial altar' to sacrifice the specified item to trigger the next period length")
+        @IgnoreConfig("Not implemented")
         public String regenerateOreClusterUpgradeItems = DEF_REGENERATE_ORE_CLUSTER_UPGRADE_ITEMS;
 
 

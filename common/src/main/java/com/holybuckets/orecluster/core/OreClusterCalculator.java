@@ -437,11 +437,11 @@ public class OreClusterCalculator {
                         outerCount++;
                         BlockState blockState = states.get(x, y, z);
                         if (COUNTABLE_ORES.contains(blockState)) {
-                          BlockState s = states.get(x, y, z);
-                          if( chunk.sampleAddOre(s,i) ) {
+                            int sectionY = level.getSectionYFromSectionIndex(i);
+                          if( chunk.sampleAddOre(blockState, sectionY ) ) {
                             HBUtil.TripleInt relativePos = new HBUtil.TripleInt(x, y, z);
                               HBUtil.WorldPos pos = new HBUtil.WorldPos(relativePos, i, levelChunk);
-                              chunk.addOre(s, pos.getWorldPos(), true);
+                              chunk.addOre(blockState, pos.getWorldPos(), true);
                           }
 
                         }

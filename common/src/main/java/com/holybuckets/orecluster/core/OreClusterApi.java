@@ -165,7 +165,7 @@ public class OreClusterApi {
         Map<BlockState, Set<String>> clusters = manager.getExistingClustersByType();
 
         LoggerProject.logInfo(null, "008000", "Found " + clusters.size() +
-         " clusters in level: " + HBUtil.LevelUtil.toLevelId(level) + " with oreType: " + oreType );
+         " clusters in level: " + HBUtil.LevelUtil.toLevelId(level) + " with oreType: " + ((oreType==null) ? "any" : oreType) );
 
         //3. Create list of all valid Clusters from each chunk, filtering by oreType if necessary
         List<String> validClusterChunkIds = new ArrayList<>();

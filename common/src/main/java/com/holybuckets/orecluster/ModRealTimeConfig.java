@@ -82,11 +82,11 @@ public class ModRealTimeConfig
         //Create new oreConfig for each element in cOreClusters list
         this.oreConfigs = new HashMap<>();
 
-        //File configFile = new File(clusterConfig.oreClusters.get());
-        //File defaultConfigFile = new File(clusterConfig.oreClusters.getDefault());
+        File configFile = new File(clusterConfig.oreClusterFileConfigPath);
+        File defaultConfigFile = new File(OreClusterConfigData.COreClusters.DEF_ORE_CLUSTER_FILE_CONFIG_PATH);
         //config/HBOreClustersAndRegenConfigs.json
-        File configFile = new File("config/HBOreClustersAndRegenConfigs.json");
-        File defaultConfigFile = new File("config/HBOreClustersAndRegenConfigs.json");
+        //File configFile = new File("config/HBOreClustersAndRegenConfigs.json");
+        //File defaultConfigFile = new File("config/HBOreClustersAndRegenConfigs.json");
         String jsonOreConfigData = HBUtil.FileIO.loadJsonConfigs( configFile, defaultConfigFile, OreClusterJsonConfig.DEFAULT_CONFIG );
 
         OreClusterJsonConfig jsonOreConfigs = new OreClusterJsonConfig(jsonOreConfigData);
@@ -201,13 +201,12 @@ public class ModRealTimeConfig
 
     /**
      *
-     * @param sectionNum
+     * @param sectionY - different scale per each dimension to account for negative values, may be negative
      * @param state
      * @return true if no config is provided or if the pos is in config range, false otherwise
      */
-    public boolean validYSpawn(BlockState state, int sectionNum) {
-        if(sectionNum < 0) return false;
-        BlockPos pos = new BlockPos(0,(sectionNum*16) + 15,0);
+    public boolean validYSpawn(BlockState state, int sectionY) {
+        BlockPos pos = new BlockPos(0,(sectionY*16) + 8,0);
         return  validYSpawn( getOreConfigByOre(state), pos);
     }
 

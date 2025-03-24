@@ -80,11 +80,11 @@ public class OreClusterJsonConfig implements IStringSerializable
         }
     }
 
-    private BlockState bs(Block b) {
+    private static BlockState bs(Block b) {
         return b.defaultBlockState();
     }
 
-    final Set<BlockState> baseListNonReplaceable = Set.of(
+    private final static Set<BlockState> baseListNonReplaceable = Set.of(
     bs(Blocks.END_PORTAL_FRAME),
     bs(Blocks.BEDROCK)
     );
@@ -124,15 +124,19 @@ public class OreClusterJsonConfig implements IStringSerializable
             DPSLT_DIAMOND.oreClusterSpawnRate = 2;
             DPSLT_DIAMOND.oreClusterVolume = new HBUtil.TripleInt(5, 4, 5);
             DPSLT_DIAMOND.oreClusterDensity = 0.32f;
-            DPSLT_DIAMOND.oreClusterMaxYLevelSpawn = -32;
+            DPSLT_DIAMOND.oreClusterMaxYLevelSpawn = -16;
+            DPSLT_DIAMOND.oreClusterMinYLevelSpawn = -56;
             DPSLT_DIAMOND.oreClusterReplaceableEmptyBlocks = new ArrayList<>();
             DPSLT_DIAMOND.oreClusterReplaceableEmptyBlocks.add(Blocks.DEEPSLATE.defaultBlockState());
+            DPSLT_DIAMOND.oreClusterNonReplaceableBlocks = new HashSet<>(baseListNonReplaceable);
+                DPSLT_DIAMOND.oreClusterNonReplaceableBlocks.add(bs(Blocks.AIR));
         final OreClusterConfigModel DPSLT_LAPIS = new OreClusterConfigModel(Blocks.DEEPSLATE_LAPIS_ORE.defaultBlockState());
             DPSLT_LAPIS.oreClusterSpawnRate = 10;
             DPSLT_LAPIS.oreClusterShape = "SPHERE";
             DPSLT_LAPIS.oreClusterVolume = new HBUtil.TripleInt(4, 6, 4);
             DPSLT_LAPIS.oreClusterDensity = 0.1f;
             DPSLT_LAPIS.oreClusterMaxYLevelSpawn = 0;
+            DPSLT_LAPIS.oreClusterMinYLevelSpawn = -56;
             DPSLT_LAPIS.oreClusterReplaceableEmptyBlocks = List.of(
                 bs(Blocks.DEEPSLATE_REDSTONE_ORE),
                 bs(Blocks.DEEPSLATE_DIAMOND_ORE),
@@ -145,6 +149,8 @@ public class OreClusterJsonConfig implements IStringSerializable
                 bs(Blocks.DEEPSLATE) //6
             );
             DPSLT_LAPIS.oreClusterDoesRegenerate = false;
+            DPSLT_LAPIS.oreClusterNonReplaceableBlocks = new HashSet<>(baseListNonReplaceable);
+                DPSLT_LAPIS.oreClusterNonReplaceableBlocks.add(bs(Blocks.AIR));
 
         this.oreClusterConfigs = new ArrayList<>()
         {{

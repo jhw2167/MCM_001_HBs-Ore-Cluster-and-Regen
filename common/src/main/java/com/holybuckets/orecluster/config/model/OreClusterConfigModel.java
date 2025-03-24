@@ -80,6 +80,7 @@ public class OreClusterConfigModel {
         this.oreClusterDensity = cOreClusters.oreClusterDensity;
         this.oreClusterShape = cOreClusters.oreClusterShape;
         this.oreClusterMaxYLevelSpawn = cOreClusters.oreClusterMaxYLevelSpawn;
+        this.oreClusterMinYLevelSpawn = cOreClusters.oreClusterMinYLevelSpawn;
         this.minChunksBetweenOreClusters = cOreClusters.minChunksBetweenOreClusters;
         //this.maxChunksBetweenOreClusters = cOreClusters.maxChunksBetweenOreClusters;
         this.oreVeinModifier = cOreClusters.oreVeinModifier;

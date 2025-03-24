@@ -270,14 +270,14 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
      * @param state
      * @return
      */
-    public boolean sampleAddOre(BlockState state, int sectionNum)
+    public boolean sampleAddOre(BlockState state, int sectionY)
     {
         if(this.originalOres == null)
             return false;
 
         if(state != null) {
         ModRealTimeConfig c = OreClustersAndRegenMain.INSTANCE.modRealTimeConfig;
-            if(!c.validYSpawn(state, sectionNum) ) {
+            if(!c.validYSpawn(state, sectionY) ) {
                 return false;
             }
         }

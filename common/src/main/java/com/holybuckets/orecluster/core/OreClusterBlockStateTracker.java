@@ -67,11 +67,14 @@ public class OreClusterBlockStateTracker
 
 
         blockCount++;
-        int secIndex = -1;
+        int secIndex = 0;
         if( chunkSections.containsKey(section) ) {
             secIndex = chunkSections.get(section);
+        } else {
+            return;
         }
-        if( !chunk.sampleAddOre(state, secIndex) ) return;
+        int secY = currentLevel.getSectionYFromSectionIndex(secIndex);
+        if( !chunk.sampleAddOre(state, secY) ) return;
 
         HBUtil.TripleInt relativePos = new HBUtil.TripleInt(x, y, z);
         HBUtil.WorldPos pos = new HBUtil.WorldPos( relativePos, secIndex, currentChunk );
