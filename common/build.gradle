@@ -53,12 +53,8 @@ publishing {
     }
     repositories {
         maven {
-            name = 'local'
-            url = "file://" + System.getenv("local_maven")
-        }
-        maven {
-            name = 'releases'
-            url = "file://${release_dir}"
+            name = "localRelease"
+            url = uri("${rootProject.findProperty("release_dir") ?: "$buildDir/published"}")
         }
     }
 }

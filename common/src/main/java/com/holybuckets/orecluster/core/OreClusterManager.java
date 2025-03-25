@@ -64,9 +64,9 @@ import static java.lang.Thread.sleep;
  *  chunksPendingDeterminations - (private) LinkedBlockingQueue of chunkIds that are pending cluster determination
  *  chunksPendingGeneration - (private) LinkedBlockingQueue of chunkIds that are pending cluster generation
  *
- *  existingClusters - (private) ConcurrentHashMap of <chunkId, <oreType, Vec3i>> containing all existing clusters
+ *  existingClusters - (private) ConcurrentHashMap of (chunkId, (oreType, Vec3i)) containing all existing clusters
  *      in the world, each String chunkId maps to a HashMap of each chunk's cluster type(s) and origin
- *  existingClustersByType - (private) ConcurrentHashMap of <oreType, <chunkId>> containing all existing clusters
+ *  existingClustersByType - (private) ConcurrentHashMap of (oreType, (chunkId)) containing all existing clusters
  *      allows to check quickly if any newly generated chunk has a nearby cluster of its type
  *  chunksPendingClusterGen - (private) ConcurrentLinkedQueue of chunkIds that are pending cluster generation in the main gamethread
  *
@@ -132,7 +132,7 @@ public class OreClusterManager {
     final ConcurrentSet<String> chunksPendingRegeneration;
     //private final ConcurrentHashMap<String, ManagedOreClusterChunk> chunksPendingManifestation;
 
-    //<chunkId, <oreType, Vec3i>>
+    //(chunkId, (oreType, Vec3i))
 
 
     final ConcurrentLinkedSet<String> determinedSourceChunks;

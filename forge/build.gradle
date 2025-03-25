@@ -116,12 +116,11 @@ publishing {
     }
     repositories {
         maven {
-            name = 'local'
-            url = "file://" + System.getenv("local_maven")
-        }
-        maven {
-            name = 'releases'
-            url = "file://${release_dir}"
+            name = "flatDirRelease"
+            url = uri("${rootProject.findProperty("release_dir") ?: "$buildDir/published"}")
+            metadataSources {
+                artifact()
+            }
         }
     }
 }
