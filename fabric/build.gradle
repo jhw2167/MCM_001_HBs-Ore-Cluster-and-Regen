@@ -74,5 +74,13 @@ publishing {
             from components.java
         }
     }
-
+    repositories {
+        maven {
+            name = "flatDirRelease"
+            url = uri("${rootProject.findProperty("release_dir") ?: "$buildDir/published"}")
+            metadataSources {
+                artifact()
+            }
+        }
+    }
 }

@@ -517,3 +517,39 @@ TEST CASES
 	#Threadpool
 	1. onNewlyLoadedChunks successfully runs in background to pickup new chunks
 	2. onNewlyLoadedChunks is shutdown successfully when the class is shutdown
+
+---
+
+Release Prep:
+---
+
+1. Add icon to src/main/resources/icon.png
+2. 
+
+
+
+Consider the 3 attached files:
+	- versions.txt - declares version and name info for all projects
+	- updateVersions.sh - a bash script for updating the mod version of a given mod
+	- UpdateVersion.java - a java script that reads versions.txt and calls updateVersions.sh to update a particular mod
+
+please create a new bash script UpdateRelease.sh which does the following:
+	- Takes an argument of the mod directory to update
+	- An argument of the release version to upgrade to
+
+	1. Reads in an array: [balm_version=7.4.0, foundation_version=1.1.0] of all release versions of existing mods from versions.txt
+	2. Switches into the directory of the mod to be released
+	3. Updates all versions in the gradle.properties to the release versions
+	4. Opens the gradle.properties file for me to edit while the script waits for it to close
+	5. Executes ./gradlew publishToMavenLocal
+	6. Executes ./gradlew publishAllPublicationsToFlatDirReleaseRepository
+
+	- Do not remove the previous release version
+
+---
+
+	Please also modify UpdateVersion.java to call UpdateRelease.sh with the proper arguments. 
+	Add a new argument to java UpdateVersion <directory> r that indicates this is a release update, if the argument is omitted, just update the version as normal
+
+
+

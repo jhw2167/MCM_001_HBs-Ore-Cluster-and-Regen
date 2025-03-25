@@ -86,6 +86,7 @@ dependencies {
 
     implementation fg.deobf("com.holybuckets.foundation:HBs_Foundation-forge-${minecraft_version}:${foundation_version}") {
         changing = true
+        transitive = false
     }
 
 }
@@ -111,7 +112,6 @@ publishing {
         mavenJava(MavenPublication) {
             artifactId base.archivesName.get()
             from components.java
-            fg.component(it)
         }
     }
     repositories {

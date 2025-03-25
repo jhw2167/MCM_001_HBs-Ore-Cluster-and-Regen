@@ -53,8 +53,11 @@ publishing {
     }
     repositories {
         maven {
-            name = "localRelease"
+            name = "flatDirRelease"
             url = uri("${rootProject.findProperty("release_dir") ?: "$buildDir/published"}")
+            metadataSources {
+                artifact()
+            }
         }
     }
 }
