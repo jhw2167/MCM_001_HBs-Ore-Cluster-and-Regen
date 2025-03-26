@@ -12,7 +12,7 @@
         "sources": "https://github.com/FabricMC/fabric-example-mod"
     },
     "license": "${license}",
-    "icon": "assets/modid/icon.png",
+    "icon": "icon.png",
     "environment": "*",
     "entrypoints": {
         "main": [
@@ -28,8 +28,8 @@
         "fabric": "*",
         "minecraft": "${minecraft_version}",
         "java": ">=17",
-        "balm-fabric": "*",
-        "hbs_foundation": "*"
+        "balm-fabric": ">=${balm_version}",
+        "hbs_foundation": ">=${foundation_version}"
     },
     "suggests": {
         "another-mod": "*"

@@ -1,20 +1,3 @@
-/hbOreClusters locateClusters <count> <blocktype>
-	- finds the 5 nearest ore clusters to the player
-	- count can be raised or lowered
-	- blockType can be specified to search for a specific kind of cluster
-	- if no output was returned, you may need to load more chunks to find a cluster that has generated
-
-	- Output: list of ore cluster types and their block pos origin
-	- e.g. /hbOreClusters locateClusters 10
-	- e.g. /hbOreClusters locateClusters 10 deepslate_diamond_ore
-	- e.g. /hbOreClusters locateClusters 2 create:zinc_ore
-
-/hbOreClusters triggerRegen <chunkId>
-	- triggers a global regeneration sequence for all clusters in the world
-	- if a chunkId is provided, triggers regeneration only for ores in that chunk
-	- If this command does not work correctly for you then: 1. the source of the cluster may be in an adjacent chunk or 2. this cluster type may be configured to regenerate, check config
-	
-	- e.g.
 Ore Clusters and Regeneration Mod Command Overview
 ================================================
 
@@ -23,6 +6,10 @@ All commands use the prefix: hbOreClusters
 1. Locate Clusters Command
 ------------------------
 Description: Finds ore clusters near the player's position
+- finds the 5 nearest ore clusters to the player
+	- count can be raised or lowered
+	- blockType can be specified to search for a specific kind of cluster
+	- if no output was returned, you may need to load more chunks to find a cluster that has generated
 Usage: 
   /hbOreClusters locateClusters [count] [blockType]
   
@@ -35,6 +22,9 @@ Examples:
   /hbOreClusters locateClusters 10
   /hbOreClusters locateClusters minecraft:iron_ore
   /hbOreClusters locateClusters 3 minecraft:diamond_ore
+  /hbOreClusters locateClusters 10 deepslate_diamond_ore
+  /hbOreClusters locateClusters 2 create:zinc_ore
+
 
 Expected Output:
   Found Clusters:
@@ -44,7 +34,11 @@ Expected Output:
 
 2. Get Config Command
 -------------------
-Description: Displays configuration information
+Description: Displays configuration information for the mod in general or a specific ore config
+- use with no arguments to get the configId for each type of configured cluster
+- also gives summary info about the period length and how far into the period the game is
+- with a configId provided, gives detailed info on the ore's config
+
 Usage:
   /hbOreClusters config [configId]
 
@@ -61,10 +55,15 @@ Expected Output:
     clusterType: minecraft:iron_ore
     clusterSpawnRate: 0.75
     clusterRegenerates: yes
+ Ore With ConfigId: 0002:
+    clusterType: minecraft:deepslate_diamond_ore
+    clusterSpawnRate: 0.75
+    clusterRegenerates: yes
 
 3. Add Cluster Command
 --------------------
 Description: Manually adds an ore cluster at specified coordinates
+	
 Usage:
   /hbOreClusters addCluster <clusterConfigId> <x> <y> <z>
 
@@ -81,6 +80,11 @@ Expected Output:
 4. Trigger Regen Command
 ----------------------
 Description: Triggers regeneration of ore clusters
+- USES CHUNK COORDINATES, NOT BLOCK COORDINATES
+- triggers a global regeneration sequence for all clusters in the world
+- if a chunkId is provided, triggers regeneration only for ores in that chunk
+- If this command does not work correctly for you then: 1. the source of the cluster may be in an adjacent chunk or 2. this cluster type may be configured to regenerate, check config
+
 Usage:
   /hbOreClusters triggerRegen [chunkX chunkZ]
 
@@ -99,6 +103,7 @@ Expected Output:
 5. Health Check Command
 ---------------------
 Description: Displays system health statistics
+- Posts daily in your minecraft server to determine if the code may be taking up too much processing power or ram
 Usage:
   /hbOreClusters healthCheck [dimensionId]
 

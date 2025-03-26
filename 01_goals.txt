@@ -524,7 +524,11 @@ Release Prep:
 ---
 
 1. Add icon to src/main/resources/icon.png
-2. 
+2. Run java UpdateVersion <DirectoryToUpdate> r
+3. Check the versions in the popup gradle.properties file to use snapshot or release versions
+4. Use mvRelease.bat to move the release files into the practice HB_dev folder
+5. test if the user is notified of dependencies
+6. C:\Users\jack\Desktop\docs\11_Minecraft\00-Releases to mvoe releases to their own folder
 
 
 
