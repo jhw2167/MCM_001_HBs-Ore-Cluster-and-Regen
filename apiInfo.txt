@@ -1,0 +1,56 @@
+OreClusterApi Method Summary
+===========================
+
+Static Methods:
+--------------
+isInit() -> boolean
+    Checks if the API instance has been initialized.
+
+getInstance() -> OreClusterApi
+    Returns the singleton instance of the API if initialized.
+
+Configuration Methods:
+--------------------
+getConfigSummary() -> JsonObject
+    Returns a summary of all ore cluster configurations.
+
+getConfig(String configId) -> JsonObject
+    Returns detailed configuration for a specific ore cluster type.
+
+Cluster Location Methods:
+-----------------------
+locateOreClusters(LevelAccessor level, BlockPos pos, BlockState oreType, int limit) -> List<OreClusterInfo>
+    Finds nearest ore clusters to a position with optional type filtering and count limit.
+
+getManagedChunkDetails(LevelAccessor level, String chunkId) -> JsonObject
+    Returns detailed information about a specific managed chunk.
+
+Cluster Management Methods:
+-------------------------
+forceChunkReload(LevelAccessor level, String chunkId) -> boolean
+    Forces a chunk to be reprocessed for ore clusters.
+
+addCluster(LevelAccessor level, String configId, BlockPos pos) -> boolean
+    Adds a new ore cluster using configuration ID.
+
+addCluster(LevelAccessor level, BlockState oreType, BlockPos pos) -> boolean
+    Adds a new ore cluster of specific type at position.
+
+Regeneration Methods:
+-------------------
+triggerRegen()
+    Triggers regeneration for all clusters in the world.
+
+triggerRegen(LevelAccessor level, String chunkId)
+    Triggers regeneration for clusters in a specific chunk.
+
+Diagnostic Methods:
+-----------------
+healthCheckStatistics(OreClusterManager m) -> JsonObject
+    Returns performance metrics and status of the ore cluster manager.
+
+getIncompleteChunks(OreClusterManager m) -> Set<String>
+    Returns chunks that haven't completed initial processing.
+
+debugForceLoadChunk(OreClusterManager m, String chunkId, AtomicBoolean succeeded) -> boolean
+    Forces chunk loading for debugging purposes.
