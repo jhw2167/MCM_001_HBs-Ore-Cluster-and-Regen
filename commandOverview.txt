@@ -1,0 +1,17 @@
+/hbOreClusters locateClusters <count> <blocktype>
+	- finds the 5 nearest ore clusters to the player
+	- count can be raised or lowered
+	- blockType can be specified to search for a specific kind of cluster
+	- if no output was returned, you may need to load more chunks to find a cluster that has generated
+
+	- Output: list of ore cluster types and their block pos origin
+	- e.g. /hbOreClusters locateClusters 10
+	- e.g. /hbOreClusters locateClusters 10 deepslate_diamond_ore
+	- e.g. /hbOreClusters locateClusters 2 create:zinc_ore
+
+/hbOreClusters triggerRegen <chunkId>
+	- triggers a global regeneration sequence for all clusters in the world
+	- if a chunkId is provided, triggers regeneration only for ores in that chunk
+	- If this command does not work correctly for you then: 1. the source of the cluster may be in an adjacent chunk or 2. this cluster type may be configured to regenerate, check config
+	
+	- e.g.
