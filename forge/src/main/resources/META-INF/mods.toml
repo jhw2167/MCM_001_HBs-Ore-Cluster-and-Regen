@@ -24,3 +24,15 @@ mandatory = true
 versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"
+[[dependencies.${mod_id}]]
+modId="balm"
+mandatory=true
+versionRange="${balm_version_range}"
+ordering="NONE"
+side="BOTH"
+[[dependencies.${mod_id}]]
+modId="hbs_foundation"
+mandatory=true
+versionRange="[${foundation_version},)"
+ordering="NONE"
+side="BOTH"

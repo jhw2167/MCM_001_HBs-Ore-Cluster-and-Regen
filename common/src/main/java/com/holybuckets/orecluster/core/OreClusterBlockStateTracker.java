@@ -1,6 +1,7 @@
 package com.holybuckets.orecluster.core;
 
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import net.minecraft.core.BlockPos;
@@ -60,11 +61,11 @@ public class OreClusterBlockStateTracker
         if( trackingOreConfig == null ) return;
         if( currentManagedOreClusterChunk == null ) return;
         ManagedOreClusterChunk chunk = currentManagedOreClusterChunk;
-        if( !trackingOreConfig.containsKey(state) ) return;
-        OreClusterConfigModel config = trackingOreConfig.get(state);
-        LevelAccessor oreLevel = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, config.oreClusterDimensionId);
-         if( currentLevel != oreLevel ) return;
-
+        BlockState defaultState = state.getBlock().defaultBlockState();
+        if( !trackingOreConfig.containsKey(defaultState) ) return;
+        OreClusterConfigModel config = trackingOreConfig.get(defaultState);
+        if( !ModRealTimeConfig.doesLevelMatch(config, currentLevel) ) return;
+        if( !ModRealTimeConfig.clustersDoSpawn(config) ) return;
 
         blockCount++;
         int secIndex = 0;
@@ -74,11 +75,11 @@ public class OreClusterBlockStateTracker
             return;
         }
         int secY = currentLevel.getSectionYFromSectionIndex(secIndex);
-        if( !chunk.sampleAddOre(state, secY) ) return;
+        if( !chunk.sampleAddOre(defaultState, secY) ) return;
 
         HBUtil.TripleInt relativePos = new HBUtil.TripleInt(x, y, z);
         HBUtil.WorldPos pos = new HBUtil.WorldPos( relativePos, secIndex, currentChunk );
-        chunk.addOre(state, pos.getWorldPos(), true);
+        chunk.addOre(defaultState, pos.getWorldPos(), true);
     }
 
 

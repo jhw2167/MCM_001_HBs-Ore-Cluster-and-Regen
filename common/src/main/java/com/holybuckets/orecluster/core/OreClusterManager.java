@@ -952,7 +952,10 @@ public class OreClusterManager {
 
             final Map<BlockState, OreClusterConfigModel> ORE_CONFIGS = config.getOreConfigs();
 
-            final Set<BlockState> COUNTABLE_ORES = ORE_CONFIGS.keySet().stream().filter(b -> config.getOreConfigByOre(b).oreClusterSpawnRate > 0  ).collect(Collectors.toSet());
+            final Set<BlockState> COUNTABLE_ORES = ORE_CONFIGS.keySet().stream()
+                .filter(state -> config.doesLevelMatch(state, this.level) )
+                .filter(state -> config.clustersDoSpawn(state) )
+                .collect(Collectors.toSet());
 
             //No ores to clean, no clusters to build
             if( COUNTABLE_ORES.isEmpty() && !chunk.hasClusters() ) {

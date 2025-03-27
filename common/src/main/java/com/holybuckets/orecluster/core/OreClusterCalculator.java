@@ -71,9 +71,8 @@ public class OreClusterCalculator {
         for( BlockState oreType : C.getOreConfigs().keySet() )
         {
             OreClusterConfigModel config = C.getOreConfigs().get(oreType);
-            if( config.oreClusterSpawnRate <= 0 ) continue;
-            if( HBUtil.LevelUtil.toLevel(LevelUtil.LevelNameSpace.SERVER, config.oreClusterDimensionId) != this.level ) continue;
-            clusterConfigs.put(oreType, config);
+            if( C.clustersDoSpawn(oreType) && C.doesLevelMatch(oreType, level) )
+                clusterConfigs.put(oreType, config);
         }
 
         HashMap<String, List<BlockState>> clusterPositions = new HashMap<>();
@@ -435,7 +434,7 @@ public class OreClusterCalculator {
                     for (int z = 0; z < SECTION_SZ; z++)
                     {
                         outerCount++;
-                        BlockState blockState = states.get(x, y, z);
+                        BlockState blockState = states.get(x, y, z).getBlock().defaultBlockState();
                         if (COUNTABLE_ORES.contains(blockState)) {
                             int sectionY = level.getSectionYFromSectionIndex(i);
                           if( chunk.sampleAddOre(blockState, sectionY ) ) {

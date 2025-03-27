@@ -12,6 +12,7 @@ import com.holybuckets.orecluster.config.model.OreClusterJsonConfig;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 
 //Java Imports
@@ -225,7 +226,37 @@ public class ModRealTimeConfig
         return true;
     }
 
+    /**
+     * If the config is null, then the cluster will not spawn
+     * @param state
+     * @return true if the oreClusterSpawnRate is greater than 0, false otherwise
+     */
+    public boolean clustersDoSpawn(BlockState state) {
+        return clustersDoSpawn( getOreConfigByOre(state) );
+    }
 
+    /**
+     * If the config is null, then the cluster will not spawn
+     * @param config
+     * @return true if the oreClusterSpawnRate is greater than 0, false otherwise
+     */
+    public static boolean clustersDoSpawn(OreClusterConfigModel config) {
+        if( config == null ) return false;
+        return config.oreClusterSpawnRate > 0;
+    }
+
+
+    public boolean doesLevelMatch(BlockState state, LevelAccessor level) {
+        return doesLevelMatch( getOreConfigByOre(state), level );
+    }
+
+    public static boolean doesLevelMatch(OreClusterConfigModel config, LevelAccessor level) {
+        if( config == null ) return false;
+        if( config.oreClusterDimensionId == null ) return false;
+        if( level == null ) return false;
+        LevelAccessor oreLevel = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, config.oreClusterDimensionId);
+        return level.equals(oreLevel);
+    }
 
 }
 //END CLASS
