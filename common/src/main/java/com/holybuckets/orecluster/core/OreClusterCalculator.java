@@ -18,6 +18,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -769,8 +770,17 @@ public class OreClusterCalculator {
         {
             List<BlockState> temp = new ArrayList<>(100);
             int density = (int) (this.expectedOreDensity * 100);
+
+            //Do our best to match the blockState of block at the cluster source position, but sometimes this will
+            //just be a random block and we don't want to convert our cluster to a stone or grass cluster
+            BlockPos clusterOrigin = chunk.getOreClusterSourcePos(config.oreClusterType);
+            Block blockAtClusterOrigin = levelChunk.getBlockState(clusterOrigin).getBlock();
+            BlockState baseBlockState = config.oreClusterType;
+            if(config.oreClusterType.getBlock().equals(blockAtClusterOrigin))
+                baseBlockState = levelChunk.getBlockState(clusterOrigin);
+
             for( int i = 0; i < 100; i++ ) {
-                temp.add(config.oreClusterType);
+                temp.add(baseBlockState);
             }
             List<BlockState> alternativeBlocks = config.oreClusterReplaceableEmptyBlocks.stream().toList();
             int partition = (int) ( ((float) (100 - density)) / alternativeBlocks.size());
