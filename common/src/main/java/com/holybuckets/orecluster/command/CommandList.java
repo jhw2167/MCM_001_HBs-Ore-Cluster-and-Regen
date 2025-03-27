@@ -207,7 +207,7 @@ public class CommandList {
                         if(key.equals("header")) continue;
                         s.append("\n  ").append(key).append(": ").append(s(obj, key));
                     }
-                    //s.append("\n");
+                    s.append("\n");
                     source.sendSystemMessage(Component.literal(s.toString()));
                 }
                 source.sendSystemMessage(Component.literal("---\n"));

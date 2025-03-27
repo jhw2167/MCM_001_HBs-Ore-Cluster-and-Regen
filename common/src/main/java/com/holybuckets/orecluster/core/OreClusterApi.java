@@ -2,7 +2,9 @@ package com.holybuckets.orecluster.core;
 
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.orecluster.LoggerProject;
@@ -93,6 +95,21 @@ public class OreClusterApi {
 
         allOresArray.add(oreObj);
 
+        //Create a json array of all the level ids in the game called "Active Dimension Ids:"
+        JsonObject levelIds = new JsonObject();
+        levelIds.addProperty("header", "Active Dimension Ids:");
+        List<String> levelids = managers.keySet().stream()
+            .map( HBUtil.LevelUtil::toLevelId )
+            .map( id -> id.replaceAll("CLIENT:","").replaceAll("SERVER:","") )
+            .toList();
+            int i = 0;
+        for(String id : levelids) {
+            levelIds.addProperty("Dim"+i++, id);
+        }
+
+
+        allOresArray.add(levelIds);
+
         resp.addProperty("header", "Configured ores:\n");
         resp.add("value", allOresArray);
 
@@ -118,12 +135,14 @@ public class OreClusterApi {
         
         // Add all other config properties
         configObj.addProperty("configId", targetConfig.configId);
+        configObj.addProperty("dimensionId", targetConfig.oreClusterDimensionId);
         configObj.addProperty("spawnRate", targetConfig.oreClusterSpawnRate);
         configObj.addProperty("size", targetConfig.oreClusterVolume.toString());
         configObj.addProperty("density", targetConfig.oreClusterDensity.toString());
         configObj.addProperty("shape", targetConfig.oreClusterShape);
         configObj.addProperty("oreClusterDoesRegenerate", targetConfig.oreClusterDoesRegenerate);
         configObj.addProperty("maxYLevelSpawnAllowed", targetConfig.oreClusterMaxYLevelSpawn);
+        configObj.addProperty("minYLevelSpawnAllowed", targetConfig.oreClusterMinYLevelSpawn);
         configObj.addProperty("nonReplaceableBlocks", targetConfig.oreClusterNonReplaceableBlocks.toString());
         configObj.addProperty("alternativeClusterBlocks", targetConfig.oreClusterReplaceableEmptyBlocks.toString());
         //configObj.addProperty("oreVeinModifierExistingOres", targetConfig.oreVeinModifier);
