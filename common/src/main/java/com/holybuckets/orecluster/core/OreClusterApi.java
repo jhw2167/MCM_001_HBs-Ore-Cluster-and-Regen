@@ -68,13 +68,14 @@ public class OreClusterApi {
         List<OreClusterConfigModel> ores = modConfig.getOreConfigs().values().stream()
             .sorted(Comparator.comparingInt(a -> Integer.parseInt(a.configId)))
             .toList();
-        for(OreClusterConfigModel ore : ores )
+        for(OreClusterConfigModel oreConfig : ores )
         {
             JsonObject oreObj = new JsonObject();
-            oreObj.addProperty("header", "Ore With ConfigId: " + ore.configId + ":");
-            oreObj.addProperty("clusterType", HBUtil.BlockUtil.blockToString(ore.oreClusterType.getBlock()) );
-            oreObj.addProperty("clusterSpawnRate", config.oreClusterSpawnRate);
-            oreObj.addProperty("clusterRegenerates", (config.oreClusterDoesRegenerate) ? "yes" : "no");
+            oreObj.addProperty("header", "Ore With ConfigId: " + oreConfig.configId + ":");
+            oreObj.addProperty("dimension", oreConfig.oreClusterDimensionId);
+            oreObj.addProperty("clusterType", HBUtil.BlockUtil.blockToString(oreConfig.oreClusterType.getBlock()) );
+            oreObj.addProperty("clusterSpawnRate", oreConfig.oreClusterSpawnRate);
+            oreObj.addProperty("clusterRegenerates", (oreConfig.oreClusterDoesRegenerate) ? "yes" : "no");
             //oreObj.addProperty("vanillaSuperVeinsEnabled", config.oreClusterSpawnRate);
             //oreObj.addProperty("biome", config.oreClusterSpawnRate);
             allOresArray.add(oreObj);
@@ -104,7 +105,7 @@ public class OreClusterApi {
             .toList();
             int i = 0;
         for(String id : levelids) {
-            levelIds.addProperty("Dim"+i++, id);
+            levelIds.addProperty(""+i++, id);
         }
 
 

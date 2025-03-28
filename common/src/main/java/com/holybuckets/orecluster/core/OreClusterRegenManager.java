@@ -91,10 +91,16 @@ public class OreClusterRegenManager {
     }
 
     //* API
+    public int getDaysUntilNewPeriod() {
+        long currentTicks = generalConfig.getTotalTickCount();
+        long remainingTicks = periodTickEnd - currentTicks;
+        return (int) (remainingTicks / TICKS_PER_DAY);
+    }
 
     public int getDaysIntoPeriod() {
         long currentTicks = generalConfig.getTotalTickCount();
-        return (int) ((periodTickEnd - currentTicks) / TICKS_PER_DAY);
+        long ticksProgressToNextPeriod = currentTicks - periodTickStart;
+        return (int) (ticksProgressToNextPeriod / TICKS_PER_DAY);
     }
 
     public int getDayPeriodLength() {
