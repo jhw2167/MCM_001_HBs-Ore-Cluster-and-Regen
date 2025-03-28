@@ -1,0 +1,6 @@
+{
+	"oreClusterType": "create:zinc_ore",
+	"oreClusterSpawnRate": 6,
+	"oreClusterVolume": "24x12x24",
+	"oreClusterDensity": 0.1
+}

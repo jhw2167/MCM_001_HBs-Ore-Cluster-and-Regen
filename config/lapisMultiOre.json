@@ -1,0 +1,13 @@
+{
+	"oreClusterType": "create:zinc_ore",
+	"oreClusterSpawnRate": 6,
+	"oreClusterVolume": "24x12x24",
+	"oreClusterDensity": 0.1,
+	"oreClusterShape": "any",
+	"oreClusterMaxYLevelSpawn": 128,
+	"minChunksBetweenOreClusters": 0,
+	"oreVeinModifier": 1.0,
+	"oreClusterNonReplaceableBlocks": "minecraft:end_portal_frame, minecraft:bedrock",
+	"oreClusterReplaceableEmptyBlocks": "",
+	"oreClusterDoesRegenerate": true
+}

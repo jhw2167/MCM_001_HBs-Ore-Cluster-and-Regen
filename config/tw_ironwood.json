@@ -1,0 +1,16 @@
+{
+
+	"oreClusterType": "twilightforest:canopy_log",
+	"oreClusterSpawnRate": 100,
+	"oreClusterDimensionId": "twilightforest:renderer",
+	"oreClusterVolume": "10x10x10",
+	"oreClusterDensity": 0.4,
+	"oreClusterShape": "any",
+	"oreClusterMaxYLevelSpawn": 256,
+	"oreClusterMinYLevelSpawn": 0,
+	"minChunksBetweenOreClusters": 0,
+	"oreVeinModifier": 1.0,
+	"oreClusterNonReplaceableBlocks": "minecraft:end_portal_frame, minecraft:bedrock",
+	"oreClusterReplaceableEmptyBlocks": "twilightforest:time_chest, twilightforest:mangrove_sapling, minecraft:deepslate_emerald_ore, twilightforest:transformation_door",
+	"oreClusterDoesRegenerate": true
+}

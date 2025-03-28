@@ -1,0 +1,19 @@
+{
+    "oreClusterConfigs": [
+	   {
+            "oreClusterType": "aether:ambrosium_ore",
+            "oreClusterSpawnRate": 200,
+            "oreClusterDimensionId": "aether:the_aether",
+            "oreClusterVolume": "6x6x6",
+            "oreClusterDensity": 0.6,
+            "oreClusterShape": "SPHERE",
+            "oreClusterMaxYLevelSpawn": 256,
+            "oreClusterMinYLevelSpawn": -64000,
+            "minChunksBetweenOreClusters": 0,
+            "oreVeinModifier": 1.0,
+            "oreClusterNonReplaceableBlocks": "minecraft:bedrock, minecraft:air, minecraft:end_portal_frame",
+            "oreClusterReplaceableEmptyBlocks": "minecraft:air",
+            "oreClusterDoesRegenerate": true
+        }
+    ]
+}

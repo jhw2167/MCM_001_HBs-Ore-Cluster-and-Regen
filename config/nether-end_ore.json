@@ -1,0 +1,32 @@
+{
+    "oreClusterConfigs": [{
+            "oreClusterType": "minecraft:purpur_block",
+            "oreClusterSpawnRate": 100,
+            "oreClusterDimensionId": "minecraft:the_end",
+            "oreClusterVolume": "10x10x10",
+            "oreClusterDensity": 0.1,
+            "oreClusterShape": "any",
+            "oreClusterMaxYLevelSpawn": 256,
+            "oreClusterMinYLevelSpawn": 0,
+            "minChunksBetweenOreClusters": 0,
+            "oreVeinModifier": 1.0,
+            "oreClusterNonReplaceableBlocks": "minecraft:end_portal_frame, minecraft:bedrock",
+            "oreClusterReplaceableEmptyBlocks": "minecraft:deepslate, minecraft:deepslate_redstone_ore, minecraft:ender_chest, minecraft:deepslate_emerald_ore, minecraft:deepslate_diamond_ore",
+            "oreClusterDoesRegenerate": true
+        }, {
+            "oreClusterType": "minecraft:ancient_debris",
+            "oreClusterSpawnRate": 100,
+            "oreClusterDimensionId": "minecraft:the_nether",
+            "oreClusterVolume": "3x3x3",
+            "oreClusterDensity": 1.0,
+            "oreClusterShape": "any",
+            "oreClusterMaxYLevelSpawn": 256,
+            "oreClusterMinYLevelSpawn": 0,
+            "minChunksBetweenOreClusters": 0,
+            "oreVeinModifier": 1.0,
+            "oreClusterNonReplaceableBlocks": "minecraft:end_portal_frame, minecraft:bedrock",
+            "oreClusterReplaceableEmptyBlocks": "hbs_foundation:empty_block",
+            "oreClusterDoesRegenerate": false
+        }
+    ]
+}
