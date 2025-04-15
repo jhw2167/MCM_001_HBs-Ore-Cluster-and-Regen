@@ -520,20 +520,6 @@ public class OreClusterCalculator {
 
 
 
-
-
-
-    /**
-     * Determine the source position of a cluster
-     * @param oreType
-     * @param chunk
-     * @return
-     */
-    public Vec3i determineSourcePosition(String oreType, LevelChunk chunk) {
-        return null;
-    }
-
-
     /**
      * Takes an oreConfig and a source position and generates a sequence of positions
      * that will become the ore cluster in the world.

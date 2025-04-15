@@ -1,0 +1,13 @@
+Production Errors:
+---
+
+1. Stack Overflow error on loading world - ManagedChunkCapabilityProvider called infinitely
+---
+at com.holybuckets.foundation.capability.ManagedChunkCapabilityProvider.getCapability(ManagedChunkCapabilityProvider.java:66) ~[HBs_Foundation-forge-1.20.1-1.2.0.jar%23619!/:1.2.0] {re:classloading}
+	at com.holybuckets.foundation.capability.ManagedChunkCapabilityProvider.getCapability(ManagedChunkCapabilityProvider.java:58) ~[HBs_Foundation-forge-1.20.1-1.2.0.jar%23619!/:1.2.0] {re:classloading}
+	at net.minecraftforge.common.capabilities.ICapabilityProvider.getCapability(ICapabilityProvider.java:33) ~[forge-1.20.1-47.4.0-universal.jar%23819!/:?] {re:computing_frames,re:mixin,re:classloading}
+
+- was calling itself via inheritance, some mod triggered it
+
+2.
+---

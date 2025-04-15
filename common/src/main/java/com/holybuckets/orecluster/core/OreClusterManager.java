@@ -582,7 +582,11 @@ public class OreClusterManager {
                     continue;
                 }
 
-                String chunkId = chunksPendingDeterminations.poll();
+                String chunkId = chunksPendingDeterminations.poll(1, TimeUnit.SECONDS);
+                if( chunkId == null ) {
+                    sleep(100);
+                    continue;
+                }
                 
                 while( !this.determinedChunks.contains(chunkId) ) {
                     long start = System.nanoTime();

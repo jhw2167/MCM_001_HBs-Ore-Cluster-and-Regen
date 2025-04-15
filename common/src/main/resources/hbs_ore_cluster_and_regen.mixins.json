@@ -10,7 +10,6 @@
         "PlacedFeatureMixin"
     ],
     "client": [
-        "MixinTitleScreen"
     ],
     "server": [
     ],
