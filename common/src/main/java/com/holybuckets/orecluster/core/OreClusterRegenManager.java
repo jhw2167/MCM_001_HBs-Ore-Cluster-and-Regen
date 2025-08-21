@@ -9,6 +9,7 @@ import com.holybuckets.foundation.datastore.WorldSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.orecluster.Constants;
 import com.holybuckets.orecluster.LoggerProject;
@@ -16,11 +17,17 @@ import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 
+import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static com.holybuckets.foundation.GeneralConfig.OVERWORLD;
 
 
 public class OreClusterRegenManager {
@@ -28,6 +35,7 @@ public class OreClusterRegenManager {
     Long periodTickStart;
     Long periodTickEnd;
     Long periodTickLength;
+    String periodCurrentStage;
 
     ExecutorService triggerRegenThreadExecutor;
     Map<LevelAccessor, OreClusterManager> managers;
@@ -54,51 +62,64 @@ public class OreClusterRegenManager {
         reg.registerOnLevelUnload(this::onLevelUnload, EventPriority.Normal);
         reg.registerOnDataSave(this::save, EventPriority.High);
 
-        if( OreClustersAndRegenMain.DEBUG ) {
-            reg.registerOnServerTick(EventRegistrar.TickType.ON_120_TICKS, this::onDailyTick);
-        } else {
-            reg.registerOnServerTick(EventRegistrar.TickType.DAILY_TICK, this::onDailyTick);
-        }
+        reg.registerOnDailyTick(GeneralConfig.OVERWORLD_LOC, this::onDailyTick);
         LoggerProject.logInit("015000", this.getClass().getName());
+
     }
 
     //* BEHAVIOR METHODS *//
 
-    final int TICKS_PER_DAY = (OreClustersAndRegenMain.DEBUG) ? 2400 : 24000;
-    public void setPeriodLength(String item)
+    final int TICKS_PER_DAY = (OreClustersAndRegenMain.DEBUG) ? 2400 : (int) GeneralConfig.TICKS_PER_DAY;
+    public void setPeriodLength( @Nullable String item) throws InvalidId
     {
         Map<String, Integer> periodLengthByItem = config.getDefaultConfig().oreClusterRegenPeriods;
         if( item == null) {
             item = periodLengthByItem.keySet().iterator().next();
         }
+        if( !periodLengthByItem.containsKey(item) ) throw new InvalidId("Invalid item for period length: " + item);
+
         int regenPeriodInDays = periodLengthByItem.get(item);
-        this.periodTickLength = Long.valueOf( regenPeriodInDays*TICKS_PER_DAY );
+        this.periodTickLength = (long) regenPeriodInDays*TICKS_PER_DAY;
+        this.periodCurrentStage = item;
         updatePeriod(periodTickLength);
     }
 
-    private void updatePeriod(long length) {
-        this.periodTickStart = generalConfig.getTotalTickCount();
-        this.periodTickEnd = periodTickStart + periodTickLength;
+    public void updatePeriod(long length) {
+        updatePeriod(generalConfig.getTotalTickCountWithSleep(OVERWORLD), length);
+    }
+
+    /**
+     * Cancels the current period, next period is triggered at start + length
+     * @param start The tick count at which the period starts
+     * @param length The length of the period in ticks
+     *
+     */
+    public void updatePeriod(long start, long length) {
+        this.periodTickLength = length;
+        this.periodTickStart = start;
+        this.periodTickEnd = start + length;
     }
 
 
-    private void handleDailyTick(long tickCount) {
-        if( tickCount > periodTickEnd )
+    private void handleDailyTick(ServerTickEvent.DailyTickEvent event)
+    {
+        long currentTicks = event.getTickCountWithSleeps();
+        if( currentTicks >= periodTickEnd )
         {
             this.triggerRegenThreadExecutor.submit(this::triggerGlobalRegen);
-            updatePeriod(periodTickLength);
+            updatePeriod(currentTicks, periodTickLength);
         }
     }
 
     //* API
     public int getDaysUntilNewPeriod() {
-        long currentTicks = generalConfig.getTotalTickCount();
+        long currentTicks = generalConfig.getTotalTickCountWithSleep(OVERWORLD);
         long remainingTicks = periodTickEnd - currentTicks;
         return (int) (remainingTicks / TICKS_PER_DAY);
     }
 
     public int getDaysIntoPeriod() {
-        long currentTicks = generalConfig.getTotalTickCount();
+        long currentTicks = generalConfig.getTotalTickCountWithSleep(OVERWORLD);
         long ticksProgressToNextPeriod = currentTicks - periodTickStart;
         return (int) (ticksProgressToNextPeriod / TICKS_PER_DAY);
     }
@@ -165,6 +186,17 @@ public class OreClusterRegenManager {
         if(!object.has("periodTickLength") || object.get("periodTickLength").isJsonNull()) return false;
         periodTickLength = object.get("periodTickLength").getAsLong();
 
+        if(!object.has("periodCurrentStage") || object.get("periodCurrentStage").isJsonNull()) return false;
+        periodCurrentStage = object.get("periodCurrentStage").getAsString();
+
+        Map<String, Integer> periods = config.getDefaultConfig().oreClusterRegenPeriods;
+        if(periods.containsKey(periodCurrentStage)) {       //reflects current configs if changed
+            periodTickLength = (long) (periods.get(periodCurrentStage) * TICKS_PER_DAY);
+        } else {
+            LoggerProject.logError("015003", "Invalid periodCurrentStage: " + periodCurrentStage
+                + ". Using saved period length of " + periodTickLength);
+        }
+
         return true;
     }
 
@@ -178,6 +210,7 @@ public class OreClusterRegenManager {
         wrapper.addProperty("periodTickStart", periodTickStart);
         wrapper.addProperty("periodTickEnd", periodTickEnd);
         wrapper.addProperty("periodTickLength", periodTickLength);
+        wrapper.addProperty("periodCurrentStage", periodCurrentStage);
 
 
         WorldSaveData worldSaveData = ds.getOrCreateWorldSaveData(Constants.MOD_ID);
@@ -202,7 +235,13 @@ public class OreClusterRegenManager {
         if(isLoaded) return;
         this.triggerRegenThreadExecutor = Executors.newSingleThreadExecutor();
         boolean loadedFromFile = load();
-        if(!loadedFromFile) setPeriodLength(null);
+        try {
+            if(!loadedFromFile) setPeriodLength(null);
+        } catch (InvalidId e) {
+            LoggerProject.logError("015002", "Error setting period length for OreClusterRegenManager");
+            return;
+        }
+
         isLoaded = true;
     }
 
@@ -212,8 +251,8 @@ public class OreClusterRegenManager {
     }
 
 
-    public void onDailyTick(ServerTickEvent event) {
-        this.handleDailyTick(event.getTickCount());
+    public void onDailyTick(ServerTickEvent.DailyTickEvent event) {
+        this.handleDailyTick(event);
     }
 
 

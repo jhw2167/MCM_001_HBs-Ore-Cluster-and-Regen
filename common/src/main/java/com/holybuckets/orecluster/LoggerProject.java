@@ -68,7 +68,7 @@ public class LoggerProject extends LoggerBase {
             //get the stack trace of the exception into a string to load into sb
             StackTraceElement[] stackTrace = thrown.getStackTrace();
             for (StackTraceElement ste : stackTrace) {
-                sb.append("\n" + ste.toString() );
+                //sb.append("\n" + ste.toString() );
             }
             sb.append("\n\n");
 

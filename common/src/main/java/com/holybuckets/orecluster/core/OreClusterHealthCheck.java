@@ -7,6 +7,7 @@ import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
@@ -47,9 +48,9 @@ public class OreClusterHealthCheck {
             TimeUnit.SECONDS, new SynchronousQueue<>(), new ThreadPoolExecutor.DiscardPolicy());
 
         if (DEBUG) {
-            reg.registerOnServerTick(EventRegistrar.TickType.ON_1200_TICKS, this::onDailyTick);
+            reg.registerOnServerTick(TickType.ON_1200_TICKS, this::onDailyTick);
         } else {
-            reg.registerOnServerTick(EventRegistrar.TickType.DAILY_TICK, this::onDailyTick);
+            reg.registerOnDailyTick(GeneralConfig.OVERWORLD_LOC, this::onDailyTick);
         }
         reg.registerOnServerStarted(this::onServerStarted);
 

@@ -13,6 +13,7 @@ import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.holybuckets.orecluster.Constants;
@@ -25,6 +26,7 @@ import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -118,7 +120,7 @@ public class OreClusterManager {
     /** Variables **/
     private Integer LOADS = 0;
     private Integer UNLOADS = 0;
-    private final LevelAccessor level;
+    private final Level level;
     private final ModRealTimeConfig config;
     private Random randSeqClusterPositionGen;
     private Random randSeqClusterBuildGen;
@@ -181,7 +183,7 @@ public class OreClusterManager {
     //private final ThreadPoolExecutor threadPoolChunkProcessing;
 
     /** Constructor **/
-    public OreClusterManager(LevelAccessor level, ModRealTimeConfig config)
+    public OreClusterManager(Level level, ModRealTimeConfig config)
     {
         super();
         this.level = level;
@@ -268,7 +270,7 @@ public class OreClusterManager {
     public static void init(EventRegistrar reg) {
         MANAGERS = new HashMap<>();
         reg.registerOnDataSave(OreClusterManager::save, EventPriority.High);
-        reg.registerOnServerTick(EventRegistrar.TickType.ON_1200_TICKS, OreClusterManager::on1200Ticks);
+        reg.registerOnServerTick(TickType.ON_1200_TICKS, OreClusterManager::on1200Ticks);
     }
 
 
@@ -601,6 +603,8 @@ public class OreClusterManager {
                 LoggerProject.logDebug("002020", "workerThreadDetermineClusters, after handleChunkDetermination for chunkId: " + chunkId);
             }
 
+        } catch (InterruptedException e) {
+            //nothing
         }
         catch (Exception e) {
             thrown = e;

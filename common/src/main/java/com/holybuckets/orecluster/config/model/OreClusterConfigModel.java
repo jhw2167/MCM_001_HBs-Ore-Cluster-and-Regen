@@ -42,7 +42,7 @@ public class OreClusterConfigModel {
         .stream().collect(Collectors.toCollection(HashSet::new));
     public List<BlockState> oreClusterReplaceableEmptyBlocks = processReplaceableEmptyBlocks(COreClusters.DEF_ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS);
     public Boolean oreClusterDoesRegenerate = COreClusters.DEF_REGENERATE_ORE_CLUSTERS;
-    public Map<String, Integer> oreClusterRegenPeriods; //defaultConfigOnly
+    public LinkedHashMap<String, Integer> oreClusterRegenPeriods; //defaultConfigOnly
 
     private static final Gson gson = new GsonBuilder().create();
     private static final COreClusters oreClusterDefaultConfigs = new COreClusters(); //Used for default values
@@ -90,7 +90,7 @@ public class OreClusterConfigModel {
         this.oreClusterDoesRegenerate = cOreClusters.regenerateOreClusters;
 
         //Iterate through the oreClusterRegenPeriods and add them to the map
-        oreClusterRegenPeriods = new HashMap<>();
+        oreClusterRegenPeriods = new LinkedHashMap<>();
         this.oreClusterRegenPeriods = processRegenPeriods(
             cOreClusters.regenerateOreClusterUpgradeItems.split(","),
             cOreClusters.regenerateOreClusterPeriodLengths.split(","));
@@ -190,12 +190,12 @@ public class OreClusterConfigModel {
             Integer.parseInt(volumeArray[2]));
     }
 
-    public HashMap<String, Integer> processRegenPeriods(String [] upgrades, String [] oreClusterRegenPeriodArray)
+    public LinkedHashMap<String, Integer> processRegenPeriods(String [] upgrades, String [] oreClusterRegenPeriodArray)
     {
         String numberFormatError = "Error parsing oreClusterRegenPeriods, use comma separated list of integers with no spaces";
 
 
-        HashMap<String, Integer> oreClusterRegenPeriods = new HashMap<>();
+        LinkedHashMap<String, Integer> oreClusterRegenPeriods = new LinkedHashMap<>();
 
         int i = 0;
         try {
@@ -213,7 +213,7 @@ public class OreClusterConfigModel {
         }
         catch (NumberFormatException e) {
             //Reset map to default values given error
-            oreClusterRegenPeriods = new HashMap<>();
+            oreClusterRegenPeriods = new LinkedHashMap<>();
             upgrades = COreClusters.DEF_REGENERATE_ORE_CLUSTER_UPGRADE_ITEMS.split(",");
             oreClusterRegenPeriodArray = COreClusters.DEF_REGENERATE_ORE_CLUSTER_PERIOD_LENGTHS.split(",");
             i = 0;
