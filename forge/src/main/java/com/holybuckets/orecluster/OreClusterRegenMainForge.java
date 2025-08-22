@@ -13,6 +13,12 @@ public class OreClusterRegenMainForge {
     public OreClusterRegenMainForge() {
         super();
         Balm.initialize(Constants.MOD_ID, CommonClass::init);
+        
+        // Handle client initialization
+        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> () -> {
+            BalmClient.initialize(Constants.MOD_ID);
+            CommonClassClient.initClient();
+        });
     }
 
 }
