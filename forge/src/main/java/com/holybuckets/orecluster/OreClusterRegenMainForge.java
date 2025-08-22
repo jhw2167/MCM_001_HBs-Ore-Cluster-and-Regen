@@ -1,6 +1,5 @@
 package com.holybuckets.orecluster;
 
-import com.holybuckets.orecluster.client.CommonClassClient;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.client.BalmClient;
 import net.minecraftforge.api.distmarker.Dist;
@@ -15,9 +14,8 @@ public class OreClusterRegenMainForge {
         Balm.initialize(Constants.MOD_ID, CommonClass::init);
         
         // Handle client initialization
-        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> () -> {
-            BalmClient.initialize(Constants.MOD_ID);
-            CommonClassClient.initClient();
+        DistExecutor.runWhenOn(Dist.CLIENT, () -> () -> {
+            BalmClient.initialize(Constants.MOD_ID, OreClusterRegenMainClientForge::clientInitializeForge);
         });
     }
 

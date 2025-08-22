@@ -8,5 +8,6 @@ public class OreClusterRegenMainFabric implements ModInitializer {
     @Override
     public void onInitialize() {
         Balm.initialize(Constants.MOD_ID, CommonClass::init);
+
     }
 }

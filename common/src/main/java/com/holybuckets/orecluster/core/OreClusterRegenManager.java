@@ -192,6 +192,7 @@ public class OreClusterRegenManager {
         Map<String, Integer> periods = config.getDefaultConfig().oreClusterRegenPeriods;
         if(periods.containsKey(periodCurrentStage)) {       //reflects current configs if changed
             periodTickLength = (long) (periods.get(periodCurrentStage) * TICKS_PER_DAY);
+            updatePeriod(periodTickStart, periodTickLength);
         } else {
             LoggerProject.logError("015003", "Invalid periodCurrentStage: " + periodCurrentStage
                 + ". Using saved period length of " + periodTickLength);

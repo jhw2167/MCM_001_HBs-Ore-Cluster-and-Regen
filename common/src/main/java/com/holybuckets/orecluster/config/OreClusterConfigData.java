@@ -63,16 +63,16 @@ public class OreClusterConfigData implements BalmConfigData {
         @IgnoreConfig("Too Confusing, will only use explicit list")
         public String validOreClusterOreBlocks = DEF_VALID_ORE_CLUSTER_ORE_BLOCKS;
 
-        @Comment("Defines the default frequency of ore clusters. Takes an integer as the number of expected ore clusters per 1000 chunks")
+        @Comment("Defines the default frequency of ore clusters. Integer number of expected ore clusters per 1000 chunks.")
         public int oreClusterSpawnRate = DEF_ORE_CLUSTER_SPAWN_RATE.get();
 
-        @Comment("Defines the default dimension in which ore clusters will spawn. This is a single string value. e.g. minecraft:overworld or minecraft:the_nether. Currently you cannot have clusters of the same ore in two different dimensions")
+        @Comment("Defines the default dimension in which ore clusters will spawn. This is a single string value. e.g. minecraft:overworld or minecraft:the_nether. Clusters specified in other dimensions should be specified in the JSON config file specified by 'oreClusterFileConfigPath' below.")
         public String oreClusterDimensionId = DEF_ORE_CLUSTER_DIMENSION_ID;
 
-        @Comment("Specifies the default dimensions of a cluster. <X>x<Y>x<Z>. The true cluster will always be smaller than this box because it will choose a shape that roughly fits inside it, max 64x64x64 else it will revert to the default 16x16x16")
+        @Comment("Specifies the default dimensions of a cluster. <X>x<Y>x<Z>. The true cluster will always be smaller than this box because it will choose a shape that roughly fits inside it. MAX 64x64x64 else it will revert to the default 16x16x16")
         public String oreClusterVolume = DEF_ORE_CLUSTER_VOLUME;
 
-        @Comment("Determines the density of ore within a cluster. To reduce density ore blocks within the cluster will be replaced with blocks from 'defaultOreClusterReplaceableEmptyBlock' below")
+        @Comment("Specifies the density of ore within a cluster. Blocks from 'oreClusterReplaceableEmptyBlocks' are mixed into this cluster randomly to reduce density")
         public float oreClusterDensity = DEF_ORE_CLUSTER_DENSITY.get();
 
         @Comment("Defines the shape of the ore cluster. Options are 'SPHERE', 'CUBE', 'ANY'. Defaults to ANY, which takes a random shape each generation")
@@ -91,13 +91,13 @@ public class OreClusterConfigData implements BalmConfigData {
         @IgnoreConfig("Not used")
         public int maxChunksBetweenOreClusters = DEF_MAX_CHUNKS_BETWEEN_ORE_CLUSTERS.get();
 
-        @Comment("Scales the presence of normal (small) ore veins between 0 and 1. This mod replaces existing ore veins in real time with the specified first block in 'defaultOreClusterReplaceableEmptyBlock' block so can only reduce the frequency of ore veins, not increase it")
+        @Comment("Scales the presence of small (vanilla) ore veins between 0 and 1. This mod replaces existing ore veins in real time with the specified first block in 'oreClusterReplaceableEmptyBlocks' block e.g. replaces some iron_ore veins with stone on spawn")
         public float oreVeinModifier = DEF_ORE_VEIN_MODIFIER.get();
 
         @Comment("List of blocks that should not be replaced by the specified ore during cluster generation. For example, if you don't want ore clusters to replace bedrock - which is very reasonable - you would add 'minecraft:bedrock' to this list")
         public String oreClusterNonreplaceableBlocks = DEF_ORE_CLUSTER_NONREPLACEABLE_BLOCKS;
 
-        @Comment("Block used to fill in the ore cluster shape when we want the cluster to be more sparse this field can take multiple comma seperated blocks; but only the first block will be used to replace ore veins if ORE_VEIN_MODIFIER is below 1")
+        @Comment("Blocks mixed into the ore cluster shape to reduce density of the primary block. Takes multiple comma seperated blocks. Only the first block in the list will be used to replace ore veins if ORE_VEIN_MODIFIER is below 1")
         public String oreClusterReplaceableEmptyBlocks = DEF_ORE_CLUSTER_REPLACEABLE_EMPTY_BLOCKS;
 
         @Comment("Flag indicating if ore clusters should regenerate by default. Overriden by specific ore settings")

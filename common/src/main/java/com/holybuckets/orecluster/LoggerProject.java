@@ -58,11 +58,9 @@ public class LoggerProject extends LoggerBase {
         StringBuilder sb = new StringBuilder();
         sb.append("Thread " + Thread.currentThread().getName() + " exited");
 
-        if (thrown == null)
-        {
+        if (thrown == null) {
             logDebug(logId, sb + " gracefully");
-        } else
-        {
+        } else {
             sb.append(" with exception: " + thrown.getMessage());
 
             //get the stack trace of the exception into a string to load into sb

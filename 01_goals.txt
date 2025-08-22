@@ -430,10 +430,12 @@ existingClustersByType.get(Blocks.IRON_ORE.defaultBlockState()).contains("229,24
 43.  Clean up logs
 ---  
 
-44.  
+44.  No entry point on server
 ---  
+	- mod entirely doesnt work when deployed to server
+	- 
 
-45.  
+45.  Add support for biomes
 ---  
 
 46.  
