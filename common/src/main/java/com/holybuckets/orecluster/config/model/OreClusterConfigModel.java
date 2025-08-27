@@ -28,6 +28,8 @@ public class OreClusterConfigModel {
     public String configId;
     public BlockState oreClusterType = null;
     public HashSet<Block> validOreClusterOreBlocks; //defaultConfigOnly
+    public String oreClusterBiome = "*"; // wildcard for all biomes
+    public String oreClusterDimension = "minecraft:overworld"; 
     public Integer oreClusterSpawnRate = COreClusters.DEF_ORE_CLUSTER_SPAWN_RATE.get();
     public String oreClusterDimensionId = COreClusters.DEF_ORE_CLUSTER_DIMENSION_ID;
     public TripleInt oreClusterVolume = processVolume( COreClusters.DEF_ORE_CLUSTER_VOLUME);
