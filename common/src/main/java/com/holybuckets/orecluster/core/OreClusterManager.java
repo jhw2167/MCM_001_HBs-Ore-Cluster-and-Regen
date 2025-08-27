@@ -147,10 +147,10 @@ public class OreClusterManager {
     final ConcurrentHashMap<String, ManagedOreClusterChunk> loadedOreClusterChunks;
     final Set<String> initializedOreClusterChunks;
 
-    final ConcurrentHashMap<BlockState, Set<String>> existingClustersByType;
-    final ConcurrentHashMap<BlockState, Set<String>> tentativeClustersByType;
-    final ConcurrentHashMap<BlockState, Set<String>> removedClustersByType;
-    final ConcurrentHashMap<String, Map<BlockState, BlockPos>> addedClustersByType;
+    final ConcurrentHashMap<OreClusterId, Set<String>> existingClustersByType;
+    final ConcurrentHashMap<OreClusterId, Set<String>> tentativeClustersByType;
+    final ConcurrentHashMap<OreClusterId, Set<String>> removedClustersByType;
+    final ConcurrentHashMap<String, Map<OreClusterId, BlockPos>> addedClustersByType;
     final ChunkGenerationOrderHandler mainSpiral;
     private OreClusterCalculator oreClusterCalculator;
 
