@@ -3,14 +3,18 @@ package com.holybuckets.orecluster.config.model;
 
 import com.google.gson.*;
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
+import com.holybuckets.orecluster.Constants;
 import com.holybuckets.orecluster.LoggerProject;
-import com.holybuckets.orecluster.config.OreClusterConfigData;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 /*
@@ -24,37 +28,6 @@ import java.util.*;
  */
 public class OreClusterJsonConfig implements IStringSerializable
 {
-    public static class OreClusterId {
-        private final int state; // 3 digit numeric ID
-        
-        public OreClusterId(String level, String biome, String blockName) {
-            // Create deterministic hash from combined strings
-            String combined = level + "|" + biome + "|" + blockName;
-            // Get positive hash and limit to 3 digits
-            this.state = Math.abs(combined.hashCode() % 1000);
-        }
-
-        public static OreClusterId getId(ResourceLocation level, ResourceLocation biome, ResourceLocation blockName) {
-            return new OreClusterId(
-                level != null ? level.toString() : "",
-                biome != null ? biome.toString() : "",
-                blockName != null ? blockName.toString() : ""
-            );
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            OreClusterId that = (OreClusterId) o;
-            return state == that.state;
-        }
-
-        @Override
-        public int hashCode() {
-            return state;
-        }
-    }
 
     public static final String CLASS_ID = "006";
     public static final OreClusterJsonConfig DEFAULT_CONFIG = new OreClusterJsonConfig();
@@ -72,7 +45,7 @@ public class OreClusterJsonConfig implements IStringSerializable
         super();
     }
 
-    public OreClusterJsonConfig(Map<BlockState, OreClusterConfigModel> configs) {
+    public OreClusterJsonConfig(Map<OreClusterId, OreClusterConfigModel> configs) {
         super();
         initFromMap(configs);
     }
@@ -104,7 +77,7 @@ public class OreClusterJsonConfig implements IStringSerializable
         return oreClusterConfigModels;
     }
 
-    private void initFromMap(Map<BlockState, OreClusterConfigModel> configs) {
+    private void initFromMap(Map<OreClusterId, OreClusterConfigModel> configs) {
         this.oreClusterConfigs = new ArrayList<>();
         for (OreClusterConfigModel model : configs.values()) {
             this.oreClusterConfigs.add( model.serializeJson() );
@@ -132,6 +105,8 @@ public class OreClusterJsonConfig implements IStringSerializable
                 IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.AIR));
                 IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.DIRT));
                 IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.GRASS));
+            IRON.oreClusterBiome = "";
+            IRON.oreClusterDimensionId = "overworld";
 
         final OreClusterConfigModel COAL = new OreClusterConfigModel(Blocks.COAL_ORE.defaultBlockState());
             COAL.oreClusterSpawnRate = 32;
@@ -238,5 +213,46 @@ public class OreClusterJsonConfig implements IStringSerializable
         }
 
     }
+
+
+
+    public static class OreClusterId {
+        private final int id; // 3 digit numeric ID
+        static final ResourceLocation ORE_CLUSTERS = new ResourceLocation(Constants.MOD_ID, "cluster_configs");
+
+        public OreClusterId(@Nullable ResourceLocation level, @Nullable ResourceLocation biome, @NotNull ResourceLocation blockName) {
+            String combined = (level != null ? level.toString() : "") + "|" +
+                (biome != null ? biome.toString() : "") + "|" +
+                blockName;
+            this.id = (int) HBUtil.HBMath.getUUID(ORE_CLUSTERS, combined, 5);
+        }
+
+
+        public static OreClusterId getId(ResourceLocation level, ResourceLocation biome, ResourceLocation blockName) {
+            return new OreClusterId(level, biome, blockName);
+        }
+
+        public static OreClusterId getId(Level level, Biome biome, Block blockName) {
+            ResourceLocation levelId = null, biomeId = null;
+            if (level != null) levelId = level.dimension().location();
+            if (biome != null) biomeId = HBUtil.LevelUtil.toBiomeResourceLocation(biome);
+            ResourceLocation blockId = HBUtil.BlockUtil.getBlockResourceLocation(blockName);
+            return new OreClusterId(levelId, biomeId, blockId);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            OreClusterId that = (OreClusterId) o;
+            return id == that.id;
+        }
+
+        @Override
+        public int hashCode() {
+            return id;
+        }
+    }
+
 
 }
