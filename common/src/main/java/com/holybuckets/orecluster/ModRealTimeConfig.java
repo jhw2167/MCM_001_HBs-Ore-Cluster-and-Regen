@@ -40,7 +40,7 @@ public class ModRealTimeConfig
      */
 
     private OreClusterConfigModel defaultConfig;
-    private Map<BlockState, OreClusterConfigModel> oreConfigs;
+    private Map<OreClusterJsonConfig.OreClusterId, OreClusterConfigModel> oreConfigs;
 
     /** We will batch checks for which chunks have clusters by the next CHUNK_NORMALIZATION_TOTAL chunks at a time
      thus the spawnrate is normalized to 256 chunks */
@@ -82,6 +82,10 @@ public class ModRealTimeConfig
 
         //Create new oreConfig for each element in cOreClusters list
         this.oreConfigs = new HashMap<>();
+        
+        // Initialize with default dimension and biome
+        defaultConfig.oreClusterDimension = "minecraft:overworld";
+        defaultConfig.oreClusterBiome = "*"; // wildcard for all biomes
 
         File configFile = new File(clusterConfig.oreClusterFileConfigPath);
         File defaultConfigFile = new File(OreClusterConfigData.COreClusters.DEF_ORE_CLUSTER_FILE_CONFIG_PATH);
@@ -127,12 +131,17 @@ public class ModRealTimeConfig
          *  Getters
          */
 
-        public Map<BlockState, OreClusterConfigModel> getOreConfigs() {
+        public Map<OreClusterJsonConfig.OreClusterId, OreClusterConfigModel> getOreConfigs() {
             return oreConfigs;
         }
 
-        public OreClusterConfigModel getOreConfigByOre(BlockState ore) {
-            return oreConfigs.get(ore);
+        public OreClusterConfigModel getOreConfigByOre(BlockState ore, ResourceLocation dimension, ResourceLocation biome) {
+            OreClusterJsonConfig.OreClusterId id = OreClusterJsonConfig.OreClusterId.getId(
+                dimension,
+                biome,
+                ore.getBlock().getRegistryName()
+            );
+            return oreConfigs.get(id);
         }
 
         public OreClusterConfigModel getOreConfigByConfigId(String id) {

@@ -24,6 +24,37 @@ import java.util.*;
  */
 public class OreClusterJsonConfig implements IStringSerializable
 {
+    public static class OreClusterId {
+        private final int state; // 3 digit numeric ID
+        
+        public OreClusterId(String level, String biome, String blockName) {
+            // Create deterministic hash from combined strings
+            String combined = level + "|" + biome + "|" + blockName;
+            // Get positive hash and limit to 3 digits
+            this.state = Math.abs(combined.hashCode() % 1000);
+        }
+
+        public static OreClusterId getId(ResourceLocation level, ResourceLocation biome, ResourceLocation blockName) {
+            return new OreClusterId(
+                level != null ? level.toString() : "",
+                biome != null ? biome.toString() : "",
+                blockName != null ? blockName.toString() : ""
+            );
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            OreClusterId that = (OreClusterId) o;
+            return state == that.state;
+        }
+
+        @Override
+        public int hashCode() {
+            return state;
+        }
+    }
 
     public static final String CLASS_ID = "006";
     public static final OreClusterJsonConfig DEFAULT_CONFIG = new OreClusterJsonConfig();
