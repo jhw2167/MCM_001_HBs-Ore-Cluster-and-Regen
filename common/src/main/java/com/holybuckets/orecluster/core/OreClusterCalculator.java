@@ -67,7 +67,7 @@ public class OreClusterCalculator {
      * determineClusters
      * determineChunks
      */
-    public Map<String, List<BlockState>> calculateClusterLocations(List<String> chunks, Random rng)
+    public Map<String, List<OreClusterId>> calculateClusterLocations(List<String> chunks, Random rng)
     {
         //long startTime = System.nanoTime();
 
@@ -540,7 +540,7 @@ public class OreClusterCalculator {
      * @param sourcePos source position of the cluster
      * @return List of Blockstate - BlockPos pairs that make up the ore cluster
      */
-    public List<Pair<BlockState, BlockPos>> generateCluster(ManagedOreClusterChunk chunk, BlockState oreType, BlockPos sourcePos)
+    public List<Pair<BlockState, BlockPos>> generateCluster(ManagedOreClusterChunk chunk, OreClusterId clusterId, BlockPos sourcePos)
     {
 
         //1. Determine the cluster size and shape

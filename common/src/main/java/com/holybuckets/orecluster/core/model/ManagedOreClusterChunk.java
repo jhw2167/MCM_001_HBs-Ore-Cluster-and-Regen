@@ -75,8 +75,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private long tickLoaded;
     private boolean isReady;
 
-    private HashMap<BlockState, BlockPos> clusterTypes;
-    private Map<BlockState, Pair<BlockPos, MutableInt>> originalOres;
+    private HashMap<OreClusterId, BlockPos> clusterTypes;
+    private Map<OreClusterId, Pair<BlockPos, MutableInt>> originalOres; 
     private Map<Integer, Pair<BlockState, BlockPos>> blockStateUpdates;
     private int updatesSize;
 
@@ -161,7 +161,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return status;
     }
 
-    public HashMap<BlockState, BlockPos> getClusterTypes() {
+    public HashMap<OreClusterId, BlockPos> getClusterTypes() {
     if(this.clusterTypes == null)
         return new HashMap<>();
         return clusterTypes;
@@ -373,20 +373,20 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     /** Other Methods **/
-    public void addClusterTypes(List<BlockState> clusters)
+    public void addClusterTypes(List<OreClusterId> clusters)
     {
         if( clusters == null ) return;
         if( this.clusterTypes == null ) this.clusterTypes = new HashMap<>();
 
-        Map<BlockState, BlockPos> clusterMap = new HashMap<>();
-        for(BlockState state : clusters) {
-            if(this.clusterTypes.containsKey(state)) continue;
-            clusterMap.put(state, null);
+        Map<OreClusterId, BlockPos> clusterMap = new HashMap<>();
+        for(OreClusterId id : clusters) {
+            if(this.clusterTypes.containsKey(id)) continue;
+            clusterMap.put(id, null);
         }
         this.addClusterTypes(clusterMap);
     }
 
-    public void addClusterTypes(Map<BlockState, BlockPos> clusterMap)
+    public void addClusterTypes(Map<OreClusterId, BlockPos> clusterMap)
     {
         if( clusterMap == null )
             return;
