@@ -217,14 +217,36 @@ public class OreClusterJsonConfig implements IStringSerializable
 
 
     public static class OreClusterId {
-        private final int id; // 3 digit numeric ID
+        private final int id; // 5 digit numeric ID
+        private final ResourceLocation level;
+        private final ResourceLocation biome; 
+        private final ResourceLocation blockName;
         static final ResourceLocation ORE_CLUSTERS = new ResourceLocation(Constants.MOD_ID, "cluster_configs");
 
         public OreClusterId(@Nullable ResourceLocation level, @Nullable ResourceLocation biome, @NotNull ResourceLocation blockName) {
+            this.level = level;
+            this.biome = biome;
+            this.blockName = blockName;
             String combined = (level != null ? level.toString() : "") + "|" +
                 (biome != null ? biome.toString() : "") + "|" +
                 blockName;
             this.id = (int) HBUtil.HBMath.getUUID(ORE_CLUSTERS, combined, 5);
+        }
+
+        public String getFormattedId() {
+            return String.format("%05d", id);
+        }
+
+        public ResourceLocation getLevel() {
+            return level;
+        }
+
+        public ResourceLocation getBiome() {
+            return biome;
+        }
+
+        public ResourceLocation getBlockName() {
+            return blockName;
         }
 
 
