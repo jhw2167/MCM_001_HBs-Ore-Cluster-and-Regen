@@ -21,6 +21,65 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class OreClusterConfigModel {
 
+    public static class OreClusterId {
+        private final int id; // 5 digit numeric ID
+        private final ResourceLocation level;
+        private final ResourceLocation biome; 
+        private final ResourceLocation blockName;
+        static final ResourceLocation ORE_CLUSTERS = new ResourceLocation(Constants.MOD_ID, "cluster_configs");
+
+        public OreClusterId(@Nullable ResourceLocation level, @Nullable ResourceLocation biome, @NotNull ResourceLocation blockName) {
+            this.level = level;
+            this.biome = biome;
+            this.blockName = blockName;
+            String combined = (level != null ? level.toString() : "") + "|" +
+                (biome != null ? biome.toString() : "") + "|" +
+                blockName;
+            this.id = (int) HBUtil.HBMath.getUUID(ORE_CLUSTERS, combined, 5);
+        }
+
+        public String getFormattedId() {
+            return String.format("%05d", id);
+        }
+
+        public ResourceLocation getLevel() {
+            return level;
+        }
+
+        public ResourceLocation getBiome() {
+            return biome;
+        }
+
+        public ResourceLocation getBlockName() {
+            return blockName;
+        }
+
+        public static OreClusterId getId(ResourceLocation level, ResourceLocation biome, ResourceLocation blockName) {
+            return new OreClusterId(level, biome, blockName);
+        }
+
+        public static OreClusterId getId(Level level, Biome biome, Block blockName) {
+            ResourceLocation levelId = null, biomeId = null;
+            if (level != null) levelId = level.dimension().location();
+            if (biome != null) biomeId = HBUtil.LevelUtil.toBiomeResourceLocation(biome);
+            ResourceLocation blockId = HBUtil.BlockUtil.getBlockResourceLocation(blockName);
+            return new OreClusterId(levelId, biomeId, blockId);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            OreClusterId that = (OreClusterId) o;
+            return id == that.id;
+        }
+
+        @Override
+        public int hashCode() {
+            return id;
+        }
+    }
+
     public static final String CLASS_ID = "004";
     public static Short ID_COUNTER = 0;
 
@@ -28,7 +87,8 @@ public class OreClusterConfigModel {
     public String configId;
     public BlockState oreClusterType = null;
     public HashSet<Block> validOreClusterOreBlocks; //defaultConfigOnly
-    public String oreClusterBiome = ""; // wildcard for all biomes
+    public List<ResourceLocation> biomeWhitelist = new ArrayList<>();
+    public List<ResourceLocation> biomeBlacklist = new ArrayList<>();
     public String oreClusterDimensionId = "minecraft:overworld";
     public Integer oreClusterSpawnRate = COreClusters.DEF_ORE_CLUSTER_SPAWN_RATE.get();
     public TripleInt oreClusterVolume = processVolume( COreClusters.DEF_ORE_CLUSTER_VOLUME);
@@ -451,7 +511,17 @@ public class OreClusterConfigModel {
         jsonObject.addProperty("oreClusterType", oreClusterTypeString);
         jsonObject.addProperty("oreClusterSpawnRate", c.oreClusterSpawnRate);
         jsonObject.addProperty("oreClusterDimension", c.oreClusterDimensionId);
-        jsonObject.addProperty("oreClusterBiome", c.oreClusterBiome);
+        JsonArray whitelistArray = new JsonArray();
+        for (ResourceLocation biome : c.biomeWhitelist) {
+            whitelistArray.add(biome.toString());
+        }
+        jsonObject.add("biomeWhitelist", whitelistArray);
+
+        JsonArray blacklistArray = new JsonArray();
+        for (ResourceLocation biome : c.biomeBlacklist) {
+            blacklistArray.add(biome.toString());
+        }
+        jsonObject.add("biomeBlacklist", blacklistArray);
         jsonObject.addProperty("oreClusterVolume", c.oreClusterVolume.x
                 + "x" + c.oreClusterVolume.y
                 + "x" + c.oreClusterVolume.z
@@ -571,7 +641,31 @@ public class OreClusterConfigModel {
 
         try {
             setOreClusterDimensionId(jsonObject.get("oreClusterDimensionId").getAsString());
-            setOreClusterBiome(jsonObject.get("oreClusterBiome").getAsString());
+            try {
+                biomeWhitelist.clear();
+                if (jsonObject.has("biomeWhitelist")) {
+                    JsonArray whitelist = jsonObject.getAsJsonArray("biomeWhitelist");
+                    for (int i = 0; i < whitelist.size(); i++) {
+                        biomeWhitelist.add(new ResourceLocation(whitelist.get(i).getAsString()));
+                    }
+                }
+            } catch (Exception e) {
+                LoggerProject.logError("004017", "Error parsing biomeWhitelist" +
+                " for ore: " + this.oreClusterType + ". " + e.getMessage());
+            }
+
+            try {
+                biomeBlacklist.clear();
+                if (jsonObject.has("biomeBlacklist")) {
+                    JsonArray blacklist = jsonObject.getAsJsonArray("biomeBlacklist");
+                    for (int i = 0; i < blacklist.size(); i++) {
+                        biomeBlacklist.add(new ResourceLocation(blacklist.get(i).getAsString()));
+                    }
+                }
+            } catch (Exception e) {
+                LoggerProject.logError("004018", "Error parsing biomeBlacklist" +
+                " for ore: " + this.oreClusterType + ". " + e.getMessage());
+            }
         } catch (Exception e) {
             LoggerProject.logError("004016", "Error parsing oreClusterDimension or oreClusterBiome" +
             " for ore: " + this.oreClusterType + ". " + e.getMessage());
