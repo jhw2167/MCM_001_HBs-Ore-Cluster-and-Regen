@@ -31,7 +31,8 @@ public class OreClusterConfigModel {
     public String oreClusterBiome = "*"; // wildcard for all biomes
     public String oreClusterDimension = "minecraft:overworld"; 
     public Integer oreClusterSpawnRate = COreClusters.DEF_ORE_CLUSTER_SPAWN_RATE.get();
-    public String oreClusterDimensionId = COreClusters.DEF_ORE_CLUSTER_DIMENSION_ID;
+    public String oreClusterDimension = COreClusters.DEF_ORE_CLUSTER_DIMENSION;
+    public String oreClusterBiome = COreClusters.DEF_ORE_CLUSTER_BIOME;
     public TripleInt oreClusterVolume = processVolume( COreClusters.DEF_ORE_CLUSTER_VOLUME);
     public Float oreClusterDensity = COreClusters.DEF_ORE_CLUSTER_DENSITY.get();
     public String oreClusterShape = COreClusters.DEF_ORE_CLUSTER_SHAPE;
@@ -393,12 +394,21 @@ public class OreClusterConfigModel {
         this.oreClusterDoesRegenerate = Validator.parseBoolean(oreClusterDoesRegenerate);
     }
 
-    public void setOreClusterDimensionId(String oreClusterDimensionId) {
-        if (oreClusterDimensionId == null || oreClusterDimensionId.isEmpty()) {
-            this.oreClusterDimensionId = COreClusters.DEF_ORE_CLUSTER_DIMENSION_ID;
-            logPropertyWarning("Invalid dimension ID", this.oreClusterType, null, this.oreClusterDimensionId);
+    public void setOreClusterDimension(String oreClusterDimension) {
+        if (oreClusterDimension == null || oreClusterDimension.isEmpty()) {
+            this.oreClusterDimension = COreClusters.DEF_ORE_CLUSTER_DIMENSION;
+            logPropertyWarning("Invalid dimension", this.oreClusterType, null, this.oreClusterDimension);
         } else {
-            this.oreClusterDimensionId = oreClusterDimensionId;
+            this.oreClusterDimension = oreClusterDimension;
+        }
+    }
+
+    public void setOreClusterBiome(String oreClusterBiome) {
+        if (oreClusterBiome == null || oreClusterBiome.isEmpty()) {
+            this.oreClusterBiome = COreClusters.DEF_ORE_CLUSTER_BIOME;
+            logPropertyWarning("Invalid biome", this.oreClusterType, null, this.oreClusterBiome);
+        } else {
+            this.oreClusterBiome = oreClusterBiome;
         }
     }
 
@@ -442,7 +452,8 @@ public class OreClusterConfigModel {
         String oreClusterTypeString = BlockUtil.blockToString(c.oreClusterType.getBlock());
         jsonObject.addProperty("oreClusterType", oreClusterTypeString);
         jsonObject.addProperty("oreClusterSpawnRate", c.oreClusterSpawnRate);
-        jsonObject.addProperty("oreClusterDimensionId", c.oreClusterDimensionId);
+        jsonObject.addProperty("oreClusterDimension", c.oreClusterDimension);
+        jsonObject.addProperty("oreClusterBiome", c.oreClusterBiome);
         jsonObject.addProperty("oreClusterVolume", c.oreClusterVolume.x
                 + "x" + c.oreClusterVolume.y
                 + "x" + c.oreClusterVolume.z
@@ -561,9 +572,10 @@ public class OreClusterConfigModel {
         }
 
         try {
-            setOreClusterDimensionId(jsonObject.get("oreClusterDimensionId").getAsString());
+            setOreClusterDimension(jsonObject.get("oreClusterDimension").getAsString());
+            setOreClusterBiome(jsonObject.get("oreClusterBiome").getAsString());
         } catch (Exception e) {
-            LoggerProject.logError("004016", "Error parsing oreClusterDimensionId" +
+            LoggerProject.logError("004016", "Error parsing oreClusterDimension or oreClusterBiome" +
             " for ore: " + this.oreClusterType + ". " + e.getMessage());
         }
 

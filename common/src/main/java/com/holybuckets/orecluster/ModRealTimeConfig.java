@@ -261,9 +261,9 @@ public class ModRealTimeConfig
 
     public static boolean doesLevelMatch(OreClusterConfigModel config, LevelAccessor level) {
         if( config == null ) return false;
-        if( config.oreClusterDimensionId == null ) return false;
+        if( config.oreClusterDimension == null ) return false;
         if( level == null ) return false;
-        LevelAccessor oreLevel = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, config.oreClusterDimensionId);
+        LevelAccessor oreLevel = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, config.oreClusterDimension);
         return level.equals(oreLevel);
     }
 

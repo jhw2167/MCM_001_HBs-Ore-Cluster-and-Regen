@@ -28,7 +28,8 @@ public class OreClusterConfigData implements BalmConfigData {
         public static final String DEF_SUB_SEED = "";
 
         public static final String DEF_VALID_ORE_CLUSTER_ORE_BLOCKS = "minecraft:iron_ore";
-        public static final String DEF_ORE_CLUSTER_DIMENSION_ID = "minecraft:overworld";
+        public static final String DEF_ORE_CLUSTER_DIMENSION = "minecraft:overworld";
+        public static final String DEF_ORE_CLUSTER_BIOME = "*";
 
         public static final ConfigNumber<Integer> DEF_ORE_CLUSTER_SPAWN_RATE = new ConfigNumber<>("oreClusterSpawnrate", 16, 0, DEF_ORE_CLUSTER_SPAWNRATE_AREA);
         public static final String DEF_ORE_CLUSTER_VOLUME = "8x8x4";
@@ -66,8 +67,11 @@ public class OreClusterConfigData implements BalmConfigData {
         @Comment("Defines the default frequency of ore clusters. Integer number of expected ore clusters per 1000 chunks.")
         public int oreClusterSpawnRate = DEF_ORE_CLUSTER_SPAWN_RATE.get();
 
-        @Comment("Defines the default dimension in which ore clusters will spawn. This is a single string value. e.g. minecraft:overworld or minecraft:the_nether. Clusters specified in other dimensions should be specified in the JSON config file specified by 'oreClusterFileConfigPath' below.")
-        public String oreClusterDimensionId = DEF_ORE_CLUSTER_DIMENSION_ID;
+        @Comment("Defines the default dimension in which ore clusters will spawn. This is a single string value. e.g. minecraft:overworld or minecraft:the_nether.")
+        public String oreClusterDimension = DEF_ORE_CLUSTER_DIMENSION;
+
+        @Comment("Defines the default biome in which ore clusters will spawn. Use * for all biomes, or specify a biome ID like minecraft:plains")
+        public String oreClusterBiome = DEF_ORE_CLUSTER_BIOME;
 
         @Comment("Specifies the default dimensions of a cluster. <X>x<Y>x<Z>. The true cluster will always be smaller than this box because it will choose a shape that roughly fits inside it. MAX 64x64x64 else it will revert to the default 16x16x16")
         public String oreClusterVolume = DEF_ORE_CLUSTER_VOLUME;
