@@ -45,7 +45,7 @@ public class OreClusterJsonConfig implements IStringSerializable
         super();
     }
 
-    public OreClusterJsonConfig(Map<OreClusterId, OreClusterConfigModel> configs) {
+    public OreClusterJsonConfig(List<OreClusterConfigModel> configs) {
         super();
         initFromMap(configs);
     }
@@ -77,9 +77,9 @@ public class OreClusterJsonConfig implements IStringSerializable
         return oreClusterConfigModels;
     }
 
-    private void initFromMap(Map<OreClusterId, OreClusterConfigModel> configs) {
+    private void initFromMap(List<OreClusterConfigModel> configs) {
         this.oreClusterConfigs = new ArrayList<>();
-        for (OreClusterConfigModel model : configs.values()) {
+        for (OreClusterConfigModel model : configs) {
             this.oreClusterConfigs.add( model.serializeJson() );
         }
     }
@@ -105,7 +105,23 @@ public class OreClusterJsonConfig implements IStringSerializable
                 IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.AIR));
                 IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.DIRT));
                 IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.GRASS));
-            IRON.oreClusterBiome = "";
+            IRON.biomeWhitelist  = Set.of(
+                new ResourceLocation("minecraft:plains"),
+                new ResourceLocation("minecraft:forest"),
+                new ResourceLocation("minecraft:dark_forest"),
+                new ResourceLocation("minecraft:sunflower_plains"),
+                new ResourceLocation("minecraft:flower_forest"),
+                new ResourceLocation("minecraft:birch_forest"),
+                new ResourceLocation("minecraft:old_growth_birch_forest"),
+                new ResourceLocation("minecraft:wooded_hills"),
+                new ResourceLocation("minecraft:wooded_mountains"),
+                new ResourceLocation("minecraft:taiga"),
+                new ResourceLocation("minecraft:old_growth_pine_taiga"),
+                new ResourceLocation("minecraft:old_growth_spruce_taiga"),
+                new ResourceLocation("minecraft:snowy_taiga"),
+                new ResourceLocation("minecraft:snowy_tundra"),
+                new ResourceLocation("minecraft:snowy_mountains")
+            );
             IRON.oreClusterDimensionId = "overworld";
 
         final OreClusterConfigModel COAL = new OreClusterConfigModel(Blocks.COAL_ORE.defaultBlockState());

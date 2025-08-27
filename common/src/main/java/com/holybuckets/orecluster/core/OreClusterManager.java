@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 import static com.holybuckets.orecluster.OreClustersAndRegenMain.DEBUG;
 import static com.holybuckets.orecluster.core.model.ManagedOreClusterChunk.*;
 import static java.lang.Thread.sleep;
+import static com.holybuckets.orecluster.config.model.OreClusterConfigModel.OreClusterId;
 
 /**
  * Class: OreClusterManager
@@ -1451,7 +1452,7 @@ public class OreClusterManager {
         /** GETTERS **/
 
 
-        public LevelAccessor getLevel() {
+        public Level getLevel() {
             return level;
         }
 

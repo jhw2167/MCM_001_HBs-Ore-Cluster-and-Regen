@@ -1,11 +1,17 @@
 Biome Support Implementation Plan
 
-UUID Structure (3 digits):
-- First digit (0-9): Level/Depth category
-- Second digit (0-9): Biome category 
-- Third digit (0-9): Combined shape and ore type identifier
+Create a custom type as a subclass in OreClusterJsonConfig called OreClusterId
+	- state - one int state which represents 3 Digit numeric
+	- constructor - level string, biome string and ore block string into a single UUID
+	- method getId(ResourceName level, ResourceName biome , resourceName blockName)
 
+	private Map<BlockState, OreClusterConfigModel> oreConfigs will have to be changed to
+	Map<OreClusterId, OreClusterConfigModel> oreConfigs
+
+	Please use the utility method from HBUtil.HBMath.getUUID() to generate UUIDs
+	
 Implementation Steps:
+	we have to aggregate the level string, biome string, ore block string into a single UUID then map to a 3 digit numeric.
 
 1. Config Changes Needed:
 - Add biome identifier field to OreClusterConfigModel
@@ -18,28 +24,8 @@ Implementation Steps:
 - Add biome checks to OreClusterBlockStateTracker
 
 3. UUID Generation:
-Level categories (first digit):
-0: Surface (y > 60)
-1: Shallow (y 40-60)
-2: Medium (y 20-40)
-3: Deep (y 0-20)
-4: Below zero (y < 0)
 
-Biome categories (second digit):
-0: Default/Any
-1: Plains/Forest
-2: Mountain
-3: Desert
-4: Ocean
-5: Nether
-6: End
-7: Custom biome group 1
-8: Custom biome group 2
-9: Special/Reserved
-
-Shape+Ore combined (third digit):
-0-4: Standard shapes (vein, cluster, scattered, etc)
-5-9: Special ore types or combinations
+	we have to aggregate the level string, biome string, ore block string into a single UUID then map to a 3 digit numeric.
 
 Migration Strategy:
 1. Implement backward compatibility layer

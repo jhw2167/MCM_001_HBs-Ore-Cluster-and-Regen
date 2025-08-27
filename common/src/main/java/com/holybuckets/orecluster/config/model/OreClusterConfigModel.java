@@ -1,10 +1,19 @@
 package com.holybuckets.orecluster.config.model;
 
+import com.google.gson.*;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.HBUtil.*;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.orecluster.Constants;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.config.OreClusterConfigData;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 
 //Java
@@ -13,72 +22,13 @@ import java.util.stream.Collectors;
 
 import com.holybuckets.orecluster.config.OreClusterConfigData.COreClusters;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import net.minecraft.world.level.block.state.BlockState;
+
+import javax.annotation.Nullable;
 
 public class OreClusterConfigModel {
 
-    public static class OreClusterId {
-        private final int id; // 5 digit numeric ID
-        private final ResourceLocation level;
-        private final ResourceLocation biome; 
-        private final ResourceLocation blockName;
-        static final ResourceLocation ORE_CLUSTERS = new ResourceLocation(Constants.MOD_ID, "cluster_configs");
 
-        public OreClusterId(@Nullable ResourceLocation level, @Nullable ResourceLocation biome, @NotNull ResourceLocation blockName) {
-            this.level = level;
-            this.biome = biome;
-            this.blockName = blockName;
-            String combined = (level != null ? level.toString() : "") + "|" +
-                (biome != null ? biome.toString() : "") + "|" +
-                blockName;
-            this.id = (int) HBUtil.HBMath.getUUID(ORE_CLUSTERS, combined, 5);
-        }
-
-        public String getFormattedId() {
-            return String.format("%05d", id);
-        }
-
-        public ResourceLocation getLevel() {
-            return level;
-        }
-
-        public ResourceLocation getBiome() {
-            return biome;
-        }
-
-        public ResourceLocation getBlockName() {
-            return blockName;
-        }
-
-        public static OreClusterId getId(ResourceLocation level, ResourceLocation biome, ResourceLocation blockName) {
-            return new OreClusterId(level, biome, blockName);
-        }
-
-        public static OreClusterId getId(Level level, Biome biome, Block blockName) {
-            ResourceLocation levelId = null, biomeId = null;
-            if (level != null) levelId = level.dimension().location();
-            if (biome != null) biomeId = HBUtil.LevelUtil.toBiomeResourceLocation(biome);
-            ResourceLocation blockId = HBUtil.BlockUtil.getBlockResourceLocation(blockName);
-            return new OreClusterId(levelId, biomeId, blockId);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            OreClusterId that = (OreClusterId) o;
-            return id == that.id;
-        }
-
-        @Override
-        public int hashCode() {
-            return id;
-        }
-    }
 
     public static final String CLASS_ID = "004";
     public static Short ID_COUNTER = 0;
@@ -87,8 +37,8 @@ public class OreClusterConfigModel {
     public String configId;
     public BlockState oreClusterType = null;
     public HashSet<Block> validOreClusterOreBlocks; //defaultConfigOnly
-    public List<ResourceLocation> biomeWhitelist = new ArrayList<>();
-    public List<ResourceLocation> biomeBlacklist = new ArrayList<>();
+    public Set<ResourceLocation> biomeWhitelist = new HashSet<>();
+    public Set<ResourceLocation> biomeBlacklist = new HashSet<>();
     public String oreClusterDimensionId = "minecraft:overworld";
     public Integer oreClusterSpawnRate = COreClusters.DEF_ORE_CLUSTER_SPAWN_RATE.get();
     public TripleInt oreClusterVolume = processVolume( COreClusters.DEF_ORE_CLUSTER_VOLUME);
@@ -288,6 +238,9 @@ public class OreClusterConfigModel {
         return oreClusterRegenPeriods;
     }
 
+    public boolean inLevel(LevelAccessor level) {
+        return this.oreClusterDimensionId == "" || level == HBUtil.LevelUtil.toServerLevel(this.oreClusterDimensionId);
+    }
 
 
     /*
@@ -460,16 +413,6 @@ public class OreClusterConfigModel {
             this.oreClusterDimensionId = oreClusterDimensionId;
         }
     }
-
-    public void setOreClusterBiome(String oreClusterBiome) {
-        if (oreClusterBiome == null || oreClusterBiome.isEmpty()) {
-            this.oreClusterBiome = COreClusters.DEF_ORE_CLUSTER_BIOME;
-            logPropertyWarning("Invalid biome", this.oreClusterType, null, this.oreClusterBiome);
-        } else {
-            this.oreClusterBiome = oreClusterBiome;
-        }
-    }
-
 
     private static void logPropertyWarning(String message, BlockState ore, String defaultMessage, String defaultValue)
     {
@@ -646,7 +589,7 @@ public class OreClusterConfigModel {
                 if (jsonObject.has("biomeWhitelist")) {
                     JsonArray whitelist = jsonObject.getAsJsonArray("biomeWhitelist");
                     for (int i = 0; i < whitelist.size(); i++) {
-                        biomeWhitelist.add(new ResourceLocation(whitelist.get(i).getAsString()));
+                        biomeWhitelist.add(HBUtil.LevelUtil.toBiomeResourceLocation(whitelist.get(i).getAsString()));
                     }
                 }
             } catch (Exception e) {
@@ -659,7 +602,7 @@ public class OreClusterConfigModel {
                 if (jsonObject.has("biomeBlacklist")) {
                     JsonArray blacklist = jsonObject.getAsJsonArray("biomeBlacklist");
                     for (int i = 0; i < blacklist.size(); i++) {
-                        biomeBlacklist.add(new ResourceLocation(blacklist.get(i).getAsString()));
+                        biomeBlacklist.add(HBUtil.LevelUtil.toBiomeResourceLocation(blacklist.get(i).getAsString()));
                     }
                 }
             } catch (Exception e) {
@@ -680,6 +623,93 @@ public class OreClusterConfigModel {
         LoggerProject.logInfo("004014", complete.toString());
     }
 
+    public static List<OreClusterId> getIds(ServerLevel level, OreClusterConfigModel config)
+    {
+        Registry<Biome> biomeRegistry = level.registryAccess().registryOrThrow(Registries.BIOME);
+        var allBiomes = biomeRegistry.keySet();
+
+        List<OreClusterId> ids = new LinkedList<>();
+
+        //If whitelist is empty, add all biomes in registry
+        Block block = config.oreClusterType.getBlock();
+        Set<ResourceLocation> whiteList = config.biomeWhitelist;
+        Set<ResourceLocation> blackList = config.biomeBlacklist;
+        allBiomes.forEach(biomeId -> {
+            if( blackList.contains(biomeId) ) return;
+            if((whiteList.isEmpty() || whiteList.contains(biomeId)))
+                ids.add( new OreClusterId(level, biomeRegistry.get(biomeId), block) );
+        });
+
+        return ids;
+    }
+
+    public static class OreClusterId {
+        private final int id; // 5 digit numeric ID
+        private final Level level;
+        private final Biome biome;
+        private final Block block;
+        static final ResourceLocation ORE_CLUSTERS = new ResourceLocation(Constants.MOD_ID, "cluster_configs");
+
+        private static final Map<String, OreClusterId> CACHE = new HashMap<>();
+
+        public OreClusterId(@Nullable Level level, @Nullable Biome biome, Block blockName) {
+            this.level = level;
+            this.biome = biome;
+            this.block = blockName;
+            String combined = getUUID(level, biome, blockName);
+            this.id = (int) HBUtil.HBMath.getUUID(ORE_CLUSTERS, combined, 5);
+            CACHE.put(combined, this);
+        }
+
+        public String getFormattedId() {
+            return String.format("%05d", id);
+        }
+
+        public int getId() { return id; }
+
+        public Block getBlock() { return block; }
+
+        public Biome getBiome() { return biome; }
+
+        public Level getLevel() { return level; }
+
+        public static @Nullable OreClusterId getId(ResourceLocation level, ResourceLocation biome, ResourceLocation blockName) {
+            return CACHE.get(getUUID(level, biome, blockName));
+        }
+
+        public static OreClusterId getId(Level level, Biome biome, Block blockName) {
+            ResourceLocation levelId = level != null ? level.dimension().location() : null;
+            ResourceLocation biomeId = biome != null ? HBUtil.LevelUtil.toBiomeResourceLocation(biome) : null;
+            ResourceLocation blockId = BlockUtil.getBlockResourceLocation(blockName);
+            return getId(levelId, biomeId, blockId);
+        }
+
+        public static String getUUID(ResourceLocation level, ResourceLocation biome, ResourceLocation blockName) {
+            return (level != null ? level.toString() : "") + "|" +
+                (biome != null ? biome.toString() : "") + "|" +
+                blockName;
+        }
+
+        public static String getUUID(Level level, Biome biome, Block blockName) {
+            ResourceLocation levelId = level != null ? level.dimension().location() : null;
+            ResourceLocation biomeId = biome != null ? HBUtil.LevelUtil.toBiomeResourceLocation(biome) : null;
+            ResourceLocation blockId = BlockUtil.getBlockResourceLocation(blockName);
+            return getUUID(levelId, biomeId, blockId);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            OreClusterId that = (OreClusterId) o;
+            return id == that.id;
+        }
+
+        @Override
+        public int hashCode() {
+            return id;
+        }
+    }
 
 }
 

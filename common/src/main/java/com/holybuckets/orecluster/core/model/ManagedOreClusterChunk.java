@@ -1,7 +1,6 @@
 package com.holybuckets.orecluster.core.model;
 
 import com.holybuckets.foundation.GeneralConfig;
-import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.HBUtil.ChunkUtil;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.model.ManagedChunk;
@@ -21,8 +20,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
@@ -32,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.holybuckets.foundation.HBUtil.*;
+import static com.holybuckets.orecluster.config.model.OreClusterConfigModel.OreClusterId;
 
 
 /**
@@ -267,17 +265,19 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     /**
      * Applies resevoir sampling to determine which single ore should server as cluster position
      * for the cluster type. Does not consider ore Height when sampling
-     * @param state
+     * @param model
+     * @param sectionY
      * @return
      */
-    public boolean sampleAddOre(BlockState state, int sectionY)
+    public boolean sampleAddOre(OreClusterConfigModel model, int sectionY)
     {
         if(this.originalOres == null)
             return false;
 
+        BlockState state = model.oreClusterType;
         if(state != null) {
         ModRealTimeConfig c = OreClustersAndRegenMain.INSTANCE.modRealTimeConfig;
-            if(!c.validYSpawn(state, sectionY) ) {
+            if(!c.testValidYSpawn(model, sectionY) ) {
                 return false;
             }
         }

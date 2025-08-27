@@ -438,8 +438,12 @@ existingClustersByType.get(Blocks.IRON_ORE.defaultBlockState()).contains("229,24
 45.  Add support for biomes
 ---  
 
-46.  
+	- Give each cluster type its own id
+	- see Plan.txt!
+
+46. 
 ---  
+		
 
 47.  
 ---  

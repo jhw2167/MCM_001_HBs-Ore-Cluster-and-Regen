@@ -10,8 +10,17 @@ import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.config.OreClusterConfigData;
 import com.holybuckets.orecluster.config.model.OreClusterJsonConfig;
 import net.blay09.mods.balm.api.event.EventPriority;
+import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 
@@ -22,7 +31,9 @@ import java.util.function.Function;
 
 //Project imports
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
-import net.minecraft.world.level.block.state.BlockState;
+import static com.holybuckets.orecluster.config.model.OreClusterConfigModel.OreClusterId;
+
+import javax.annotation.Nullable;
 
 
 /**
@@ -39,8 +50,10 @@ public class ModRealTimeConfig
      *  Base User configured data: defaultConfig and oreConfigs for particular ores
      */
 
+    private static final Set<LevelAccessor> levelInit = new HashSet<>();
     private OreClusterConfigModel defaultConfig;
-    private Map<OreClusterJsonConfig.OreClusterId, OreClusterConfigModel> oreConfigs;
+    private Map<OreClusterId, OreClusterConfigModel> oreConfigs;
+    private List<OreClusterConfigModel> oreConfigsBeforeHydration;
 
     /** We will batch checks for which chunks have clusters by the next CHUNK_NORMALIZATION_TOTAL chunks at a time
      thus the spawnrate is normalized to 256 chunks */
@@ -68,7 +81,9 @@ public class ModRealTimeConfig
     public static Long CLUSTER_SEED = null;
 
     public ModRealTimeConfig(EventRegistrar reg) {
-        reg.registerOnBeforeServerStarted(this::onBeforeServerStart, EventPriority.Highest);
+        reg.registerOnBeforeServerStarted(this::onBeforeServerStart, EventPriority.High);
+        reg.registerOnLevelLoad(this::onLevelLoad, EventPriority.High);
+        reg.registerOnServerStopped(this::onServerStopped, EventPriority.Low);
         LoggerProject.logInit("000000", this.getClass().getName());
     }
 
@@ -81,11 +96,7 @@ public class ModRealTimeConfig
         defaultConfig.setConfigId();
 
         //Create new oreConfig for each element in cOreClusters list
-        this.oreConfigs = new HashMap<>();
-        
-        // Initialize with default dimension and biome
-        defaultConfig.oreClusterDimension = "minecraft:overworld";
-        defaultConfig.oreClusterBiome = "*"; // wildcard for all biomes
+        oreConfigsBeforeHydration = new ArrayList<>();
 
         File configFile = new File(clusterConfig.oreClusterFileConfigPath);
         File defaultConfigFile = new File(OreClusterConfigData.COreClusters.DEF_ORE_CLUSTER_FILE_CONFIG_PATH);
@@ -102,14 +113,15 @@ public class ModRealTimeConfig
         {
             defaultConfig.setOreClusterType(validOreClusterBlock.defaultBlockState());
             OreClusterConfigModel oreConfig = new OreClusterConfigModel( OreClusterConfigModel.serialize(defaultConfig) );
-            oreConfigs.put(validOreClusterBlock.defaultBlockState(), oreConfig );
+            oreConfigsBeforeHydration.add( oreConfig );
         }
         defaultConfig.setOreClusterType( (BlockState) null);
 
         //Particular configs will overwrite the default data
+        if(!jsonOreConfigs.getOreClusterConfigs().isEmpty()) oreConfigsBeforeHydration.clear();
         for (OreClusterConfigModel oreConfig : jsonOreConfigs.getOreClusterConfigs()) {
             oreConfig.setConfigId();
-            oreConfigs.put(oreConfig.oreClusterType, oreConfig);
+            oreConfigsBeforeHydration.add( oreConfig );
         }
 
         //Validate the defaultConfig minSpacingBetweenClusters
@@ -123,33 +135,74 @@ public class ModRealTimeConfig
         }
 
         //serializer for consistency
-        OreClusterJsonConfig newJsonOreConfigs = new OreClusterJsonConfig(oreConfigs);
+        OreClusterJsonConfig newJsonOreConfigs = new OreClusterJsonConfig(oreConfigsBeforeHydration);
         HBUtil.FileIO.serializeJsonConfigs( configFile, newJsonOreConfigs.serialize() );
     }
 
-        /**
+
+    /**
+     * Hydrates configs with loaded biomes and levels
+     * @param event
+     */
+    private void onLevelLoad(LevelLoadingEvent.Load event)
+    {
+        if(!(event.getLevel() instanceof ServerLevel)) return;
+        if(this.levelInit.contains(event.getLevel())) return;
+
+        ServerLevel level = (ServerLevel) event.getLevel();
+        List<OreClusterConfigModel> levelConfigs = oreConfigsBeforeHydration.stream()
+            .filter(model -> model.inLevel(level)).toList();
+
+        //Register all clusters with all whitelisted biomes
+        oreConfigs = new HashMap<>(levelConfigs.size());
+        for(OreClusterConfigModel config : levelConfigs) {
+            List<OreClusterId> ids = OreClusterConfigModel.getIds(level, config);
+            ids.forEach( id -> oreConfigs.put(id, config) );
+        }
+
+        this.levelInit.add(level);
+
+    }
+
+
+    //clear levelInit on serverStopped
+    private void onServerStopped(ServerStoppedEvent event) {
+        this.levelInit.clear();
+    }
+
+        private boolean levelInit(Level level) {
+            return this.levelInit.contains(level);
+        }
+
+
+    /**
          *  Getters
          */
 
-        public Map<OreClusterJsonConfig.OreClusterId, OreClusterConfigModel> getOreConfigs() {
+        public Map<OreClusterId, OreClusterConfigModel> getOreConfigs() {
             return oreConfigs;
         }
 
-        public OreClusterConfigModel getOreConfigByOre(BlockState ore, ResourceLocation dimension, ResourceLocation biome) {
-            OreClusterJsonConfig.OreClusterId id = OreClusterJsonConfig.OreClusterId.getId(
-                dimension,
-                biome,
-                ore.getBlock().getRegistryName()
+        public @Nullable OreClusterConfigModel getOreConfigByOre(ResourceLocation ore) {
+            OreClusterId id = OreClusterId.getId(
+                null, null, ore
             );
             return oreConfigs.get(id);
         }
 
-        public OreClusterConfigModel getOreConfigByConfigId(String id) {
-            for( OreClusterConfigModel oreConfig : oreConfigs.values() ) {
-                if( oreConfig.configId.equals(id) )
-                    return oreConfig;
+        public List<OreClusterConfigModel> getAllOreConfigByOre(BlockState b) {
+            List<OreClusterConfigModel> configs = new ArrayList<>();
+            //BlockState b = HBUtil.BlockUtil.blockNameToBlock(ore.toString()).defaultBlockState();
+            for( OreClusterConfigModel config : oreConfigs.values() ) {
+                if( config.oreClusterType != null && config.oreClusterType.equals(b) ) {
+                    configs.add(config);
+                }
             }
-            return null;
+            return configs.isEmpty() ? null : configs;
+        }
+
+        public OreClusterConfigModel getOreConfigByConfigId(OreClusterId id) {
+            return oreConfigs.get(id);
         }
 
         public OreClusterConfigModel getDefaultConfig() {
@@ -164,9 +217,6 @@ public class ModRealTimeConfig
             this.defaultConfig = defaultConfig;
         }
 
-        public void setOreConfigs(Map<BlockState, OreClusterConfigModel> oreConfigs) {
-            this.oreConfigs = oreConfigs;
-        }
 
     /**
      * Helper methods
@@ -209,15 +259,21 @@ public class ModRealTimeConfig
 
     //* Static Utility
 
+    public OreClusterConfigModel getOreConfig(Level l, Biome b, Block bl) {
+        OreClusterId id = OreClusterId.getId(l, b, bl);
+        if( id == null ) return null;
+        return  oreConfigs.get( id );
+    }
+
     /**
      *
      * @param sectionY - different scale per each dimension to account for negative values, may be negative
      * @param state
      * @return true if no config is provided or if the pos is in config range, false otherwise
      */
-    public boolean validYSpawn(BlockState state, int sectionY) {
+    public boolean testValidYSpawn(OreClusterConfigModel config, int sectionY) {
         BlockPos pos = new BlockPos(0,(sectionY*16) + 8,0);
-        return  validYSpawn( getOreConfigByOre(state), pos);
+        return  testValidYSpawn( config , pos);
     }
 
     /**
@@ -226,7 +282,7 @@ public class ModRealTimeConfig
      * @param config
      * @return true if no config is provided or if the pos is in config range, false otherwise
      */
-    public static boolean validYSpawn(OreClusterConfigModel config, BlockPos pos) {
+    public static boolean testValidYSpawn(OreClusterConfigModel config, BlockPos pos) {
         if( config == null ) return true;
         if( config.oreClusterMaxYLevelSpawn == null ) return true;
         if( pos.getY() > config.oreClusterMaxYLevelSpawn ) return false;
@@ -240,8 +296,8 @@ public class ModRealTimeConfig
      * @param state
      * @return true if the oreClusterSpawnRate is greater than 0, false otherwise
      */
-    public boolean clustersDoSpawn(BlockState state) {
-        return clustersDoSpawn( getOreConfigByOre(state) );
+    public boolean clustersDoSpawn(Level l, Biome b, BlockState state) {
+        return clustersDoSpawn( getOreConfig(l, b, state.getBlock()) );
     }
 
     /**
@@ -255,15 +311,11 @@ public class ModRealTimeConfig
     }
 
 
-    public boolean doesLevelMatch(BlockState state, LevelAccessor level) {
-        return doesLevelMatch( getOreConfigByOre(state), level );
-    }
-
     public static boolean doesLevelMatch(OreClusterConfigModel config, LevelAccessor level) {
         if( config == null ) return false;
-        if( config.oreClusterDimension == null ) return false;
+        if( config.oreClusterDimensionId == null ) return false;
         if( level == null ) return false;
-        LevelAccessor oreLevel = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, config.oreClusterDimension);
+        LevelAccessor oreLevel = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, config.oreClusterDimensionId);
         return level.equals(oreLevel);
     }
 

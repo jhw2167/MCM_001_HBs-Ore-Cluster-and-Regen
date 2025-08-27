@@ -66,6 +66,7 @@ public class OreClusterBlockStateTracker
         OreClusterConfigModel config = trackingOreConfig.get(defaultState);
         if( !ModRealTimeConfig.doesLevelMatch(config, currentLevel) ) return;
         if( !ModRealTimeConfig.clustersDoSpawn(config) ) return;
+        //section.getBiomes()
 
         blockCount++;
         int secIndex = 0;

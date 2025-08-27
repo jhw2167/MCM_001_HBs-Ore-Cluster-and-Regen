@@ -17,7 +17,9 @@ import net.minecraft.util.KeyDispatchDataCodec;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -33,12 +35,14 @@ import net.minecraft.world.level.levelgen.DensityFunctions;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
 import org.apache.commons.lang3.tuple.Pair;
 
+import static com.holybuckets.orecluster.config.model.OreClusterConfigModel.OreClusterId;
+
 public class OreClusterCalculator {
 
     public static final String CLASS_ID = "003";    //value used in logs
 
     private OreClusterManager manager;
-    private LevelAccessor level;
+    private Level level;
     private ModRealTimeConfig C;
     private Set<String> determinedChunks;
     private ConcurrentHashMap<BlockState, Set<String>> localAreaClustersByType;
@@ -412,6 +416,7 @@ public class OreClusterCalculator {
         if( levelChunk == null )
             return false;
         LevelChunkSection[] sections = levelChunk.getSections();
+        Set<Biome> biomes = new HashSet<>();
 
         final int SECTION_SZ = 16;
 
@@ -436,12 +441,18 @@ public class OreClusterCalculator {
                     {
                         outerCount++;
                         BlockState blockState = states.get(x, y, z).getBlock().defaultBlockState();
-                        if (COUNTABLE_ORES.contains(blockState)) {
-                            int sectionY = level.getSectionYFromSectionIndex(i);
-                          if( chunk.sampleAddOre(blockState, sectionY ) ) {
-                            HBUtil.TripleInt relativePos = new HBUtil.TripleInt(x, y, z);
-                              HBUtil.WorldPos pos = new HBUtil.WorldPos(relativePos, i, levelChunk);
-                              chunk.addOre(blockState, pos.getWorldPos(), true);
+                        biomes.add(section.getNoiseBiome(x, y, z).value());
+                        if (COUNTABLE_ORES.contains(blockState))
+                        {
+                          int sectionY = level.getSectionYFromSectionIndex(i);
+                          for(Biome b : biomes)
+                          {
+                                OreClusterConfigModel c = C.getOreConfig(level, b, blockState.getBlock());
+                              if( chunk.sampleAddOre(blockState, sectionY ) ) {
+                                  HBUtil.TripleInt relativePos = new HBUtil.TripleInt(x, y, z);
+                                  HBUtil.WorldPos pos = new HBUtil.WorldPos(relativePos, i, levelChunk);
+                                  chunk.addOre(blockState, pos.getWorldPos(), true);
+                              }
                           }
 
                         }
