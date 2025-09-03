@@ -55,6 +55,8 @@ public class ModRealTimeConfig
     private Map<OreClusterId, OreClusterConfigModel> oreConfigs;
     private List<OreClusterConfigModel> oreConfigsBeforeHydration;
 
+    private Set<BlockState> validOreClusterBlocks;
+
     /** We will batch checks for which chunks have clusters by the next CHUNK_NORMALIZATION_TOTAL chunks at a time
      thus the spawnrate is normalized to 256 chunks */
     public static final Integer CHUNK_NORMALIZATION_TOTAL = OreClusterConfigData.COreClusters.DEF_ORE_CLUSTER_SPAWNRATE_AREA;
@@ -97,6 +99,7 @@ public class ModRealTimeConfig
 
         //Create new oreConfig for each element in cOreClusters list
         oreConfigsBeforeHydration = new ArrayList<>();
+        validOreClusterBlocks = new HashSet<>();
 
         File configFile = new File(clusterConfig.oreClusterFileConfigPath);
         File defaultConfigFile = new File(OreClusterConfigData.COreClusters.DEF_ORE_CLUSTER_FILE_CONFIG_PATH);
@@ -158,6 +161,7 @@ public class ModRealTimeConfig
         for(OreClusterConfigModel config : levelConfigs) {
             List<OreClusterId> ids = OreClusterConfigModel.getIds(level, config);
             ids.forEach( id -> oreConfigs.put(id, config) );
+            validOreClusterBlocks.add(config.oreClusterType);
         }
 
         this.levelInit.add(level);
@@ -203,6 +207,10 @@ public class ModRealTimeConfig
 
         public OreClusterConfigModel getOreConfigByConfigId(OreClusterId id) {
             return oreConfigs.get(id);
+        }
+
+        public OreClusterId getOreConfigId(Level l, Biome b, Block bl) {
+            return OreClusterId.getId(l, b, bl);
         }
 
         public OreClusterConfigModel getDefaultConfig() {
@@ -265,6 +273,11 @@ public class ModRealTimeConfig
         return  oreConfigs.get( id );
     }
 
+    public OreClusterConfigModel getOreConfig(OreClusterId id) {
+        if( id == null ) return null;
+        return oreConfigs.get( id );
+    }
+
     /**
      *
      * @param sectionY - different scale per each dimension to account for negative values, may be negative
@@ -319,5 +332,8 @@ public class ModRealTimeConfig
         return level.equals(oreLevel);
     }
 
+    public boolean maybeHasBlock(BlockState defaultState) {
+        return validOreClusterBlocks.contains(defaultState);
+    }
 }
 //END CLASS
