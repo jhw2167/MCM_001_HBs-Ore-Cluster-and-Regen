@@ -335,5 +335,28 @@ public class ModRealTimeConfig
     public boolean maybeHasBlock(BlockState defaultState) {
         return validOreClusterBlocks.contains(defaultState);
     }
+
+    /**
+     * Checks if clusters spawn for a given OreClusterId
+     * @param id The OreClusterId to check
+     * @return false if id is null or not found in configs, otherwise checks if clusters spawn for that config
+     */
+    public boolean clustersDoSpawn(OreClusterId id) {
+        if (id == null) return false;
+        OreClusterConfigModel config = oreConfigs.get(id);
+        return clustersDoSpawn(config);
+    }
+
+    /**
+     * Checks if a level matches for a given OreClusterId
+     * @param id The OreClusterId to check
+     * @param level The level to check against
+     * @return false if id is null or not found in configs, otherwise checks if level matches that config
+     */
+    public boolean doesLevelMatch(OreClusterId id, LevelAccessor level) {
+        if (id == null) return false;
+        OreClusterConfigModel config = oreConfigs.get(id);
+        return doesLevelMatch(config, level);
+    }
 }
 //END CLASS
