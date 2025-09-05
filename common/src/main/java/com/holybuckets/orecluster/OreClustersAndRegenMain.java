@@ -86,6 +86,7 @@ public class OreClustersAndRegenMain
 
     public void onLoadWorld( LevelLoadingEvent.Load event )
     {
+        //if(true) return;
         LoggerProject.logDebug("001003", "**** WORLD LOAD EVENT ****");
         Level level = (Level) event.getLevel();
         if( level.isClientSide() ) return;
