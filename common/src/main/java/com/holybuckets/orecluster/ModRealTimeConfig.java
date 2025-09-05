@@ -86,6 +86,8 @@ public class ModRealTimeConfig
         reg.registerOnBeforeServerStarted(this::onBeforeServerStart, EventPriority.High);
         reg.registerOnLevelLoad(this::onLevelLoad, EventPriority.High);
         reg.registerOnServerStopped(this::onServerStopped, EventPriority.Low);
+
+        this.oreConfigs = new HashMap<>();
         LoggerProject.logInit("000000", this.getClass().getName());
     }
 
@@ -157,7 +159,6 @@ public class ModRealTimeConfig
             .filter(model -> model.inLevel(level)).toList();
 
         //Register all clusters with all whitelisted biomes
-        oreConfigs = new HashMap<>(levelConfigs.size());
         for(OreClusterConfigModel config : levelConfigs) {
             List<OreClusterId> ids = OreClusterConfigModel.getIds(level, config);
             ids.forEach( id -> oreConfigs.put(id, config) );
@@ -213,6 +214,18 @@ public class ModRealTimeConfig
             return OreClusterId.getId(l, b, bl);
         }
 
+        /**
+         * @param id - int id for read/write
+         * @return
+         */
+        public OreClusterId getOreConfigId(int id) {
+            if( oreConfigs == null ) return null;
+            for (OreClusterId oreId : oreConfigs.keySet()) {
+                if( oreId.getId() == id ) return oreId;
+            }
+            return null;
+        }
+
         public OreClusterConfigModel getDefaultConfig() {
             return defaultConfig;
         }
@@ -235,7 +248,7 @@ public class ModRealTimeConfig
          //Mathematically validate the defaultConfig minSpacingBetweenClusters
          // is acceptable considering the provided spawnrate of each specific ore cluster
          int totalSpawnRatePerAreaSquared = 0; //256 chunks squared -> 16x16
-         for( OreClusterConfigModel oreConfig : this.oreConfigs.values() ) {
+         for( OreClusterConfigModel oreConfig : this.oreConfigsBeforeHydration ) {
              totalSpawnRatePerAreaSquared += oreConfig.oreClusterSpawnRate;
          }
          int reservedBlocksSquaredPerCluster = (int) Math.pow(defaultConfig.minChunksBetweenOreClusters, 2);
@@ -278,15 +291,32 @@ public class ModRealTimeConfig
         return oreConfigs.get( id );
     }
 
+    public OreClusterConfigModel getOreConfig(int id) {
+        OreClusterId oreId = getOreConfigId( id );
+        if( oreId == null ) return null;
+        return oreConfigs.get( oreId );
+    }
+
     /**
      *
      * @param sectionY - different scale per each dimension to account for negative values, may be negative
-     * @param state
+     * @param config
      * @return true if no config is provided or if the pos is in config range, false otherwise
      */
     public boolean testValidYSpawn(OreClusterConfigModel config, int sectionY) {
+        if(config == null) return true;
         BlockPos pos = new BlockPos(0,(sectionY*16) + 8,0);
         return  testValidYSpawn( config , pos);
+    }
+
+    /**
+     * @param sectionY - different scale per each dimension to account for negative values, may be negative
+     * @param id - id of ore config
+     * @return false if id is null or not found
+     */
+    public boolean testValidYSpawn(OreClusterId id, int sectionY) {
+        if(id == null || !oreConfigs.containsKey(id)) return false;
+        return testValidYSpawn( oreConfigs.get(id) , sectionY);
     }
 
     /**
@@ -332,10 +362,6 @@ public class ModRealTimeConfig
         return level.equals(oreLevel);
     }
 
-    public boolean maybeHasBlock(BlockState defaultState) {
-        return validOreClusterBlocks.contains(defaultState);
-    }
-
     /**
      * Checks if clusters spawn for a given OreClusterId
      * @param id The OreClusterId to check
@@ -358,5 +384,10 @@ public class ModRealTimeConfig
         OreClusterConfigModel config = oreConfigs.get(id);
         return doesLevelMatch(config, level);
     }
+
+    public boolean maybeHasBlock(BlockState defaultState) {
+        return validOreClusterBlocks.contains(defaultState);
+    }
+
 }
 //END CLASS

@@ -28,6 +28,7 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -192,10 +193,10 @@ public class OreClusterManager {
         this.chunkUtil = ManagedChunkUtility.getInstance(level);
         MANAGERS.put(level, this);
 
-        this.existingClustersByType = new ConcurrentHashMap<BlockState, Set<String>>();
-        this.tentativeClustersByType = new ConcurrentHashMap<BlockState, Set<String>>();
-        this.addedClustersByType = new ConcurrentHashMap<String, Map<BlockState, BlockPos>>();
-        this.removedClustersByType = new ConcurrentHashMap<BlockState, Set<String>>();
+        this.existingClustersByType = new ConcurrentHashMap<>();
+        this.tentativeClustersByType = new ConcurrentHashMap<>();
+        this.addedClustersByType = new ConcurrentHashMap<>();
+        this.removedClustersByType = new ConcurrentHashMap<>();
 
         this.loadedOreClusterChunks = new ConcurrentHashMap<>();
         this.determinedSourceChunks = new ConcurrentLinkedSet<>();
@@ -259,11 +260,11 @@ public class OreClusterManager {
         return loadedOreClusterChunks;
     }
 
-    public ConcurrentHashMap<BlockState, Set<String>> getTentativeClustersByType() {
+    public ConcurrentHashMap<OreClusterId, Set<String>> getTentativeClustersByType() {
         return tentativeClustersByType;
     }
 
-    public ConcurrentHashMap<BlockState, Set<String>> getExistingClustersByType() {
+    public ConcurrentHashMap<OreClusterId, Set<String>> getExistingClustersByType() {
         return existingClustersByType;
     }
 
@@ -278,7 +279,7 @@ public class OreClusterManager {
     /** Behavior **/
     public void init(LevelAccessor level) 
     {
-
+        ManagedOreClusterChunk.CONFIG = this.config;
         if (ModRealTimeConfig.CLUSTER_SEED == null)
             ModRealTimeConfig.CLUSTER_SEED = GENERAL_CONFIG.getWorldSeed();
         long seed = ModRealTimeConfig.CLUSTER_SEED; 
@@ -884,7 +885,7 @@ public class OreClusterManager {
         //long step1Time = System.nanoTime();
 
         //Map<ChunkId, Clusters>
-        Map<String, List<BlockState>> clusters;
+        Map<String, List<OreClusterId>> clusters;
         clusters = oreClusterCalculator.calculateClusterLocations(chunkIds.stream().toList() , randSeqClusterPositionGen);
         //long step2Time = System.nanoTime();
 
@@ -910,10 +911,10 @@ public class OreClusterManager {
 
 
         // #4. Add clusters to tenativeClustersByType
-        for( Map.Entry<String, List<BlockState>> clusterChunk : clusters.entrySet())
+        for( Map.Entry<String, List<OreClusterId>> clusterChunk : clusters.entrySet())
         {
             if( clusterChunk.getValue() == null ) continue;
-            for( BlockState clusterOreType : clusterChunk.getValue() )
+            for( OreClusterId clusterOreType : clusterChunk.getValue() )
             {
                 tentativeClustersByType.get(clusterOreType).add(clusterChunk.getKey());
             }
@@ -953,17 +954,17 @@ public class OreClusterManager {
                 BlockPos pos = c.getPos().getWorldPosition();
                 final BlockPos constPos = pos.offset(0, 128, 0);
                 chunk.addBlockStateUpdate(Blocks.GOLD_BLOCK.defaultBlockState(), new BlockPos(pos.getX(), 128, pos.getZ()));
-                Map<BlockState, BlockPos> clusterTypes = chunk.getClusterTypes();
+                Map<OreClusterId, BlockPos> clusterTypes = chunk.getClusterTypes();
                 /*clusterTypes.replaceAll((oreType, sourcePos) -> {
                     return new BlockPos(constPos.getX(), 128, constPos.getZ());
                 });*/
             }
 
-            final Map<BlockState, OreClusterConfigModel> ORE_CONFIGS = config.getOreConfigs();
+            final Map<OreClusterId, OreClusterConfigModel> ORE_CONFIGS = config.getOreConfigs();
 
-            final Set<BlockState> COUNTABLE_ORES = ORE_CONFIGS.keySet().stream()
-                .filter(state -> config.doesLevelMatch(state, this.level) )
-                .filter(state -> config.clustersDoSpawn(state) )
+            final Set<OreClusterId> COUNTABLE_ORES = ORE_CONFIGS.keySet().stream()
+                .filter(id -> config.doesLevelMatch(id, this.level) )
+                .filter(id -> config.clustersDoSpawn(id) )
                 .collect(Collectors.toSet());
 
             //No ores to clean, no clusters to build
@@ -973,20 +974,22 @@ public class OreClusterManager {
             else
             {
                 //1. Scan chunk for all cleanable ores, testing each block
-                final Set<BlockState> oreClusterTypes = chunk.getClusterTypes().keySet();
-                if( oreClusterTypes.stream().anyMatch(o -> !chunk.hasOreClusterSourcePos(o)) )
+                final Set<OreClusterId> clusterIds = chunk.getClusterTypes().keySet();
+                final Set<BlockState> COUNTABLE_BLOCKSTATES = chunk.getClusterTypes().keySet()
+                    .stream().map(id -> id.getBlock().defaultBlockState() ).collect(Collectors.toSet());
+                if( clusterIds.stream().anyMatch(o -> !chunk.hasOreClusterSourcePos(o)) )
                 {
                     //Ensure chunk is here
                     if( chunk.getChunk() == null ) return;
 
-                    boolean isSuccessful = oreClusterCalculator.cleanChunkFindAllOres(chunk, COUNTABLE_ORES);
+                    boolean isSuccessful = oreClusterCalculator.cleanChunkFindAllOres(chunk, COUNTABLE_BLOCKSTATES);
                     if( !isSuccessful ) return;
 
-                    List<BlockState> noOresFoundOnClean = chunk.getClusterTypes().keySet().stream()
+                    List<OreClusterId> noOresFoundOnClean = chunk.getClusterTypes().keySet().stream()
                         .filter(o -> !chunk.hasOreClusterSourcePos(o))
                         .toList();
 
-                    for(BlockState b : noOresFoundOnClean)
+                    for(OreClusterId b : noOresFoundOnClean)
                     {
                         chunk.getClusterTypes().remove(b);
                         tentativeClustersByType.get(b).remove(chunk.getId());
@@ -1069,11 +1072,11 @@ public class OreClusterManager {
         //LoggerProject.logDebug("002015","Generating clusters for chunk: " + chunk.getId());
         boolean onlyRegenerateOres = this.chunksPendingRegeneration.contains(chunk.getId());
         String SKIPPED = null;
-        for( BlockState oreType : chunk.getClusterTypes().keySet() )
+        for( OreClusterId oreType : chunk.getClusterTypes().keySet() )
         {
             //1. If we are regenerating, skip any clusters in this chunk that dont' regenerate
             if( onlyRegenerateOres ) {
-                OreClusterConfigModel config = this.config.getOreConfigByOre(oreType);
+                OreClusterConfigModel config = this.config.getOreConfigByConfigId(oreType);
                 if(!config.oreClusterDoesRegenerate) continue;
             }
 
@@ -1213,7 +1216,7 @@ public class OreClusterManager {
         LinkedHashSet<String> chunkIds = getBatchedChunkList(batchSize, chunkId);
 
         //Map<ChunkId, Clusters>
-        Map<String, List<BlockState>> clusters;
+        Map<String, List<OreClusterId>> clusters;
         clusters = oreClusterCalculator.calculateClusterLocations(chunkIds.stream().toList() , randSeqClusterPositionGen);
 
         // #3. Add clusters to determinedClusters
@@ -1223,8 +1226,8 @@ public class OreClusterManager {
 
         // #4. Add clusters to tentativeClustersByType
         for( String id : clusters.keySet() ) {
-            List<BlockState> clusterTypes = clusters.get(id);
-            for( BlockState ore : clusterTypes ) {
+            List<OreClusterId> clusterTypes = clusters.get(id);
+            for( OreClusterId ore : clusterTypes ) {
                 if(removedClustersByType.get(ore).contains(id)) continue;
                 tentativeClustersByType.get(ore).add(id);
             }
@@ -1241,10 +1244,10 @@ public class OreClusterManager {
      * @return true if the operation suceeded
      * addCluster
      */
-    public boolean addNewCluster(BlockState clusterType, String chunkId, BlockPos pos)
+    public boolean addNewCluster(OreClusterId clusterType, String chunkId, BlockPos pos)
     {
         if(clusterType == null) return false;
-        if(this.config.getOreConfigByOre(clusterType) == null) return false;
+        if(this.config.getOreConfigByConfigId(clusterType) == null) return false;
 
         ManagedOreClusterChunk chunk = this.loadedOreClusterChunks.get(chunkId);
         if( chunk == null )
@@ -1328,7 +1331,7 @@ public class OreClusterManager {
             if( !hasStatus.apply(OreClusterStatus.DETERMINED) )
             {
                 //add cluster from existing clusters by type
-                Map<BlockState, BlockPos> clusters = new HashMap<>(32);
+                Map<OreClusterId, BlockPos> clusters = new HashMap<>(32);
                 tentativeClustersByType.entrySet().stream()
                     .filter(e -> e.getValue().contains(chunkId))
                     .forEach(e -> clusters.put(e.getKey(), null));
@@ -1377,9 +1380,9 @@ public class OreClusterManager {
 
         //1. Get list of all chunkIds with clusters
         LinkedHashSet<String> regenableChunks = new LinkedHashSet<>();
-        for( BlockState clusterType : existingClustersByType.keySet() )
+        for( OreClusterId clusterType : existingClustersByType.keySet() )
         {
-            OreClusterConfigModel model = this.config.getOreConfigByOre(clusterType);
+            OreClusterConfigModel model = this.config.getOreConfigByConfigId(clusterType);
             if( model == null || !model.oreClusterDoesRegenerate ) continue;
             regenableChunks.addAll(existingClustersByType.get(clusterType));
         }
@@ -1564,10 +1567,11 @@ public class OreClusterManager {
         } else {
             JsonObject json = removedClusters.getAsJsonObject();
             for( String oreType : json.keySet() ) {
-                BlockState block = BlockUtil.blockNameToBlock(oreType).defaultBlockState();
+                OreClusterId id = this.config.getOreConfigId(Integer.parseInt(oreType));
+                if(id == null) continue;
                 JsonArray ids = json.get(oreType).getAsJsonArray();
-                removedClustersByType.put(block, new ConcurrentSet<>());
-                removedClustersByType.get(block).addAll(ids.asList().stream().map(JsonElement::getAsString).toList());
+                removedClustersByType.put(id, new ConcurrentSet<>());
+                removedClustersByType.get(id).addAll(ids.asList().stream().map(JsonElement::getAsString).toList());
             }
         }
 
@@ -1578,14 +1582,15 @@ public class OreClusterManager {
         } else {
             JsonObject json = addedClusters.getAsJsonObject();
             for( String oreType : json.keySet() ) {
-                BlockState block = BlockUtil.blockNameToBlock(oreType).defaultBlockState();
-                JsonArray ids = json.get(oreType).getAsJsonArray();
-                tentativeClustersByType.get(block).addAll(ids.asList().stream().map(JsonElement::getAsString).toList());
-                existingClustersByType.get(block).addAll(ids.asList().stream().map(JsonElement::getAsString).toList());
-                List<String> listIds = ids.asList().stream().map(JsonElement::getAsString).toList();
+                OreClusterId oreClusterId = this.config.getOreConfigId(Integer.parseInt(oreType));
+                if(oreClusterId == null) continue;
+                JsonArray chunkIds = json.get(oreType).getAsJsonArray();
+                tentativeClustersByType.get(oreClusterId).addAll(chunkIds.asList().stream().map(JsonElement::getAsString).toList());
+                existingClustersByType.get(oreClusterId).addAll(chunkIds.asList().stream().map(JsonElement::getAsString).toList());
+                List<String> listIds = chunkIds.asList().stream().map(JsonElement::getAsString).toList();
                 for( String id : listIds ) {
                     addedClustersByType.put(id, new HashMap<>());
-                    addedClustersByType.get(id).put(block, null);
+                    addedClustersByType.get(id).put(oreClusterId, null);
                 }
             }
         }
@@ -1605,7 +1610,7 @@ public class OreClusterManager {
         this.initSerializedChunks(chunkIds);
 
          //5. Remove all ids from tentativeClustersByType using removedClusters
-        for( BlockState oreType : removedClustersByType.keySet() ) {
+        for( OreClusterId oreType : removedClustersByType.keySet() ) {
             for( String id : removedClustersByType.get(oreType) ) {
                 tentativeClustersByType.get(oreType).remove(id);
             }
@@ -1634,23 +1639,23 @@ public class OreClusterManager {
         Function<Set<String>, JsonElement> toArray = (list) -> HBUtil.FileIO.arrayToJson(list.toArray(new String[0]));
 
         JsonObject removedClusters = new JsonObject();
-        for( BlockState ore : removedClustersByType.keySet()) {
-            removedClusters.add(toName.apply(ore), toArray.apply(removedClustersByType.get(ore)));
+        for( OreClusterId clusterId : removedClustersByType.keySet()) {
+            removedClusters.add(clusterId.getStringId(), toArray.apply(removedClustersByType.get(clusterId)));
         }
         levelData.addProperty("removedClusters", removedClusters);
 
         //save addedClusters
         JsonObject addedClusters = new JsonObject();
-        Map<BlockState, Set<String>> addedClustersByBlockState = new HashMap<>();
+        Map<OreClusterId, Set<String>> addedClustersByBlockState = new HashMap<>();
         //Fill Map with BlockState from oreConfig mapped to empty sets
-        for( BlockState ore : config.getOreConfigs().keySet() ) {
+        for( OreClusterId ore : config.getOreConfigs().keySet() ) {
             Set<String> clusterIds = addedClustersByType.entrySet().stream()
                 .filter(e -> e.getValue().containsKey(ore))
                 .map(Map.Entry::getKey).collect(Collectors.toSet());
             addedClustersByBlockState.put(ore, clusterIds);
         }
-        for( BlockState ore : addedClustersByBlockState.keySet()) {
-            addedClusters.add(toName.apply(ore), toArray.apply(addedClustersByBlockState.get(ore)));
+        for( OreClusterId ore : addedClustersByBlockState.keySet()) {
+            addedClusters.add( ore.getStringId(), toArray.apply(addedClustersByBlockState.get(ore)));
         }
         levelData.addProperty("addedClusters", addedClusters);
 
@@ -1745,6 +1750,7 @@ public class OreClusterManager {
             }
         }
     }
+
 
     /** ############### **/
 

@@ -5,10 +5,7 @@ import com.holybuckets.foundation.event.EventRegistrar;
 
 import com.holybuckets.orecluster.command.CommandList;
 import com.holybuckets.orecluster.config.OreClusterConfig;
-import com.holybuckets.orecluster.core.OreClusterHealthCheck;
-import com.holybuckets.orecluster.core.OreClusterApi;
-import com.holybuckets.orecluster.core.OreClusterManager;
-import com.holybuckets.orecluster.core.OreClusterRegenManager;
+import com.holybuckets.orecluster.core.*;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
@@ -62,8 +59,10 @@ public class OreClustersAndRegenMain
         this.oreClusterHealthCheck = new OreClusterHealthCheck( eventRegistrar, oreClusterApi, oreClusterManagers);
 
 
-        eventRegistrar.registerOnLevelLoad( this::onLoadWorld, EventPriority.High );
+        eventRegistrar.registerOnLevelLoad( this::onLoadWorld, EventPriority.Normal );
         eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );
+
+        OreClusterBlockStateTracker.init(this.modRealTimeConfig);
 
 
         /*

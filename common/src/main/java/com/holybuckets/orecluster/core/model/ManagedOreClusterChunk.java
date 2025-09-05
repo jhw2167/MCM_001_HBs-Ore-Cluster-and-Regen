@@ -17,7 +17,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -64,6 +66,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     public static void registerManagedChunkData() {
         ManagedChunk.registerManagedChunkData(ManagedOreClusterChunk.class, () -> new ManagedOreClusterChunk(null) );
     }
+    public static ModRealTimeConfig CONFIG;
 
     /** Variables **/
     private LevelAccessor level;
@@ -79,6 +82,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private Map<OreClusterId, Pair<BlockPos, MutableInt>> originalOres; 
     private Map<Integer, Pair<BlockState, BlockPos>> blockStateUpdates;
     private int updatesSize;
+    private LinkedHashSet<Biome> biomes;
 
     private Random managedRandom;
     private ReentrantLock lock = new ReentrantLock();
@@ -103,6 +107,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.blockStateUpdates = new ConcurrentHashMap<>();
         this.updatesSize = 0;
         this.originalOres = new HashMap<>();
+        this.biomes = new LinkedHashSet<>();
 
     }
 
@@ -218,7 +223,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return map;
     }
 
-    public Map<BlockState, Pair<BlockPos, MutableInt>> getOriginalOres() {
+    public Map<OreClusterId, Pair<BlockPos, MutableInt>> getOriginalOres() {
         return originalOres;
     }
 
@@ -238,6 +243,35 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     public synchronized ReentrantLock getLock() {
         return lock;
+    }
+
+    public boolean hasBiome(Biome b) {
+        if(b == null) return false;
+        return this.biomes.contains(b);
+    }
+
+    public Set<Biome> getBiomes() {
+        return this.biomes;
+    }
+
+    public OreClusterId chooseConfigId(Level level, Biome localBiome, BlockState blockState, ModRealTimeConfig C)
+    {
+        OreClusterId id = C.getOreConfigId(level, localBiome, blockState.getBlock());
+        if( localBiome == null || id == null) {
+            for( Biome temp : biomes) {
+                id = C.getOreConfigId(level, temp, blockState.getBlock());
+                if( id != null ) {
+                    break;
+                }
+            }
+        }
+        return id;
+    }
+
+    public OreClusterConfigModel chooseConfig(Level level, Biome localBiome, BlockState blockState, ModRealTimeConfig C) {
+        OreClusterId id = chooseConfigId(level, localBiome, blockState, C);
+        if(id == null) return null;
+        return C.getOreConfigs().get(id);
     }
 
     /** Setters **/
@@ -265,29 +299,21 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     /**
      * Applies resevoir sampling to determine which single ore should server as cluster position
      * for the cluster type. Does not consider ore Height when sampling
-     * @param model
+     * @param id
      * @param sectionY
      * @return
      */
-    public boolean sampleAddOre(OreClusterConfigModel model, int sectionY)
+    public boolean sampleAddOre(OreClusterId id, int sectionY)
     {
-        if(this.originalOres == null)
-            return false;
+        if(this.originalOres == null) return false;
+        if(!CONFIG.testValidYSpawn(id, sectionY) ) return false;
 
-        BlockState state = model.oreClusterType;
-        if(state != null) {
-        ModRealTimeConfig c = OreClustersAndRegenMain.INSTANCE.modRealTimeConfig;
-            if(!c.testValidYSpawn(model, sectionY) ) {
-                return false;
-            }
-        }
-
-        if(!this.originalOres.containsKey(state)) {
-            this.originalOres.put(state, Pair.of(null, new MutableInt(1)));
+        if(!this.originalOres.containsKey(id)) {
+            this.originalOres.put(id, Pair.of(null, new MutableInt(1)));
             return true;
         }
 
-        MutableInt count = this.originalOres.get(state).getRight();
+        MutableInt count = this.originalOres.get(id).getRight();
         if (this.managedRandom.nextFloat() <= (1.0f / count.getAndAdd(1) )) {
             return true;
         }
@@ -295,27 +321,27 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return false;
     }
 
-    public void addOre(BlockState state, BlockPos pos, boolean force)
+    public void addOre(OreClusterId config, BlockPos pos, boolean force)
     {
         //1. Get the pair
-        Pair<BlockPos, MutableInt> pair = this.originalOres.get(state);
+        Pair<BlockPos, MutableInt> pair = this.originalOres.get(config);
 
         if(pair == null) {
             pair = Pair.of(pos, new MutableInt(1));
-            this.originalOres.put(state, pair);
+            this.originalOres.put(config, pair);
             return;
         }
 
         //Count was incremented by the previous call to sampleAddOre or this one
         int sectionNumber = (pos.getY() / 16) + (pos.getY() % 16);
-        if(force || sampleAddOre(state, sectionNumber)) {
+        if(force || sampleAddOre(config, sectionNumber)) {
             pair = Pair.of(pos, pair.getRight());
-            this.originalOres.put(state, pair);
+            this.originalOres.put(config, pair);
         }
 
     }
 
-    public boolean hasOreClusterSourcePos(BlockState b)
+    public boolean hasOreClusterSourcePos(OreClusterId b)
     {
         if(this.clusterTypes != null) {
             if(this.clusterTypes.get(b) != null)
@@ -326,7 +352,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return this.originalOres.get(b).getLeft() != null;
     }
 
-    public BlockPos getOreClusterSourcePos(BlockState b)
+    public BlockPos getOreClusterSourcePos(OreClusterId b)
     {
         if(this.clusterTypes != null) {
             if(this.clusterTypes.get(b) != null)
@@ -420,6 +446,10 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         blockStateUpdates.put(updatesSize++, pair);
     }
 
+    public void addBiome(Biome b) {
+        if(b == null) return;
+        this.biomes.add(b);
+    }
 
 
     /**
@@ -483,7 +513,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     public BlockState mapBlockState(BlockState state)
     {
-        Map<BlockState, OreClusterConfigModel> ORE_CONFIGS = OreClusterManager.getManager(level).getConfig().getOreConfigs();
+        Map<OreClusterId, OreClusterConfigModel> ORE_CONFIGS = OreClusterManager.getManager(level).getConfig().getOreConfigs();
 
         Block[] replacements = ORE_CONFIGS.get(state).oreClusterReplaceableEmptyBlocks.toArray(new Block[0]);
         Float modifier = ORE_CONFIGS.get(state).oreVeinModifier;
@@ -652,21 +682,18 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         //Cluster Types
         {
             if(this.clusterTypes == null || this.clusterTypes.size() == 0) {
-                details.putString("clusterTypes", "");
+                details.put("clusterTypes", new CompoundTag());
             }
-            else
-            {
-                Map<Block, List<BlockPos>> clusters = new HashMap<>();
-                this.clusterTypes.keySet().forEach((k) -> clusters.put(k.getBlock(), new ArrayList<>()));
-                for(Map.Entry<BlockState, BlockPos> entry : this.clusterTypes.entrySet())
-                {
-                    Block block = entry.getKey().getBlock();
-                    BlockPos pos = entry.getValue();
+            else {
+                CompoundTag clusterTypesTag = new CompoundTag();
+                this.clusterTypes.forEach((oreClusterId, pos) -> {
+                    String key = oreClusterId.getStringId();
+                    String serializedPositions = "";
                     if(pos != null)
-                        clusters.get(block).add(pos);
-                }
-                String clusterTypes = BlockUtil.serializeBlockPairs(clusters);
-                details.putString("clusterTypes", clusterTypes);
+                        serializedPositions = BlockUtil.serializeBlockPos(List.of(pos));
+                    clusterTypesTag.putString(key, serializedPositions);
+                });
+                details.put("clusterTypes", clusterTypesTag);
             }
         }
 
@@ -724,28 +751,23 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
         //Cluster Types
         {
-            String clusterTypes = tag.getString("clusterTypes");
+            CompoundTag clusterTypesTag = tag.getCompound("clusterTypes");
 
-            this.clusterTypes = null;
-            if(clusterTypes == null || clusterTypes.isEmpty()) {
+            this.clusterTypes = new HashMap<>();
+            if( clusterTypesTag == null || clusterTypesTag.isEmpty() ) {
                 //add nothing
-            }
-            else
-            {
-                Map<Block,List<BlockPos>> clusters =  BlockUtil.deserializeBlockPairs(clusterTypes);
-                this.clusterTypes = new HashMap<BlockState, BlockPos>();
-                for(Map.Entry<Block, List<BlockPos>> entry : clusters.entrySet())
-                {
-                    BlockState blockState = entry.getKey().defaultBlockState();
-                    List<BlockPos> positions = entry.getValue();
-                    for(BlockPos pos : positions)
-                    {
-                        this.clusterTypes.put(blockState, pos);
-                    }
+            } else {
 
-                    if(this.clusterTypes.size() == 0)
-                        this.clusterTypes.put(blockState, null);
+                for (String key : clusterTypesTag.getAllKeys()) {
+                    OreClusterId oreClusterId = CONFIG.getOreConfigId(Integer.parseInt(key));
+                    String serializedPositions = clusterTypesTag.getString(key);
+                    if(serializedPositions == "") {
+                        this.clusterTypes.put(oreClusterId, null); continue;
+                    }
+                    List<BlockPos> positions = BlockUtil.deserializeBlockPos(serializedPositions); // Assuming this method exists
+                    this.clusterTypes.put(oreClusterId, positions.get(0));
                 }
+
             }
 
             //LoggerProject.logDebug("003008", "Deserializing clusterTypes: " + clusterTypes);
@@ -777,6 +799,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
         OreClusterManager.addManagedOreClusterChunk( this );
     }
+
 
 }
 //END CLASS

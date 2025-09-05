@@ -20,6 +20,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.holybuckets.orecluster.config.model.OreClusterConfigModel.OreClusterId;
+
 /**
  * Description: Class designed for interfacing with OreClusterManager and perform lookup operations such as:
  *      - Locate Ore Clusters
@@ -120,7 +122,7 @@ public class OreClusterApi {
     public JsonObject getConfig(String configId)
     {
         if(configId == null) return getConfigSummary();
-        OreClusterConfigModel targetConfig = modConfig.getOreConfigByConfigId(configId);
+        OreClusterConfigModel targetConfig = modConfig.getOreConfig( Integer.parseInt(configId) );
         if(targetConfig == null) return null;
 
         JsonObject resp = new JsonObject();
@@ -182,7 +184,7 @@ public class OreClusterApi {
             return null;
 
         //2. Get list of all oreClusters
-        Map<BlockState, Set<String>> clusters = manager.getExistingClustersByType();
+        Map<OreClusterId, Set<String>> clusters = manager.getExistingClustersByType();
 
         LoggerProject.logInfo(null, "008000", "Found " + clusters.size() +
          " clusters in level: " + HBUtil.LevelUtil.toLevelId(level) + " with oreType: " + ((oreType==null) ? "any" : oreType) );
@@ -191,7 +193,7 @@ public class OreClusterApi {
         List<String> validClusterChunkIds = new ArrayList<>();
         if(oreType == null)
         {
-            for(BlockState clusterType : clusters.keySet()) {
+            for(OreClusterId clusterType : clusters.keySet()) {
                 validClusterChunkIds.addAll(clusters.get(clusterType));
             }
         }
@@ -273,13 +275,13 @@ public class OreClusterApi {
     }
 
     public boolean addCluster(LevelAccessor level, String configId, BlockPos pos) {
-        OreClusterConfigModel config = modConfig.getOreConfigByConfigId(configId);
-        if(config == null) {
+        OreClusterId id = modConfig.getOreConfigId( Integer.parseInt(configId) );
+        if(id == null) {
             LoggerProject.logWarning("008003", "Could not find config for id: " + configId);
             return false;
         }
-        BlockState oreType = config.oreClusterType;
-        return addCluster(level, oreType, pos);
+
+        return addCluster(level, id, pos);
     }
 
     /**
@@ -288,7 +290,7 @@ public class OreClusterApi {
      * @param pos
      * @return
      */
-    public boolean addCluster(LevelAccessor level, BlockState oreType, BlockPos pos)
+    public boolean addCluster(LevelAccessor level, OreClusterId oreType, BlockPos pos)
     {
         if(oreType == null || pos == null) return false;
         OreClusterManager manager = managers.get(level);

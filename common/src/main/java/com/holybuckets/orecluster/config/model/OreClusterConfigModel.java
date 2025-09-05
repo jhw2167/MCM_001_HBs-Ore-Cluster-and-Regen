@@ -645,6 +645,7 @@ public class OreClusterConfigModel {
 
     public static class OreClusterId {
         private final int id; // 5 digit numeric ID
+        private final String stringId;
         private final Level level;
         private final Biome biome;
         private final Block block;
@@ -659,6 +660,7 @@ public class OreClusterConfigModel {
             String combined = getUUID(level, biome, blockName);
             this.id = (int) HBUtil.HBMath.getUUID(ORE_CLUSTERS, combined, 5);
             CACHE.put(combined, this);
+            this.stringId = id + "";
         }
 
         public String getFormattedId() {
@@ -666,6 +668,8 @@ public class OreClusterConfigModel {
         }
 
         public int getId() { return id; }
+
+        public String getStringId() { return stringId; }
 
         public Block getBlock() { return block; }
 
