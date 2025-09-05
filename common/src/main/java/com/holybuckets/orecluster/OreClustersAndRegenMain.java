@@ -61,6 +61,7 @@ public class OreClustersAndRegenMain
 
         eventRegistrar.registerOnLevelLoad( this::onLoadWorld, EventPriority.Normal );
         eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );
+        eventRegistrar.registerOnServerStopped(this::onServerStopped, EventPriority.Low);
 
         OreClusterBlockStateTracker.init(this.modRealTimeConfig);
 
@@ -104,15 +105,23 @@ public class OreClustersAndRegenMain
         LoggerProject.logDebug("001004", "**** WORLD UNLOAD EVENT ****");
         LevelAccessor level = event.getLevel();
         if( level.isClientSide() ) return;
-
-        OreClusterManager m = oreClusterManagers.remove( level );
-        if( m != null ) m.shutdown();
-        if( oreClusterManagers.isEmpty() ) {
-            regenManager.shutdown();
-            oreClusterHealthCheck.shutdown();
-        }
+        
+        oreClusterManagers.remove(level);
     }
 
+    public void onServerStopped(ServerStoppedEvent event) {
+        LoggerProject.logDebug("001005", "**** SERVER STOPPED EVENT ****");
+        
+        // Shutdown all managers
+        for (OreClusterManager manager : oreClusterManagers.values()) {
+            manager.shutdown();
+        }
+        oreClusterManagers.clear();
+        
+        // Shutdown other systems
+        regenManager.shutdown();
+        oreClusterHealthCheck.shutdown();
+    }
 
     /*
     public static void init(final FMLCommonSetupEvent event) {
