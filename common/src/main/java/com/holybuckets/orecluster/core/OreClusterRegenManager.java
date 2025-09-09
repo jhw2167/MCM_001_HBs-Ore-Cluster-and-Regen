@@ -9,7 +9,6 @@ import com.holybuckets.foundation.datastore.WorldSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
-import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.orecluster.Constants;
 import com.holybuckets.orecluster.LoggerProject;
@@ -17,12 +16,9 @@ import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -72,7 +68,7 @@ public class OreClusterRegenManager {
     final int TICKS_PER_DAY = (OreClustersAndRegenMain.DEBUG) ? 2400 : (int) GeneralConfig.TICKS_PER_DAY;
     public void setPeriodLength( @Nullable String item) throws InvalidId
     {
-        Map<String, Integer> periodLengthByItem = config.getDefaultConfig().oreClusterRegenPeriods;
+        Map<String, Integer> periodLengthByItem = config.getDefaultConfigModel().oreClusterRegenPeriods;
         if( item == null) {
             item = periodLengthByItem.keySet().iterator().next();
         }
@@ -189,7 +185,7 @@ public class OreClusterRegenManager {
         if(!object.has("periodCurrentStage") || object.get("periodCurrentStage").isJsonNull()) return false;
         periodCurrentStage = object.get("periodCurrentStage").getAsString();
 
-        Map<String, Integer> periods = config.getDefaultConfig().oreClusterRegenPeriods;
+        Map<String, Integer> periods = config.getDefaultConfigModel().oreClusterRegenPeriods;
         if(periods.containsKey(periodCurrentStage)) {       //reflects current configs if changed
             periodTickLength = (long) (periods.get(periodCurrentStage) * TICKS_PER_DAY);
             updatePeriod(periodTickStart, periodTickLength);

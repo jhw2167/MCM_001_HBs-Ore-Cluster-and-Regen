@@ -11,6 +11,7 @@ import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.core.OreClusterApi;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import com.holybuckets.orecluster.core.model.OreClusterInfo;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -38,6 +39,7 @@ public class CommandList {
         CommandRegistry.register(LocateClusters::limitCountSpecifyBlockType);
         CommandRegistry.register(GetConfig::noArgs);
         CommandRegistry.register(GetConfig::withConfigId);
+        CommandRegistry.register(GetConfig::withConfigIdAndBiomes);
         CommandRegistry.register(AddCluster::register);
         CommandRegistry.register(TriggerRegen::register);
         CommandRegistry.register(HealthCheck::register);
@@ -116,9 +118,8 @@ public class CommandList {
             try {
                 ServerPlayer player = source.getPlayerOrException();
                 BlockPos playerPos = player.blockPosition();
-                BlockState bs = (block == null) ? null : block.defaultBlockState();
                 List<OreClusterInfo> data = api.locateOreClusters(
-                    player.level(), playerPos, bs, count);
+                    player.level(), playerPos, block, count);
 
                 MutableComponent response = Component.literal("Found Clusters: ");
                 for(OreClusterInfo cluster : data) {
@@ -165,7 +166,7 @@ public class CommandList {
         private static LiteralArgumentBuilder<CommandSourceStack> noArgs() {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("config")
-                    .executes(context -> execute(context.getSource(), null))
+                    .executes(context -> execute(context.getSource(), null, false))
                 );
         }
 
@@ -176,13 +177,29 @@ public class CommandList {
                     .then(Commands.argument("configId", StringArgumentType.string())
                         .executes(context -> {
                             String configId = StringArgumentType.getString(context, "configId");
-                            return execute(context.getSource(), configId);
+                            return execute(context.getSource(), configId, false);
                         })
                     )
                 );
         }
 
-        private static int execute(CommandSourceStack source, String configId) {
+        // Register command with configId and showBiomes argument
+        private static LiteralArgumentBuilder<CommandSourceStack> withConfigIdAndBiomes() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("config")
+                    .then(Commands.argument("configId", StringArgumentType.string())
+                    .then(Commands.argument("showBiomes", BoolArgumentType.bool())
+                        .executes(context -> {
+                            String configId = StringArgumentType.getString(context, "configId");
+                            boolean showBiomes = BoolArgumentType.getBool(context, "showBiomes");
+                            return execute(context.getSource(), configId, showBiomes);
+                        })
+                    ))
+                );
+        }
+
+
+        private static int execute(CommandSourceStack source, String configId, boolean showBiomes) {
             try {
                 OreClusterApi api = OreClusterApi.getInstance();
                 if(api == null) {
@@ -190,7 +207,7 @@ public class CommandList {
                     return 1;
                 }
 
-                JsonObject config = api.getConfig(configId);
+                JsonObject config = api.getConfig(configId, showBiomes);
                 if(config == null) {
                     source.sendFailure(Component.literal("No config found" + (configId != null ? " for id: " + configId : "")));
                     return 1;
@@ -380,7 +397,7 @@ public class CommandList {
                             if (healthCheck != null) {
                                 source.sendSuccess(() -> Component.literal("Statistics for dimension " + levelId + ":"), false);
                                 source.sendSuccess(() -> Component.literal(healthCheck.toString()), false);
-                                LoggerProject.logInfo("010012", healthCheck.toString());
+                                LoggerProject.logInfo("010013", healthCheck.toString());
                             }
                         }
                     }

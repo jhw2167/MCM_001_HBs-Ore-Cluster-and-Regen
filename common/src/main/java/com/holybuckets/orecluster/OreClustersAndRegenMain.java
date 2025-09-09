@@ -9,6 +9,7 @@ import com.holybuckets.orecluster.core.*;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
+import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 
@@ -24,7 +25,7 @@ public class OreClustersAndRegenMain
     public static final String MODID = Constants.MOD_ID;
     public static final String NAME = "HBs Ore Clusters and Regen";
     public static final String VERSION = "1.0.0f";
-    public static final Boolean DEBUG = false;
+    public static final Boolean DEBUG = true;
 
     public static OreClustersAndRegenMain INSTANCE;
     public ModRealTimeConfig modRealTimeConfig;
@@ -60,7 +61,7 @@ public class OreClustersAndRegenMain
 
 
         eventRegistrar.registerOnLevelLoad( this::onLoadWorld, EventPriority.Normal );
-        eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );
+        //eventRegistrar.registerOnLevelUnload( this::onUnloadWorld, EventPriority.Low );
         eventRegistrar.registerOnServerStopped(this::onServerStopped, EventPriority.Low);
 
         OreClusterBlockStateTracker.init(this.modRealTimeConfig);
@@ -100,13 +101,9 @@ public class OreClustersAndRegenMain
 
     }
 
-    public void onUnloadWorld(LevelLoadingEvent.Unload event)
-    {
+    //Not stable, may happen at runtime
+    public void onUnloadWorld(LevelLoadingEvent.Unload event) {
         LoggerProject.logDebug("001004", "**** WORLD UNLOAD EVENT ****");
-        LevelAccessor level = event.getLevel();
-        if( level.isClientSide() ) return;
-        
-        oreClusterManagers.remove(level);
     }
 
     public void onServerStopped(ServerStoppedEvent event) {

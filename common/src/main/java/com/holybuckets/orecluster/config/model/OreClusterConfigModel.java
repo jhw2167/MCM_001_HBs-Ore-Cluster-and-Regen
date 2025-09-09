@@ -583,35 +583,40 @@ public class OreClusterConfigModel {
         }
 
         try {
-            setOreClusterDimensionId(jsonObject.get("oreClusterDimensionId").getAsString());
-            try {
-                biomeWhitelist.clear();
-                if (jsonObject.has("biomeWhitelist")) {
-                    JsonArray whitelist = jsonObject.getAsJsonArray("biomeWhitelist");
-                    for (int i = 0; i < whitelist.size(); i++) {
-                        biomeWhitelist.add(HBUtil.LevelUtil.toBiomeResourceLocation(whitelist.get(i).getAsString()));
-                    }
-                }
-            } catch (Exception e) {
-                LoggerProject.logError("004017", "Error parsing biomeWhitelist" +
-                " for ore: " + this.oreClusterType + ". " + e.getMessage());
-            }
-
-            try {
-                biomeBlacklist.clear();
-                if (jsonObject.has("biomeBlacklist")) {
-                    JsonArray blacklist = jsonObject.getAsJsonArray("biomeBlacklist");
-                    for (int i = 0; i < blacklist.size(); i++) {
-                        biomeBlacklist.add(HBUtil.LevelUtil.toBiomeResourceLocation(blacklist.get(i).getAsString()));
-                    }
-                }
-            } catch (Exception e) {
-                LoggerProject.logError("004018", "Error parsing biomeBlacklist" +
-                " for ore: " + this.oreClusterType + ". " + e.getMessage());
+            if( jsonObject.get("oreClusterDimensionId") != null ) {
+                setOreClusterDimensionId(jsonObject.get("oreClusterDimensionId").getAsString());
+            } else {
+                setOreClusterDimensionId(COreClusters.DEF_ORE_CLUSTER_DIMENSION);
             }
         } catch (Exception e) {
-            LoggerProject.logError("004016", "Error parsing oreClusterDimension or oreClusterBiome" +
+            LoggerProject.logError("004016", "Error parsing oreClusterBiome" +
             " for ore: " + this.oreClusterType + ". " + e.getMessage());
+        }
+
+        try {
+            biomeWhitelist.clear();
+            if (jsonObject.has("biomeWhitelist")) {
+                JsonArray whitelist = jsonObject.getAsJsonArray("biomeWhitelist");
+                for (int i = 0; i < whitelist.size(); i++) {
+                    biomeWhitelist.add(HBUtil.LevelUtil.toBiomeResourceLocation(whitelist.get(i).getAsString()));
+                }
+            }
+        } catch (Exception e) {
+            LoggerProject.logError("004017", "Error parsing biomeWhitelist" +
+                " for ore: " + this.oreClusterType + ". " + e.getMessage());
+        }
+
+        try {
+            biomeBlacklist.clear();
+            if (jsonObject.has("biomeBlacklist")) {
+                JsonArray blacklist = jsonObject.getAsJsonArray("biomeBlacklist");
+                for (int i = 0; i < blacklist.size(); i++) {
+                    biomeBlacklist.add(HBUtil.LevelUtil.toBiomeResourceLocation(blacklist.get(i).getAsString()));
+                }
+            }
+        } catch (Exception e) {
+            LoggerProject.logError("004018", "Error parsing biomeBlacklist" +
+                " for ore: " + this.oreClusterType + ". " + e.getMessage());
         }
 
         StringBuilder complete = new StringBuilder();
@@ -653,7 +658,21 @@ public class OreClusterConfigModel {
 
         private static final Map<String, OreClusterId> CACHE = new HashMap<>();
 
-        public OreClusterId(@Nullable Level level, @Nullable Biome biome, Block blockName) {
+        public static OreClusterId createBaseConfigId(OreClusterConfigModel model) {
+            return  new OreClusterId(model);
+        }
+
+        private OreClusterId(OreClusterConfigModel model) {
+            this.level = LevelUtil.toServerLevel(model.oreClusterDimensionId);
+            this.biome = null;
+            this.block = model.oreClusterType.getBlock();
+            this.id = (int) HBUtil.HBMath.getUUID(ORE_CLUSTERS,
+                model.configId, 5);
+            this.stringId = id + "";
+            CACHE.put(model.configId, this);
+        }
+
+        OreClusterId(@Nullable Level level, @Nullable Biome biome, Block blockName) {
             this.level = level;
             this.biome = biome;
             this.block = blockName;

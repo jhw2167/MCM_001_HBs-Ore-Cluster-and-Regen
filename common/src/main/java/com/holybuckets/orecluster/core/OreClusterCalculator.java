@@ -116,7 +116,7 @@ public class OreClusterCalculator {
 
          //1. Get recently loaded chunks
          String startChunk =  chunks.get(0);
-         int minSpacing = C.getDefaultConfig().minChunksBetweenOreClusters;
+         int minSpacing = C.getDefaultConfigModel().minChunksBetweenOreClusters;
 
         /* If the spacing between clusters is large, there will be fewer cluster chunks, so we can check all against
         *   all existing clusters instead of calculating the area around each chunk
@@ -659,7 +659,7 @@ public class OreClusterCalculator {
 
             //Config
             this.oreClusterId = id;
-            this.config = C.getOreConfigByConfigId(id);
+            this.config = C.getOreConfigModel(id);
             this.volume = config.oreClusterVolume;
             this.expectedOreDensity = config.oreClusterDensity;
 

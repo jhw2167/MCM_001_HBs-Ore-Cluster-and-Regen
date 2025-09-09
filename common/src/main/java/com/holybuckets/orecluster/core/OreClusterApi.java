@@ -2,19 +2,19 @@ package com.holybuckets.orecluster.core;
 
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.ModRealTimeConfig;
-import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import com.holybuckets.orecluster.core.model.OreClusterInfo;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.*;
@@ -63,11 +63,11 @@ public class OreClusterApi {
     {
         JsonObject resp = new JsonObject();
         //Return default config
-        OreClusterConfigModel config = modConfig.getDefaultConfig();
+        OreClusterConfigModel config = modConfig.getDefaultConfigModel();
         JsonArray allOresArray = new JsonArray();
 
         //sort oreconfigs by configId 0000 to 9999
-        List<OreClusterConfigModel> ores = modConfig.getOreConfigs().values().stream()
+        List<OreClusterConfigModel> ores = modConfig.getBaseOreConfigs().stream()
             .sorted(Comparator.comparingInt(a -> Integer.parseInt(a.configId)))
             .toList();
         for(OreClusterConfigModel oreConfig : ores )
@@ -78,6 +78,8 @@ public class OreClusterApi {
             oreObj.addProperty("clusterType", HBUtil.BlockUtil.blockToString(oreConfig.oreClusterType.getBlock()) );
             oreObj.addProperty("clusterSpawnRate", oreConfig.oreClusterSpawnRate);
             oreObj.addProperty("clusterRegenerates", (oreConfig.oreClusterDoesRegenerate) ? "yes" : "no");
+            oreObj.addProperty("biomesWhiteListed", oreConfig.biomeWhitelist.size() );
+            oreObj.addProperty("biomesBlackListed", oreConfig.biomeBlacklist.size() );
             //oreObj.addProperty("vanillaSuperVeinsEnabled", config.oreClusterSpawnRate);
             //oreObj.addProperty("biome", config.oreClusterSpawnRate);
             allOresArray.add(oreObj);
@@ -119,10 +121,10 @@ public class OreClusterApi {
         return resp;
     }
 
-    public JsonObject getConfig(String configId)
+    public JsonObject getConfig(String configId, boolean showBiomesList)
     {
         if(configId == null) return getConfigSummary();
-        OreClusterConfigModel targetConfig = modConfig.getOreConfig( Integer.parseInt(configId) );
+        OreClusterConfigModel targetConfig = modConfig.getBaseOreConfig(configId);
         if(targetConfig == null) return null;
 
         JsonObject resp = new JsonObject();
@@ -149,8 +151,22 @@ public class OreClusterApi {
         configObj.addProperty("nonReplaceableBlocks", targetConfig.oreClusterNonReplaceableBlocks.toString());
         configObj.addProperty("alternativeClusterBlocks", targetConfig.oreClusterReplaceableEmptyBlocks.toString());
         //configObj.addProperty("oreVeinModifierExistingOres", targetConfig.oreVeinModifier);
-        
+
+        //We are going to create a list of biomes that are whitelisted and blacklisted
+        JsonObject biomeObj = new JsonObject();
+        biomeObj.addProperty("header", (showBiomesList) ? "Biomes:" : "Show biomes list disabled");
+        int i =0;
+        for(Map.Entry<OreClusterId, OreClusterConfigModel> entry : modConfig.getOreConfigs().entrySet()) {
+            if(entry.getValue() == targetConfig) {
+                Biome b = entry.getKey().getBiome();
+                if(b == null || HBUtil.LevelUtil.getBiomeName(b) == null) continue;
+                String name = HBUtil.LevelUtil.getBiomeName(b).toString();
+                biomeObj.addProperty(++i+"", name);
+            }
+        }
+
         configArray.add(configObj);
+        if(showBiomesList) configArray.add(biomeObj);
         resp.add("value", configArray);
 
         return resp;
@@ -167,21 +183,15 @@ public class OreClusterApi {
      * @return null if level or pos is null, or limit is less than 1
      * locateClusters
      */
-    public List<OreClusterInfo> locateOreClusters(LevelAccessor level, BlockPos pos, BlockState oreType, int limit)
+    public List<OreClusterInfo> locateOreClusters(LevelAccessor level, BlockPos pos, Block oreType, int limit)
     {
         //1. Check if level is valid and get OreClusterManager for the level
-        if(level == null)
-            return null;
-
-        if(pos == null)
-            return null;
-
-        if(limit <= 0)
-            return null;
+        if(level == null) return null;
+        if(pos == null) return null;
+        if(limit <= 0) return null;
 
         OreClusterManager manager = managers.get(level);
-        if(manager == null)
-            return null;
+        if(manager == null) return null;
 
         //2. Get list of all oreClusters
         Map<OreClusterId, Set<String>> clusters = manager.getExistingClustersByType();
@@ -190,7 +200,7 @@ public class OreClusterApi {
          " clusters in level: " + HBUtil.LevelUtil.toLevelId(level) + " with oreType: " + ((oreType==null) ? "any" : oreType) );
 
         //3. Create list of all valid Clusters from each chunk, filtering by oreType if necessary
-        List<String> validClusterChunkIds = new ArrayList<>();
+        Set<String> validClusterChunkIds = new HashSet<>();
         if(oreType == null)
         {
             for(OreClusterId clusterType : clusters.keySet()) {
@@ -199,21 +209,23 @@ public class OreClusterApi {
         }
         else
         {
-            Set<String> clusterChunkIds = clusters.get(oreType);
-            if(clusterChunkIds != null)
-                validClusterChunkIds.addAll(clusterChunkIds);
+            Set<OreClusterId> idsForOre = modConfig.getAllOreConfigIdsByOre(oreType);
+            clusters.forEach( (k,v) -> {
+                if(v == null) return;
+                if(idsForOre.contains(k)) validClusterChunkIds.addAll(v);
+            });
         }
 
         //4. Add clusters to clusterInfo
         List<OreClusterInfo> clusterInfo = new ArrayList<>();
         for(String chunkId : validClusterChunkIds)
         {
-            ManagedOreClusterChunk cluster = manager.getManagedOreClusterChunk(chunkId);
-            if(cluster != null && cluster.hasClusters()) {
-                cluster.getClusterTypes().forEach((k,v) -> {
-                if(v == null)  return;
-                if( oreType != null && !k.equals(oreType) ) return;
-                clusterInfo.add(new OreClusterInfo(cluster, k));
+            ManagedOreClusterChunk clusterChunk = manager.getManagedOreClusterChunk(chunkId);
+            if(clusterChunk != null && clusterChunk.hasClusters()) {
+                clusterChunk.getClusterTypes().forEach((k,v) -> {
+                    if(v == null) return;
+                    if( oreType != null && !k.getBlock().equals(oreType) ) return;
+                    clusterInfo.add(new OreClusterInfo(clusterChunk, k));
                 });
             }
         }
@@ -274,11 +286,19 @@ public class OreClusterApi {
         return manager.forceProcessChunk(chunkId);
     }
 
-    public boolean addCluster(LevelAccessor level, String configId, BlockPos pos) {
-        OreClusterId id = modConfig.getOreConfigId( Integer.parseInt(configId) );
-        if(id == null) {
-            LoggerProject.logWarning("008003", "Could not find config for id: " + configId);
-            return false;
+    public boolean addCluster(LevelAccessor level, String configId, BlockPos pos)
+    {
+        OreClusterId id;
+        try {
+            id = modConfig.getOreConfigId( Integer.parseInt(configId) );
+            if(id == null) throw  new NullPointerException();
+        } catch (NullPointerException | NumberFormatException e)
+        {
+            id = modConfig.getBaseOreConfigId(configId);
+            if(id == null) {
+                LoggerProject.logWarning("008003", "Could not find config for id: " + configId);
+                return false;
+            }
         }
 
         return addCluster(level, id, pos);

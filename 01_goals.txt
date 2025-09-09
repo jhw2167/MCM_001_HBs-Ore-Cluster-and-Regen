@@ -441,9 +441,11 @@ existingClustersByType.get(Blocks.IRON_ORE.defaultBlockState()).contains("229,24
 	- Give each cluster type its own id
 	- see Plan.txt!
 
-46. 
+46. Fix bug where trigger regen causes collosal lag after player reloads world
 ---  
-		
+
+- {"queueSizes":{"pendingHandling":0,"pendingDeterminations":0,"pendingCleaning":4266,"pendingPreGeneration":1,"pendingRegeneration":0},"averageThreadTimes":{},"chunkTracking":{"determinedSourceChunks":["0,0","-13,-17","-22,-2","-30,3","-32,5","-35,17","-39,8"],"determinedChunks":7000,"loadedOreClusterChunks":4381,"expiredChunks":500,"completeChunks":2132}}
+- 77652
 
 47.  
 ---  
