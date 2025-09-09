@@ -875,9 +875,55 @@ public class OreClusterManager {
      * handleChunkDetermination
      * handleDetermineChunks
      */
+    private void handleChunkDetermination(String chunkId) {
+        // 1. Get and validate chunk is loaded
+        ChunkAccess chunk = HBUtil.ChunkUtil.getChunkAccess(level, chunkId);
+        if (chunk == null || !chunkUtil.isChunkFullyLoaded(chunkId)) {
+            return;
+        }
+
+        // 2. Get biomes in chunk
+        ManagedOreClusterChunk managedChunk = loadedOreClusterChunks.getOrDefault(chunkId, 
+            ManagedOreClusterChunk.getInstance(level, chunkId));
+        Set<net.minecraft.world.level.biome.Biome> chunkBiomes = new HashSet<>();
+        chunk.getSections().forEach(section -> {
+            if (section != null && section.getBiomes() != null) {
+                section.getBiomes().getAll(biome -> chunkBiomes.add(biome));
+            }
+        });
+
+        // 3. Determine applicable ore clusters for biomes
+        Map<OreClusterId, OreClusterConfigModel> applicableConfigs = new HashMap<>();
+        for (net.minecraft.world.level.biome.Biome biome : chunkBiomes) {
+            managedChunk.addBiome(biome);
+            config.getOreConfigs().forEach((id, model) -> {
+                if (config.doesLevelMatch(id, level) && config.clustersDoSpawn(id)) {
+                    applicableConfigs.put(id, model);
+                }
+            });
+        }
+
+        // 4. Use spawn rates to determine final clusters
+        List<OreClusterId> finalClusters = new ArrayList<>();
+        Random random = managedChunk.getChunkRandom();
+        applicableConfigs.forEach((id, model) -> {
+            if (random.nextFloat() <= model.oreClusterSpawnRate) {
+                finalClusters.add(id);
+            }
+        });
+
+        // 5. Add clusters to managed chunk
+        if (!finalClusters.isEmpty()) {
+            managedChunk.addClusterTypes(finalClusters);
+            managedChunk.setStatus(OreClusterStatus.DETERMINED);
+            this.chunksPendingCleaning.put(chunkId, managedChunk);
+            this.determinedChunks.add(chunkId);
+            LoggerProject.logDebug("002008", "Queued " + chunkId + " for cluster determination");
+        }
+    }
+
     private void handleChunkDetermination(int batchSize, String chunkId) 
     {
-
         LoggerProject.logDebug("002008", "Queued " + chunkId + " for cluster determination");
         determinedSourceChunks.add(chunkId);
         LinkedHashSet<String> chunkIds = getBatchedChunkList(batchSize, chunkId);
