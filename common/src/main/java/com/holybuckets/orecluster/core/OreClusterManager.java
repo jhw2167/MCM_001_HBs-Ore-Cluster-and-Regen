@@ -502,7 +502,7 @@ public class OreClusterManager {
             {
                 if( ManagedOreClusterChunk.isRegenerated(chunk))
                     this.chunksPendingRegeneration.add(chunkId);
-                chunksPendingPreGeneration.put(chunkId, chunk);
+                chunksPendingPreGeneration.add(chunkId);
                 chunk.setStatus(OreClusterStatus.CLEANED);
                 //this.threadPoolClusterGenerating.submit(this::workerThreadGenerateClusters);
             }
