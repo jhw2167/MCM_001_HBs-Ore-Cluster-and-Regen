@@ -732,6 +732,56 @@ public class OreClusterConfigModel {
         public int hashCode() {
             return id;
         }
+
+        public boolean filter(Level l) {
+            return filter(l, null, null);
+        }
+
+        public boolean filter(Level l, Biome b) {
+            return filter(l, b, null);
+        }
+
+        public boolean filter(Block b) {
+            return filter(null, null, b);
+        }
+
+        public boolean filter(Level l, Block b) {
+            return filter(l, null, b);
+        }
+
+        public boolean filter(Biome b, Block block) {
+            return filter(null, b, block);
+        }
+
+        /**
+         *
+         * @param l
+         * @param b
+         * @param block
+         * @return true if all items are null or equal to provided arguments
+         */
+        public boolean filter( @Nullable Level l, @Nullable Biome b, @Nullable Block block)
+        {
+            if( this.level != null && l != null && !this.level.equals(l) )
+                return false;
+
+            if( this.biome != null && b != null && !this.biome.equals(b) )
+                return false;
+
+            if( this.block != null && block != null && !this.block.equals(block) )
+                return false;
+
+            if( this.level == null && l != null) return false;
+            if(this.biome == null && b != null) return false;
+            if(this.block == null && block != null) return false;
+
+            return true;
+        }
+
+        public static void shutdown() {
+            CACHE.clear();
+            HBUtil.HBMath.clearUUIDs(ORE_CLUSTERS);
+        }
     }
 
 }

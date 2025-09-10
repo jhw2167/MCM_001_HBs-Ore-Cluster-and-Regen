@@ -291,7 +291,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private static final OreClusterStatus delinquent = OreClusterStatus.DETERMINED;
     public void setStatus(OreClusterStatus status) {
         if(this.status == current && status == delinquent) {
-            LoggerProject.logInfo("003012", "Chunk " + this.id + " attempted to set delinquent status" + status);
+            //LoggerProject.logDebug("003012", "Chunk " + this.id + " attempted to set delinquent status" + status);
         }
     this.status = status;
     }

@@ -64,6 +64,7 @@ public class OreClusterCalculator {
      * determineClusters
      * determineChunks
      */
+    @Deprecated
     public Map<String, List<OreClusterId>> calculateClusterLocations(List<String> chunks, Random rng)
     {
         //long startTime = System.nanoTime();

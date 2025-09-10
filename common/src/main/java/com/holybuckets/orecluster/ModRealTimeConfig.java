@@ -26,6 +26,7 @@ import net.minecraft.world.level.block.Block;
 import java.io.File;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 //Project imports
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
@@ -88,6 +89,9 @@ public class ModRealTimeConfig
 
         this.oreConfigs = new HashMap<>();
         this.baseConfigIds = new HashMap<>();
+        this.baseOreConfigs = new ArrayList<>();
+        this.validOreClusterBlocks = new HashSet<>();
+
         LoggerProject.logInit("000000", this.getClass().getName());
     }
 
@@ -95,13 +99,15 @@ public class ModRealTimeConfig
     //Constructor initializes the defaultConfigs and oreConfigs from forge properties
     public void onBeforeServerStart(ServerStartingEvent event)
     {
+        this.oreConfigs = new HashMap<>();
+        this.baseConfigIds = new HashMap<>();
+        this.baseOreConfigs = new ArrayList<>();
+        this.validOreClusterBlocks = new HashSet<>();
+
         OreClusterConfigData.COreClusters clusterConfig = OreClusterConfig.getActive().cOreClusters;
         this.defaultConfig = new OreClusterConfigModel(clusterConfig);
         defaultConfig.setConfigId();
 
-        //Create new oreConfig for each element in cOreClusters list
-        baseOreConfigs = new ArrayList<>();
-        validOreClusterBlocks = new HashSet<>();
 
         File configFile = new File(clusterConfig.oreClusterFileConfigPath);
         File defaultConfigFile = new File(OreClusterConfigData.COreClusters.DEF_ORE_CLUSTER_FILE_CONFIG_PATH);
@@ -177,14 +183,15 @@ public class ModRealTimeConfig
     //clear levelInit on serverStopped
     private void onServerStopped(ServerStoppedEvent event) {
         this.levelInit.clear();
+        OreClusterId.shutdown();
+
+        this.oreConfigs.clear();
+        this.baseConfigIds.clear();
+        this.baseOreConfigs.clear();
+        this.validOreClusterBlocks.clear();
     }
 
-        private boolean levelInit(Level level) {
-            return this.levelInit.contains(level);
-        }
-
-
-    /**
+        /*
          *  Getters
          */
 
@@ -206,8 +213,8 @@ public class ModRealTimeConfig
         public List<OreClusterConfigModel> getAllOreConfigByOre(Block b) {
             Set<OreClusterConfigModel> configs = new HashSet<>();
             //BlockState b = HBUtil.BlockUtil.blockNameToBlock(ore.toString()).defaultBlockState();
-            for( OreClusterConfigModel config : oreConfigs.values() ) {
-                if( config.oreClusterType != null && config.oreClusterType.equals(b) ) {
+            for( OreClusterConfigModel config : baseOreConfigs ) {
+                if( config.oreClusterType != null && config.oreClusterType.equals(b.defaultBlockState()) ) {
                     configs.add(config);
                 }
             }
@@ -246,13 +253,11 @@ public class ModRealTimeConfig
         }
 
         public Set<OreClusterId> getAllOreConfigIdsByOre(Block b) {
-            Set<OreClusterId> configs = new HashSet<>();
-            for( Map.Entry<OreClusterId, OreClusterConfigModel> entry : oreConfigs.entrySet() ) {
-                if( entry.getValue().oreClusterType.getBlock().equals(b) ) {
-                    configs.add(entry.getKey());
-                }
-            }
-            return configs;
+            return oreConfigs.keySet().stream().filter( id -> id.filter(b) ).collect(Collectors.toSet());
+        }
+
+        public Set<OreClusterId> getAllOreConfigIdsByBiome(Level l, Biome b) {
+            return oreConfigs.keySet().stream().filter( id -> id.filter(l,b) ).collect(Collectors.toSet());
         }
 
         public OreClusterConfigModel getDefaultConfigModel() {

@@ -1,1 +1,96 @@
-{"oreClusterConfigs":[{"oreClusterType":"minecraft:coal_ore","oreClusterSpawnRate":32,"oreClusterDimensionId":"minecraft:overworld","oreClusterVolume":"8x8x8","oreClusterDensity":0.4,"oreClusterShape":"SPHERE","oreClusterMaxYLevelSpawn":64,"oreClusterMinYLevelSpawn":-64000,"minChunksBetweenOreClusters":0,"oreVeinModifier":1.0,"oreClusterNonReplaceableBlocks":"minecraft:end_portal_frame, minecraft:grass, minecraft:bedrock, minecraft:air, minecraft:dirt","oreClusterReplaceableEmptyBlocks":"minecraft:stone, minecraft:stone, minecraft:air","oreClusterDoesRegenerate":false},{"oreClusterType":"minecraft:deepslate_lapis_ore","oreClusterSpawnRate":10,"oreClusterDimensionId":"minecraft:overworld","oreClusterVolume":"4x6x4","oreClusterDensity":0.1,"oreClusterShape":"SPHERE","oreClusterMaxYLevelSpawn":0,"oreClusterMinYLevelSpawn":-56,"minChunksBetweenOreClusters":0,"oreVeinModifier":1.0,"oreClusterNonReplaceableBlocks":"minecraft:end_portal_frame, minecraft:bedrock, minecraft:air","oreClusterReplaceableEmptyBlocks":"minecraft:deepslate_redstone_ore, minecraft:deepslate_diamond_ore, minecraft:deepslate_emerald_ore, minecraft:deepslate, minecraft:deepslate, minecraft:deepslate, minecraft:deepslate, minecraft:deepslate, minecraft:deepslate","oreClusterDoesRegenerate":false},{"oreClusterType":"minecraft:iron_ore","oreClusterSpawnRate":8,"oreClusterDimensionId":"minecraft:overworld","oreClusterVolume":"16x12x16","oreClusterDensity":0.25,"oreClusterShape":"any","oreClusterMaxYLevelSpawn":64,"oreClusterMinYLevelSpawn":-64000,"minChunksBetweenOreClusters":0,"oreVeinModifier":1.0,"oreClusterNonReplaceableBlocks":"minecraft:end_portal_frame, minecraft:grass, minecraft:bedrock, minecraft:air, minecraft:dirt","oreClusterReplaceableEmptyBlocks":"hbs_foundation:empty_block","oreClusterDoesRegenerate":true},{"oreClusterType":"minecraft:deepslate_diamond_ore","oreClusterSpawnRate":2,"oreClusterDimensionId":"minecraft:overworld","oreClusterVolume":"5x4x5","oreClusterDensity":0.32,"oreClusterShape":"any","oreClusterMaxYLevelSpawn":-16,"oreClusterMinYLevelSpawn":-56,"minChunksBetweenOreClusters":0,"oreVeinModifier":1.0,"oreClusterNonReplaceableBlocks":"minecraft:end_portal_frame, minecraft:bedrock, minecraft:air","oreClusterReplaceableEmptyBlocks":"minecraft:deepslate","oreClusterDoesRegenerate":true}]}
+{
+    "oreClusterConfigs": [
+        {
+            "oreClusterType": "minecraft:iron_ore",
+            "oreClusterSpawnRate": 8,
+            "oreClusterDimension": "minecraft:overworld",
+            "biomeWhitelist": [],
+            "biomeBlacklist": [],
+            "oreClusterVolume": "16x12x16",
+            "oreClusterDensity": 0.25,
+            "oreClusterShape": "any",
+            "oreClusterMaxYLevelSpawn": 64,
+            "oreClusterMinYLevelSpawn": -64000,
+            "minChunksBetweenOreClusters": 0,
+            "oreVeinModifier": 1.0,
+            "oreClusterNonReplaceableBlocks": "minecraft:end_portal_frame, minecraft:grass, minecraft:air, minecraft:dirt, minecraft:bedrock",
+            "oreClusterReplaceableEmptyBlocks": "hbs_foundation:empty_block",
+            "oreClusterDoesRegenerate": true
+        },
+        {
+            "oreClusterType": "minecraft:deepslate_diamond_ore",
+            "oreClusterSpawnRate": 2,
+            "oreClusterDimension": "minecraft:overworld",
+            "biomeWhitelist": [
+                "minecraft:ice_spikes",
+                "minecraft:deep_frozen_ocean",
+                "minecraft:jagged_peaks",
+                "minecraft:deep_ocean",
+                "minecraft:stony_peaks",
+                "minecraft:deep_dark",
+                "minecraft:deep_cold_ocean"
+            ],
+            "biomeBlacklist": [],
+            "oreClusterVolume": "5x4x5",
+            "oreClusterDensity": 0.32,
+            "oreClusterShape": "any",
+            "oreClusterMaxYLevelSpawn": -16,
+            "oreClusterMinYLevelSpawn": -56,
+            "minChunksBetweenOreClusters": 0,
+            "oreVeinModifier": 1.0,
+            "oreClusterNonReplaceableBlocks": "minecraft:end_portal_frame, minecraft:air, minecraft:bedrock",
+            "oreClusterReplaceableEmptyBlocks": "minecraft:deepslate",
+            "oreClusterDoesRegenerate": true
+        },
+        {
+            "oreClusterType": "minecraft:coal_ore",
+            "oreClusterSpawnRate": 32,
+            "oreClusterDimension": "minecraft:overworld",
+            "biomeWhitelist": [],
+            "biomeBlacklist": [
+                "minecraft:mushroom_fields",
+                "minecraft:snowy_plains",
+                "minecraft:plains",
+                "minecraft:ice_spikes",
+                "minecraft:sunflower_plains",
+                "minecraft:mangrove_swamp",
+                "minecraft:swamp"
+            ],
+            "oreClusterVolume": "8x8x8",
+            "oreClusterDensity": 0.4,
+            "oreClusterShape": "SPHERE",
+            "oreClusterMaxYLevelSpawn": 64,
+            "oreClusterMinYLevelSpawn": -64000,
+            "minChunksBetweenOreClusters": 0,
+            "oreVeinModifier": 1.0,
+            "oreClusterNonReplaceableBlocks": "minecraft:end_portal_frame, minecraft:grass, minecraft:air, minecraft:dirt, minecraft:bedrock",
+            "oreClusterReplaceableEmptyBlocks": "minecraft:stone, minecraft:stone, minecraft:air",
+            "oreClusterDoesRegenerate": false
+        },
+        {
+            "oreClusterType": "minecraft:deepslate_lapis_ore",
+            "oreClusterSpawnRate": 10,
+            "oreClusterDimension": "minecraft:overworld",
+            "biomeWhitelist": [
+                "minecraft:badlands",
+                "minecraft:windswept_hills",
+                "minecraft:jagged_peaks",
+                "minecraft:stony_peaks",
+                "minecraft:stony_shore",
+                "minecraft:dripstone_caves",
+                "minecraft:windswept_gravelly_hills"
+            ],
+            "biomeBlacklist": [],
+            "oreClusterVolume": "4x6x4",
+            "oreClusterDensity": 0.1,
+            "oreClusterShape": "SPHERE",
+            "oreClusterMaxYLevelSpawn": 0,
+            "oreClusterMinYLevelSpawn": -56,
+            "minChunksBetweenOreClusters": 0,
+            "oreVeinModifier": 1.0,
+            "oreClusterNonReplaceableBlocks": "minecraft:end_portal_frame, minecraft:air, minecraft:bedrock",
+            "oreClusterReplaceableEmptyBlocks": "minecraft:deepslate_redstone_ore, minecraft:deepslate_diamond_ore, minecraft:deepslate_emerald_ore, minecraft:deepslate, minecraft:deepslate, minecraft:deepslate, minecraft:deepslate, minecraft:deepslate, minecraft:deepslate",
+            "oreClusterDoesRegenerate": false
+        }
+    ]
+}

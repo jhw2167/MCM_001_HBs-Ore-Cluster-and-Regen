@@ -92,8 +92,7 @@ public class OreClusterBlockStateTracker
         OreClusterManager manager = OreClusterManager.getManager(currentLevel);
         if( manager == null ) return;
         chunkId = HBUtil.ChunkUtil.getId(currentChunk);
-        if( manager.getDeterminedOreClusterChunk( chunkId ) == null) return;
-        currentManagedOreClusterChunk = manager.getDeterminedOreClusterChunk( chunkId );
+        currentManagedOreClusterChunk = manager.getManagedOreClusterChunk( chunkId );
         chunk.getSections()[0].getBiomes().getAll( hb -> {
             currentManagedOreClusterChunk.addBiome(hb.value());
         });
