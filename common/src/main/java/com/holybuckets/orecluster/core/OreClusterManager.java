@@ -504,7 +504,6 @@ public class OreClusterManager {
                     this.chunksPendingRegeneration.add(chunkId);
                 chunksPendingPreGeneration.add(chunkId);
                 chunk.setStatus(OreClusterStatus.CLEANED);
-                //this.threadPoolClusterGenerating.submit(this::workerThreadGenerateClusters);
             }
         }
         else if( this.chunksPendingRegeneration.contains(chunkId) ) {
@@ -603,23 +602,22 @@ public class OreClusterManager {
         Throwable thrown = null;
 
         try {
-            while(managerRunning) {
+            while(managerRunning)
+            {
                 String chunkId = chunksPendingCleaning.take();
                 ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
-                
-                if (chunk != null && chunk.hasChunk()) {
-                    try {
-                        long start = System.nanoTime();
-                        editManagedChunk(chunk, this::handleChunkCleaning);
-                        long end = System.nanoTime();
-                        if(DEBUG) {
-                            THREAD_TIMES.get("handleChunkCleaning").add((end - start) / 1_000_000);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        LoggerProject.logError("002030","Error cleaning chunk: " + chunkId + " message: " + e.getMessage());
-                    }
+                if (chunk == null || !chunk.hasChunk()) {
+                    chunksPendingCleaning.add(chunkId); continue;
                 }
+
+                try {
+                    editManagedChunk(chunk, this::handleChunkCleaning);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    LoggerProject.logError("002030","Error cleaning chunk: " + chunkId + " message: " + e.getMessage());
+                }
+
+                if(!isCleaned(chunk)) chunksPendingCleaning.add(chunkId);
             }
         } catch (InterruptedException e) {
             // Handle interruption
@@ -683,6 +681,7 @@ public class OreClusterManager {
                     sleep(100);
                     continue;
                 }
+                chunksPe
 
                 if( loadedOreClusterChunks.containsKey(TEST_ID)
                 && ManagedOreClusterChunk.isPregenerated(loadedOreClusterChunks.get(TEST_ID)) )
@@ -696,7 +695,6 @@ public class OreClusterManager {
                     .filter(c -> c.isReady())
                     //.filter(c -> c.hasChunk())
                     .toList();
-
 
                 for( ManagedOreClusterChunk chunk : readyChunks )
                 {
@@ -861,7 +859,7 @@ public class OreClusterManager {
             if( clusters.get(id) != null )
                 chunk.addClusterTypes(clusters.get(id));
             //chunk.setStatus(OreClusterStatus.DETERMINED);
-            this.chunksPendingCleaning.put(id, chunk);
+            this.chunksPendingCleaning.add(id);
             this.determinedChunks.add(id);
         }
         LoggerProject.logDebug("002010","Added " + clusters.size() + " clusters to determinedChunks");
@@ -960,7 +958,7 @@ public class OreClusterManager {
                 if( chunk.hasClusters() )
                 {
                     oreClusterCalculator.cleanChunkSelectClusterPosition(chunk);
-                    this.chunksPendingPreGeneration.put(chunk.getId(), chunk);
+                    this.chunksPendingPreGeneration.put(chunk.getId());
                     //this.threadPoolClusterGenerating.submit(this::workerThreadGenerateClusters);
                 }
 
@@ -1043,7 +1041,7 @@ public class OreClusterManager {
                 LoggerProject.logDebug("002032","No source position for oreType: " + oreType);
                 SKIPPED = BlockUtil.blockToString(oreType.getBlock());
                 chunk.setStatus(OreClusterStatus.DETERMINED);
-                this.chunksPendingCleaning.put(chunk.getId(), chunk);
+                this.chunksPendingCleaning.add(chunk.getId());
                 continue;
             }
 
@@ -1370,7 +1368,7 @@ public class OreClusterManager {
             return true;
         }
         //chunk.setStatus(OreClusterStatus.REGENERATED); -- not until chunk is successfully re-pregenerated
-        chunksPendingPreGeneration.put(chunkId, chunk);
+        chunksPendingPreGeneration.add(chunkId);
         if( force ) { this.forceProcessChunk(chunkId, OreClusterStatus.CLEANED); }
         return true;
     }
@@ -1439,7 +1437,7 @@ public class OreClusterManager {
     public LinkedHashSet<String> getRecentChunkIds(ChunkPos start, int spiralArea)
     {
         if (chunksPendingCleaning.size() < Math.pow(ModRealTimeConfig.ORE_CLUSTER_DTRM_RADIUS_STRATEGY_CHANGE, 2)) {
-            return chunksPendingCleaning.values().stream().map(ManagedOreClusterChunk::getId).
+            return chunksPendingCleaning.stream().limit(spiralArea).
             collect(Collectors.toCollection(LinkedHashSet::new));
         }
         else
@@ -1681,14 +1679,6 @@ public class OreClusterManager {
     public ManagedOreClusterChunk getManagedOreClusterChunk(String chunkId) {
         this.loadedOreClusterChunks.putIfAbsent(chunkId, ManagedOreClusterChunk.getInstance(level, chunkId));
         return this.loadedOreClusterChunks.get(chunkId);
-    }
-
-    public ManagedOreClusterChunk getDeterminedOreClusterChunk(ChunkAccess chunk) {
-        return this.getDeterminedOreClusterChunk(ChunkUtil.getId(chunk));
-    }
-
-    public ManagedOreClusterChunk getDeterminedOreClusterChunk(String chunkId) {
-        return this.chunksPendingCleaning.get(chunkId);
     }
 
 
