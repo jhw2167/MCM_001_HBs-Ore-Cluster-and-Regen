@@ -728,60 +728,33 @@ public class OreClusterManager {
     }
 
 
-    private void handleChunkReadiness()
-    {
-        Throwable thrown = null;
-        try
-        {
+    private boolean isChunkReady(ManagedOreClusterChunk chunk) {
+        if (!chunk.hasChunk() || chunk.isReady()) {
+            return false;
+        }
 
-            List<ManagedOreClusterChunk> availableChunks = loadedOreClusterChunks.values().stream()
-                .filter(c -> c.hasChunk() )
-                .filter(c -> !c.isReady())
-                .toList();
+        // Check if cleaned chunk is ready
+        if (isCleaned(chunk) && !chunk.hasClusters() && !chunk.checkClusterHarvested()) {
+            return true;
+        }
 
-            //Cleaned chunks that have not been harvested yet
-            List<ManagedOreClusterChunk> cleanedChunks = availableChunks.stream()
-                .filter(c -> isCleaned(c) )
-                .filter(c -> !c.hasClusters())              //If it still needs to generate clusters, skip
-                .filter(c -> !c.checkClusterHarvested())    //Checks if cluster has been interacted with by player
-                .toList();
+        // Check if pre-generated/regenerated chunk is ready
+        if ((isPregenerated(chunk) || isRegenerated(chunk)) && !chunk.checkClusterHarvested()) {
+            return true;
+        }
 
-             //Pre-generated chunks that have not been harvested yet
-            List<ManagedOreClusterChunk> preGeneratedChunks = availableChunks.stream()
-                .filter(c -> isPregenerated(c) || isRegenerated(c) )
-                .filter(c -> !c.checkClusterHarvested())                //Checks if cluster has been interacted with by player
-                .toList();
+        return false;
+    }
 
-            //Any adjacentChunks to the player that are not harvested
-            /*
-            final List<ChunkAccess> PLAYER_CHUNKS = GeneralConfig.getPlayers();
-            //Get location of each player
-            //Get chunk at each location
-            //Determine adjacent chunks
-            //Put adjacent chunks into an array
-            //Filter all chunks that have been harvested
-            List<ManagedOreClusterChunk> adjacentChunks = loadedOreClusterChunks.values().stream()
-                .filter(c -> ManagedOreClusterChunk.isCleaned(c) )
-                .filter(c -> !c.isReady())
-                .filter(c -> !c.checkClusterHarvested())    //Checks if cluster has been interacted with by player
-                .filter(c -> c.hasChunk())                 //must have loaded chunk
-                .toList();
-
-            */
-
-            //Join Lists and mark as ready
-            List<ManagedOreClusterChunk> readyChunks = new ArrayList<>();
-            readyChunks.addAll(cleanedChunks);
-            readyChunks.addAll(preGeneratedChunks);
-            //readyChunks.addAll(adjacentChunks);
-
-            readyChunks.stream().forEach(c -> c.setReady(true));
+    private void handleChunkReadiness() {
+        try {
+            loadedOreClusterChunks.values().stream()
+                .filter(this::isChunkReady)
+                .forEach(c -> c.setReady(true));
         }
         catch (Exception e) {
-            thrown = e;
             LoggerProject.logError("002031.1","Error in handleChunkReadiness: " + e.getMessage());
         }
-
     }
 
 
