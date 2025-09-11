@@ -82,7 +82,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     private HashMap<OreClusterId, BlockPos> clusterTypes;
     private Map<OreClusterId, Pair<BlockPos, MutableInt>> originalOres; 
-    private IntObjectHashMap<Pair<BlockState,Set<BlockPos>>> blockStateUpdates;
+    private IntObjectHashMap<Pair<BlockState, Set<BlockPos>>> blockStateUpdates;
     private int updatesSize;
     private LinkedHashSet<Biome> biomes;
 
@@ -195,11 +195,11 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return this.blockStateUpdates.size();
     }
 
-    public List<Pair<BlockState, BlockPos>> getBlockStateUpdates() {
+    public List<Pair<BlockState, Set<BlockPos>>> getBlockStateUpdates() {
         return new ArrayList<>(blockStateUpdates.values());
     }
 
-    public List<Pair<BlockState, BlockPos>> getBlockStateUpdates(int limit) {
+    public List<Pair<BlockState, Set<BlockPos>>> getBlockStateUpdates(int limit) {
         return blockStateUpdates.values().stream().limit(limit).toList();
     }
 
@@ -218,9 +218,10 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
      */
     public Map<BlockPos, Integer> getMapBlockStateUpdates() {
         Map<BlockPos, Integer> map = new HashMap<>();
-        for(Map.Entry<Integer, Pair<BlockState, BlockPos>> entry : blockStateUpdates.entrySet())
-            {
-            map.put(entry.getValue().getRight(), entry.getKey());
+        for(Map.Entry<Integer, Pair<BlockState, Set<BlockPos>>> entry : blockStateUpdates.entrySet()) {
+            for(BlockPos pos : entry.getValue().getRight()) {
+                map.put(pos, entry.getKey());
+            }
         }
         return map;
     }
@@ -430,22 +431,25 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public void addBlockStateUpdate(BlockState block, BlockPos pos, int index) {
-        this.addBlockStateUpdate( Pair.of(block, pos), index);
+        if(index < 0) index = blockStateUpdates.size();
+        if(block.equals(ModBlocks.empty.defaultBlockState())) return;
+        
+        Pair<BlockState, Set<BlockPos>> existing = blockStateUpdates.get(index);
+        if(existing == null) {
+            Set<BlockPos> positions = new HashSet<>();
+            positions.add(pos);
+            blockStateUpdates.put(updatesSize++, Pair.of(block, positions));
+        } else if(existing.getLeft().equals(block)) {
+            existing.getRight().add(pos);
+        } else {
+            Set<BlockPos> positions = new HashSet<>();
+            positions.add(pos);
+            blockStateUpdates.put(updatesSize++, Pair.of(block, positions));
+        }
     }
-
 
     public void addBlockStateUpdate(BlockState block, BlockPos pos) {
-        this.addBlockStateUpdate( Pair.of(block, pos) );
-    }
-
-    public void addBlockStateUpdate(Pair<BlockState, BlockPos> pair) {
-        this.addBlockStateUpdate(pair, -1);
-    }
-
-    public void addBlockStateUpdate(Pair<BlockState, BlockPos> pair, int index) {
-        if(index < 0) index = blockStateUpdates.size();
-        if(pair.getLeft().equals(ModBlocks.empty.defaultBlockState())) return;
-        blockStateUpdates.put(updatesSize++, pair);
+        this.addBlockStateUpdate(block, pos, -1);
     }
 
     public void addBiome(Biome b) {
