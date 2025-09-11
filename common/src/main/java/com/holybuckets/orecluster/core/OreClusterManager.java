@@ -326,7 +326,7 @@ public class OreClusterManager {
     private void watchLoadedChunkExpiration()
     {
             boolean errorThrown = false;
-            while(managerRunning)
+            //while(managerRunning)
             {
                 try {
                     if (this.loadedOreClusterChunks.isEmpty())
@@ -538,12 +538,19 @@ public class OreClusterManager {
 
         try
         {
-            //while(managerRunning) {
-                String chunkId = chunksPendingHandling.take();
+            //while(managerRunning)
+            {
+                String chunkId = chunksPendingHandling.poll();
+                if(chunkId == null) return;
                 handleChunkLoaded(chunkId);
-            //}
+            }
         }
-        catch (InterruptedException e)
+        /*catch (InterruptedException e)
+        {
+            LoggerProject.logError("002003","OreClusterManager::workerThreadLoadedChunk() thread interrupted: "
+                + e.getMessage());
+        }*/
+        catch (Exception e)
         {
             LoggerProject.logError("002003","OreClusterManager::workerThreadLoadedChunk() thread interrupted: "
                 + e.getMessage());
@@ -553,7 +560,7 @@ public class OreClusterManager {
     }
 
     private static final int MAX_LOADED_CHUNKS = 64_000;
-    private void workerThreadDetermineClusters() 
+    private void workerThreadDetermineClusters()
     {
         if (!WORKER_THREAD_ENABLED.get("workerThreadDetermineClusters")) {
             return;
@@ -564,16 +571,17 @@ public class OreClusterManager {
 
             //while(managerRunning)
             //{
-                String chunkId = chunksPendingDeterminations.take();
+                String chunkId = chunksPendingDeterminations.poll();
+                if(chunkId == null) return;
                 handleChunkDetermination(chunkId);
                 if (!this.determinedChunks.contains(chunkId)) {
                     chunksPendingDeterminations.add(chunkId);
                 }
             //}
 
-        } catch (InterruptedException e) {
+        } /*catch (InterruptedException e) {
             //nothing
-        }
+        }*/
         catch (Exception e) {
             thrown = e;
             //LoggerProject.logError("002011.1","Error in workerThreadDetermineClusters: " + e.getMessage());
@@ -604,8 +612,9 @@ public class OreClusterManager {
 
         try {
             //while(managerRunning)
-            //{
-                String chunkId = chunksPendingCleaning.take();
+            {
+                String chunkId = chunksPendingCleaning.poll();
+                if(chunkId == null) return;
                 ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
                 if (chunk == null || !chunk.hasChunk()) {
                     chunksPendingCleaning.add(chunkId); return;
@@ -614,10 +623,10 @@ public class OreClusterManager {
                 editManagedChunk(chunk, this::handleChunkCleaning);
 
                 if(!isCleaned(chunk)) chunksPendingCleaning.add(chunkId);
-            //}
-        } catch (InterruptedException e) {
+            }
+        } /*catch (InterruptedException e) {
             // Handle interruption
-        } catch (Exception e) {
+        }*/ catch (Exception e) {
             thrown = e;
         } finally {
             LoggerProject.threadExited("002028",this, thrown);
@@ -636,10 +645,12 @@ public class OreClusterManager {
         Throwable thrown = null;
 
         try {
-            //while(managerRunning) {
-                String chunkId = chunksPendingPreGeneration.take();
+            //while(managerRunning)
+            {
+                String chunkId = chunksPendingPreGeneration.poll();
+                if(chunkId == null) return;
                 ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
-                
+
                 if (chunk != null && chunk.hasReadyClusters()) {
                     long start = System.nanoTime();
                     editManagedChunk(chunk, this::handleChunkClusterPreGeneration);
@@ -648,10 +659,10 @@ public class OreClusterManager {
                         THREAD_TIMES.get("handleChunkClusterPreGeneration").add((end - start) / 1_000_000);
                     }
                 }
-            //}
-        } catch (InterruptedException e) {
+            }
+        } /*catch (InterruptedException e) {
             // Handle interruption
-        } catch (Exception e) {
+        }*/ catch (Exception e) {
             thrown = e;
         } finally {
             LoggerProject.threadExited("002007",this, thrown);
@@ -670,7 +681,7 @@ public class OreClusterManager {
         try
         {
             //while(managerRunning)
-            //{
+            {
                 if( loadedOreClusterChunks.isEmpty() ) {
                     return;
                 }
@@ -692,7 +703,7 @@ public class OreClusterManager {
                     }
 
                 }
-            //}
+            }
 
         }
         catch (Exception e) {
