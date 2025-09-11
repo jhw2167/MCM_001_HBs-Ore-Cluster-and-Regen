@@ -12,6 +12,7 @@ import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import com.holybuckets.orecluster.core.OreClusterStatus;
+import io.netty.util.collection.IntObjectHashMap;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -81,7 +82,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     private HashMap<OreClusterId, BlockPos> clusterTypes;
     private Map<OreClusterId, Pair<BlockPos, MutableInt>> originalOres; 
-    private Map<Integer, Pair<BlockState, BlockPos>> blockStateUpdates;
+    private IntObjectHashMap<Pair<BlockState,Set<BlockPos>>> blockStateUpdates;
     private int updatesSize;
     private LinkedHashSet<Biome> biomes;
 
