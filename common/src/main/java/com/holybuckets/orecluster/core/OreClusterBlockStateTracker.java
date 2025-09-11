@@ -59,18 +59,19 @@ public class OreClusterBlockStateTracker
     //write a constructor
     public OreClusterBlockStateTracker(ServerLevel level) {
         this.currentLevel = level;
+        this.chunkSections = new ConcurrentHashMap<>();
         if( trackingOreConfig == null )
             trackingOreConfig = CONFIG.getOreConfigs();
     }
 
-    private static final int MAX_CHUNK_REFS = (int) Math.pow(2, 16); //64k
-    private static final int MAX_CHUNK_REFS_CLEAR = (int) Math.pow(2, 14); //16k
+    private static final int MAX_CHUNK_REFS = (int) Math.pow(2, 12); //16k
+    private static final int MAX_CHUNK_REFS_CLEAR = (int) Math.pow(2, 10); //1k
     private static int chunkCount = 0;
     public void setLevelTrackingChunk(ChunkAccess chunk, BlockPos pos)
     {
         chunkCount++;
         currentChunk = chunk;
-        chunkSections = new ConcurrentHashMap<>();
+        chunkSections.clear();
         AtomicInteger count = new AtomicInteger(0);
         Arrays.stream(chunk.getSections()).forEach((section) -> {
             chunkSections.put(section, count.getAndIncrement());
@@ -93,9 +94,9 @@ public class OreClusterBlockStateTracker
         if( manager == null ) return;
         chunkId = HBUtil.ChunkUtil.getId(currentChunk);
         currentManagedOreClusterChunk = manager.getManagedOreClusterChunk( chunkId );
-        chunk.getSections()[0].getBiomes().getAll( hb -> {
-            currentManagedOreClusterChunk.addBiome(hb.value());
-        });
+        if( currentManagedOreClusterChunk != null ) {
+            currentManagedOreClusterChunk.loadBiomes(chunk);
+        }
     }
 
 

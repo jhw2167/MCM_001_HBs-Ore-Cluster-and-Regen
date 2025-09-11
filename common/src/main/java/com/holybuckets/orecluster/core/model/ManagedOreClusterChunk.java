@@ -22,6 +22,7 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
@@ -451,6 +452,15 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.biomes.add(b);
     }
 
+    public boolean loadBiomes(ChunkAccess chunk) {
+        if(chunk == null || chunk.getSections().length == 0 || chunk.getSections()[0] == null)
+            return false;
+        chunk.getSections()[0].getBiomes().getAll( hb -> {
+            this.addBiome(hb.value());
+        });
+        return  biomes.size() > 0;
+    }
+
 
     /**
      * Check if any updatable blocks in the chunk have been changed
@@ -563,8 +573,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
 
     @Override
-    public void handleChunkUnloaded(ChunkLoadingEvent.Unload event)
-    {
+    public void handleChunkUnloaded(ChunkLoadingEvent.Unload event) {
         OreClusterManager.onChunkUnload(event);
     }
 

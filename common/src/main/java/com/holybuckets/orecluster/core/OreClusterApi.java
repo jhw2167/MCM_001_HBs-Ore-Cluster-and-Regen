@@ -354,6 +354,7 @@ public class OreClusterApi {
         queueSizes.addProperty("pendingDeterminations", m.chunksPendingDeterminations.size());
         queueSizes.addProperty("pendingCleaning", m.chunksPendingCleaning.size());
         queueSizes.addProperty("pendingPreGeneration", m.chunksPendingPreGeneration.size());
+        queueSizes.addProperty("pendingGeneration", m.chunksPendingGeneration.size());
         queueSizes.addProperty("pendingRegeneration", m.chunksPendingRegeneration.size());
         health.add("queueSizes", queueSizes);
 

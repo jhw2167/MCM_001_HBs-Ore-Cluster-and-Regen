@@ -8,6 +8,7 @@ import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.orecluster.LoggerProject;
+import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.core.OreClusterApi;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import com.holybuckets.orecluster.core.model.OreClusterInfo;
@@ -389,16 +390,14 @@ public class CommandList {
                     }
                 } else {
                     // Get stats for all levels
-                    for (String levelId : levelIds) {
-                        LevelAccessor level = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, levelId);
-                        if (level != null) {
-                            OreClusterManager manager = OreClusterManager.getManager(level);
-                            JsonObject healthCheck = api.healthCheckStatistics(manager);
-                            if (healthCheck != null) {
-                                source.sendSuccess(() -> Component.literal("Statistics for dimension " + levelId + ":"), false);
-                                source.sendSuccess(() -> Component.literal(healthCheck.toString()), false);
-                                LoggerProject.logInfo("010013", healthCheck.toString());
-                            }
+                    for (OreClusterManager manager : OreClustersAndRegenMain.getManagers().values()) {
+                        if (manager == null) continue;
+                        JsonObject healthCheck = api.healthCheckStatistics(manager);
+                        if (healthCheck != null) {
+                            String levelId = HBUtil.LevelUtil.toLevelId(manager.getLevel());
+                            source.sendSuccess(() -> Component.literal("Statistics for dimension " + levelId + ":"), false);
+                            source.sendSuccess(() -> Component.literal(healthCheck.toString()), false);
+                            LoggerProject.logInfo("010013", healthCheck.toString());
                         }
                     }
                 }
