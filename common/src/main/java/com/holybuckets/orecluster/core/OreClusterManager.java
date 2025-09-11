@@ -272,6 +272,7 @@ public class OreClusterManager {
     public static void init(EventRegistrar reg) {
         MANAGERS = new HashMap<>();
         reg.registerOnDataSave(OreClusterManager::save, EventPriority.High);
+        reg.registerOnServerTick(TickType.ON_SINGLE_TICK, OreClusterManager::onSingletick);
         reg.registerOnServerTick(TickType.ON_1200_TICKS, OreClusterManager::on1200Ticks);
     }
 
@@ -537,10 +538,10 @@ public class OreClusterManager {
 
         try
         {
-            while(managerRunning) {
+            //while(managerRunning) {
                 String chunkId = chunksPendingHandling.take();
                 handleChunkLoaded(chunkId);
-            }
+            //}
         }
         catch (InterruptedException e)
         {
@@ -561,14 +562,14 @@ public class OreClusterManager {
         Throwable thrown = null;
         try {
 
-            while(managerRunning)
-            {
+            //while(managerRunning)
+            //{
                 String chunkId = chunksPendingDeterminations.take();
                 handleChunkDetermination(chunkId);
                 if (!this.determinedChunks.contains(chunkId)) {
                     chunksPendingDeterminations.add(chunkId);
                 }
-            }
+            //}
 
         } catch (InterruptedException e) {
             //nothing
@@ -602,18 +603,18 @@ public class OreClusterManager {
         Throwable thrown = null;
 
         try {
-            while(managerRunning)
-            {
+            //while(managerRunning)
+            //{
                 String chunkId = chunksPendingCleaning.take();
                 ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
                 if (chunk == null || !chunk.hasChunk()) {
-                    chunksPendingCleaning.add(chunkId); continue;
+                    chunksPendingCleaning.add(chunkId); return;
                 }
 
                 editManagedChunk(chunk, this::handleChunkCleaning);
 
                 if(!isCleaned(chunk)) chunksPendingCleaning.add(chunkId);
-            }
+            //}
         } catch (InterruptedException e) {
             // Handle interruption
         } catch (Exception e) {
@@ -635,7 +636,7 @@ public class OreClusterManager {
         Throwable thrown = null;
 
         try {
-            while(managerRunning) {
+            //while(managerRunning) {
                 String chunkId = chunksPendingPreGeneration.take();
                 ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
                 
@@ -647,7 +648,7 @@ public class OreClusterManager {
                         THREAD_TIMES.get("handleChunkClusterPreGeneration").add((end - start) / 1_000_000);
                     }
                 }
-            }
+            //}
         } catch (InterruptedException e) {
             // Handle interruption
         } catch (Exception e) {
@@ -668,13 +669,10 @@ public class OreClusterManager {
 
         try
         {
-            while(managerRunning)
-            {
-                //sleep(1000);
-                //Sleep if loaded chunks is empty, else iterate over them
+            //while(managerRunning)
+            //{
                 if( loadedOreClusterChunks.isEmpty() ) {
-                    sleep(100);
-                    continue;
+                    return;
                 }
 
                 if( loadedOreClusterChunks.containsKey(TEST_ID)
@@ -694,7 +692,7 @@ public class OreClusterManager {
                     }
 
                 }
-            }
+            //}
 
         }
         catch (Exception e) {
