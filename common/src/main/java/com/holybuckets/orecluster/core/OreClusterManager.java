@@ -132,7 +132,8 @@ public class OreClusterManager {
     final LinkedBlockingQueue<String> chunksPendingHandling;
     final LinkedBlockingQueue<String> chunksPendingDeterminations;
     final LinkedBlockingQueue<String> chunksPendingCleaning;
-    final LinkedBlockingQueue<String> chunksPendingPreGeneration; 
+    final LinkedBlockingQueue<String> chunksPendingPreGeneration;
+    final LinkedBlockingQueue<String> chunksPendingGeneration;
     final ConcurrentSet<String> chunksPendingRegeneration;
     //private final ConcurrentHashMap<String, ManagedOreClusterChunk> chunksPendingManifestation;
 
@@ -209,6 +210,7 @@ public class OreClusterManager {
         this.chunksPendingDeterminations = new LinkedBlockingQueue<>();
         this.chunksPendingCleaning = new LinkedBlockingQueue<>();
         this.chunksPendingPreGeneration = new LinkedBlockingQueue<>();
+        this.chunksPendingGeneration = new LinkedBlockingQueue<>();
         this.chunksPendingRegeneration = new ConcurrentSet<>();
 
         this.initializedOreClusterChunks = new ConcurrentSet<>();
@@ -680,31 +682,18 @@ public class OreClusterManager {
 
         try
         {
-            //while(managerRunning)
-            {
-                if( loadedOreClusterChunks.isEmpty() ) {
-                    return;
-                }
+            String chunkId = chunksPendingGeneration.poll();
+            if(chunkId == null) return;
 
-                if( loadedOreClusterChunks.containsKey(TEST_ID)
-                && ManagedOreClusterChunk.isPregenerated(loadedOreClusterChunks.get(TEST_ID)) ) {
-                    int i = 0;
-                }
+            ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
+            if(chunk == null || !isChunkReady(chunk)) return;
 
-                for( ManagedOreClusterChunk chunk : loadedOreClusterChunks.values() )
-                {
-                    if(!isChunkReady(chunk)) continue;
-
-                    long start = System.nanoTime();
-                    editManagedChunk(chunk, this::handleChunkManifestation);
-                    long end = System.nanoTime();
-                    if(DEBUG) {
-                        THREAD_TIMES.get("handleChunkManifestation").add((end - start) / 1_000_000);
-                    }
-
-                }
+            long start = System.nanoTime();
+            editManagedChunk(chunk, this::handleChunkManifestation);
+            long end = System.nanoTime();
+            if(DEBUG) {
+                THREAD_TIMES.get("handleChunkManifestation").add((end - start) / 1_000_000);
             }
-
         }
         catch (Exception e) {
             thrown = e;
@@ -1080,6 +1069,7 @@ public class OreClusterManager {
             if( chunk.hasClusters() ) {
                 chunk.setStatus(OreClusterStatus.GENERATED);
                 chunksPendingRegeneration.remove(chunk.getId());
+                chunksPendingGeneration.add(chunk.getId());
             }
             else {
                 chunk.setStatus(OreClusterStatus.COMPLETE);
