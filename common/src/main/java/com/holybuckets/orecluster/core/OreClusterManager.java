@@ -611,7 +611,7 @@ public class OreClusterManager {
             //LoggerProject.logError("002011.1","Error in workerThreadDetermineClusters: " + e.getMessage());
         }
         finally {
-            LoggerProject.threadExited("002011",this, thrown);
+            //LoggerProject.threadExited("002011",this, thrown);
         }
     }
 
@@ -689,7 +689,7 @@ public class OreClusterManager {
         }*/ catch (Exception e) {
             thrown = e;
         } finally {
-            LoggerProject.threadExited("002007",this, thrown);
+            //LoggerProject.threadExited("002021",this, thrown);
         }
     }
     //END workerThreadGenerateClusters
@@ -702,26 +702,38 @@ public class OreClusterManager {
         threadstarts.put("workerThreadEditChunk", System.currentTimeMillis());
         Throwable thrown = null;
 
-        try
-        {
-            String chunkId = chunksPendingGeneration.poll();
-            if(chunkId == null) return;
+        try {
+            int tries = 0;
+            while(managerRunning && tries < MAX_FAILURES)
+            {
+                tries++;
+                String chunkId = chunksPendingGeneration.poll();
+                if(chunkId == null) return;
 
-            ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
-            if(chunk == null || !isChunkReady(chunk)) return;
+                ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
+                if(chunk == null || !isChunkReady(chunk)) {
+                    chunksPendingGeneration.add(chunkId);
+                    continue;
+                }
+                chunk.setReady(true);
 
-            long start = System.nanoTime();
-            editManagedChunk(chunk, this::handleChunkManifestation);
-            long end = System.nanoTime();
-            if(DEBUG) {
-                THREAD_TIMES.get("handleChunkManifestation").add((end - start) / 1_000_000);
+                long start = System.nanoTime();
+                editManagedChunk(chunk, this::handleChunkManifestation);
+                long end = System.nanoTime();
+                if(DEBUG) {
+                    THREAD_TIMES.get("handleChunkManifestation").add((end - start) / 1_000_000);
+                }
+
+                if(chunk.isReady()) chunksPendingGeneration.add(chunkId);
+
             }
+
         }
         catch (Exception e) {
             thrown = e;
         }
         finally {
-            LoggerProject.threadExited("002031",this, thrown);
+            //LoggerProject.threadExited("002031",this, thrown);
         }
     }
 
@@ -796,7 +808,7 @@ public class OreClusterManager {
         if(!finalClusters.isEmpty())
             managedChunk.addClusterTypes(finalClusters);
 
-        //if(DEBUG) LoggerProject.logDebug("002008", "Queued " + chunkId + " for cluster determination");
+        if(DEBUG) LoggerProject.logDebug("002008", "Queued " + chunkId + " for cluster determination");
     }
 
     @Deprecated
@@ -1021,13 +1033,8 @@ public class OreClusterManager {
             //Offset for DEBUG
             Vec3i sourceOffset = new Vec3i(0, 0, 0);
             //if(DEBUG) sourceOffset = new Vec3i(0, 120 - sourcePos.getY(), 0);
-            Map<BlockPos, Integer> existingBlockStateUpdates = chunk.getMapBlockStateUpdates();
-            for( Pair<BlockState, BlockPos> pos : clusterPos )
-            {
-                int index = -1;
-                if( existingBlockStateUpdates.containsKey(pos.getRight()) )
-                    index = existingBlockStateUpdates.get(pos.getRight());
-                chunk.addBlockStateUpdate(pos.getLeft(), pos.getRight().offset(sourceOffset), index);
+            for( Pair<BlockState, BlockPos> pos : clusterPos ) {
+                chunk.addBlockStateUpdate(pos.getLeft(), pos.getRight().offset(sourceOffset));
             }
             //add to existingClustersByType
             existingClustersByType.get(oreType).add(chunk.getId());
@@ -1075,13 +1082,12 @@ public class OreClusterManager {
         {
             LevelChunk levelChunk = chunk.getChunk(false);
             if (levelChunk == null) return;
-            List<Pair<BlockState, BlockPos>> updates = chunk.getBlockStateUpdates(64);
-            Map<BlockPos, Integer> map = chunk.getMapBlockStateUpdates();
-            isSuccessful = ManagedChunk.updateChunkBlockStates(level, updates);
+            BlockState state = chunk.getBlockStateUpdateType().orElse(null);
+            if( state == null ) return;
+            LinkedHashSet<BlockPos> positions = chunk.getBlockStateUpdates(state);
+            isSuccessful = ManagedChunk.updateChunkBlockStates(level, Map.of(state, new ArrayList<>(positions)));
             if( isSuccessful ) {
-                manifestUpdates.put(chunk.getId(), manifestUpdates.get(chunk.getId()) + 1);
-                List<Integer> removables = updates.stream().map(p -> map.get(p.getRight())).toList();
-                chunk.removeBlockStateUpdates(removables);
+                chunk.removeBlockStateUpdates(state);
                 if( chunk.countUpdatesRemaining() > 0 )
                     isSuccessful = false;
             }
@@ -1688,10 +1694,7 @@ public class OreClusterManager {
 
     private static void on1200Ticks(ServerTickEvent event) {
         for (OreClusterManager m : MANAGERS.values()) {
-            m.clearHealthCheckData();
             if(m.threadWatchManagedOreChunkLifetime == null || !m.threadWatchManagedOreChunkLifetime.isAlive()) {
-                //m.threadWatchManagedOreChunkLifetime = new Thread(m::watchLoadedChunkExpiration);
-                //m.threadWatchManagedOreChunkLifetime.start();
                 m.watchLoadedChunkExpiration();
             }
         }

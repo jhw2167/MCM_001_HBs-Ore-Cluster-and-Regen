@@ -10,6 +10,7 @@ import com.holybuckets.orecluster.LoggerProject;
 import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.OreClustersAndRegenMain;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
+import com.holybuckets.orecluster.core.OreClusterCalculator;
 import com.holybuckets.orecluster.core.OreClusterManager;
 import com.holybuckets.orecluster.core.OreClusterStatus;
 import io.netty.util.collection.IntObjectHashMap;
@@ -33,6 +34,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.holybuckets.foundation.HBUtil.*;
+
+import javax.annotation.Nullable;
+
 import static com.holybuckets.orecluster.config.model.OreClusterConfigModel.OreClusterId;
 
 
@@ -82,7 +86,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     private HashMap<OreClusterId, BlockPos> clusterTypes;
     private Map<OreClusterId, Pair<BlockPos, MutableInt>> originalOres; 
-    private IntObjectHashMap<Pair<BlockState, Set<BlockPos>>> blockStateUpdates;
+    private Map<BlockState, LinkedHashSet<BlockPos>> blockStateUpdates;
     private int updatesSize;
     private LinkedHashSet<Biome> biomes;
 
@@ -195,36 +199,27 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         return this.blockStateUpdates.size();
     }
 
-    public List<Pair<BlockState, Set<BlockPos>>> getBlockStateUpdates() {
-        return new ArrayList<>(blockStateUpdates.values());
+    public Set<BlockState> getBlockStateUpdatesSet() {
+        return this.blockStateUpdates.keySet();
     }
 
-    public List<Pair<BlockState, Set<BlockPos>>> getBlockStateUpdates(int limit) {
-        return blockStateUpdates.values().stream().limit(limit).toList();
+    public Map<BlockState, LinkedHashSet<BlockPos>> getBlockStateUpdates() {
+        return this.blockStateUpdates;
     }
 
-    public void removeBlockStateUpdates(List<Integer> indicies) {
-        for(Integer i : indicies) {
-            blockStateUpdates.remove(i);
-        }
-        if (blockStateUpdates.size() == 0) {
-            this.updatesSize = 0;
-        }
+    public Optional<BlockState> getBlockStateUpdateType() {
+        return this.blockStateUpdates.keySet().stream().findFirst();
     }
 
-    /**
-     * Maps the current block state update at a given BlockPos to its index in the blockStateUpdates list
-     * @return
-     */
-    public Map<BlockPos, Integer> getMapBlockStateUpdates() {
-        Map<BlockPos, Integer> map = new HashMap<>();
-        for(Map.Entry<Integer, Pair<BlockState, Set<BlockPos>>> entry : blockStateUpdates.entrySet()) {
-            for(BlockPos pos : entry.getValue().getRight()) {
-                map.put(pos, entry.getKey());
-            }
-        }
-        return map;
+    @Nullable
+    public LinkedHashSet<BlockPos> getBlockStateUpdates(BlockState state) {
+        return this.blockStateUpdates.get(state);
     }
+
+    public void removeBlockStateUpdates(BlockState state) {
+        this.blockStateUpdates.remove(state);
+    }
+
 
     public Map<OreClusterId, Pair<BlockPos, MutableInt>> getOriginalOres() {
         return originalOres;
@@ -430,26 +425,15 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         //LoggerProject.logDebug("003010", "Adding clusterTypes: " + this.clusterTypes);
     }
 
-    public void addBlockStateUpdate(BlockState block, BlockPos pos, int index) {
-        if(index < 0) index = blockStateUpdates.size();
-        if(block.equals(ModBlocks.empty.defaultBlockState())) return;
-        
-        Pair<BlockState, Set<BlockPos>> existing = blockStateUpdates.get(index);
-        if(existing == null) {
-            Set<BlockPos> positions = new HashSet<>();
-            positions.add(pos);
-            blockStateUpdates.put(updatesSize++, Pair.of(block, positions));
-        } else if(existing.getLeft().equals(block)) {
-            existing.getRight().add(pos);
-        } else {
-            Set<BlockPos> positions = new HashSet<>();
-            positions.add(pos);
-            blockStateUpdates.put(updatesSize++, Pair.of(block, positions));
-        }
-    }
-
     public void addBlockStateUpdate(BlockState block, BlockPos pos) {
-        this.addBlockStateUpdate(block, pos, -1);
+        if(block.equals(ModBlocks.empty.defaultBlockState())) return;
+
+        LinkedHashSet<BlockPos> positions = this.blockStateUpdates.get(block);
+        if(positions == null) {
+            positions = new LinkedHashSet<>();
+            this.blockStateUpdates.put(block, positions);
+        }
+        positions.add(pos);
     }
 
     public void addBiome(Biome b) {
@@ -469,6 +453,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     /**
      * Check if any updatable blocks in the chunk have been changed
+     * isHarvested
      * @return true if the Chunk has been harvested. False if the chunk is not loaded or the chunk has not been cleaned.
      */
     public boolean checkClusterHarvested()
@@ -477,28 +462,25 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
             int i = 0;
         }
 
-        LevelChunk chunk = getChunk(false);
-        if(chunk == null)
-            return false;
-
         if(this.status == OreClusterStatus.HARVESTED)
             return true;
 
         if( this.status != OreClusterStatus.GENERATED )
             return false;
 
+        LevelChunk chunk = getChunk(false);
+        if(chunk == null)
+            return false;
 
-        //If any block in the chunk does not equal a block in block state updates, set the chunk as harvested
-        for(Pair<BlockState, BlockPos> pair : this.blockStateUpdates.values())
-        {
-            BlockState block = pair.getLeft();
-            BlockPos pos = pair.getRight();
-            if(!chunk.getBlockState(pos).getBlock().equals( block ))
-            {
-                LoggerProject.logDebug("003011", "Cluster Harvested: " + BlockUtil.positionToString(pos));
-                this.status = OreClusterStatus.HARVESTED;
-                blockStateUpdates.clear();
-                return true;
+        List<Pair<BlockState, BlockPos>> blocks;    //not implemented
+        for(BlockState block : this.blockStateUpdates.keySet()) {
+            for(var pos : this.blockStateUpdates.get(block)) {
+                if(!chunk.getBlockState(pos).getBlock().equals( block ))
+                {
+                    this.status = OreClusterStatus.HARVESTED;
+                    blockStateUpdates.clear();
+                    return true;
+                }
             }
         }
 
