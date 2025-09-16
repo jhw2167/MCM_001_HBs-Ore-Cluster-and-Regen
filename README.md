@@ -20,6 +20,7 @@
 - In its base configuration:
   - Coal and iron generate in large clusters between `12x12x12` and `16x16x16`
   - Deepslate diamond ore also spawns in smaller clusters deeper underground, and is more rare than coal and iron
+- Ore clusters can be configured to spawn only in particular biomes
 
 ## Compatibility with other mods
 
@@ -31,6 +32,8 @@
 ## Configuration
 
 The .toml file configures general settings for the mod and allows you to set DEFAULT parameters for the clusters. However, to configure individual clusters, you will need to specify the JSON configuration in a seperate file. See the configs/ folder above for samples.
+
+**For a list of popular biomes from popular mods, see the configs folder in my github and look for biomes.json**
 
 ```json
 {
@@ -46,6 +49,16 @@ The .toml file configures general settings for the mod and allows you to set DEF
             "oreClusterMinYLevelSpawn": 0,			  // clusters will not spawn below this y level
             "minChunksBetweenOreClusters": 0,			// spaces your clusters out
             "oreVeinModifier": 1.0,					// does nothing, at the momement
+		    "biomeWhitelist": [						//list all biomes that this configuration should spawn in, a blank whitelist spawns this cluster in all biomes
+		                "minecraft:ice_spikes",
+		                "minecraft:deep_frozen_ocean",
+		                "minecraft:jagged_peaks",
+		                "minecraft:deep_ocean",
+		                "minecraft:stony_peaks",
+		                "minecraft:deep_dark",
+		                "minecraft:deep_cold_ocean"
+		            ],
+			"biomeBlacklist": [	], 					//Alternatively, you can leave biomeWhiteList blank and blacklist biomes instead
             "oreClusterNonReplaceableBlocks": "bedrock, air",	// specifies blocks that we DO NOT want the cluster replacing when it is built, put "air" here will make your cluster conform to the shape of the cave around it, but it will have less ore
             "oreClusterReplaceableEmptyBlocks": "",					// other blocks you want to spawn around your cluster - you could choose "stone" or "deepslate" or choose other ores use  "hbs_foundation:empty_block" to leave blocks unchanged
             "oreClusterDoesRegenerate": true						//specifies whether we want this cluster to regenerate each period
@@ -157,13 +170,16 @@ iron_ore at x:-32 y:28 z:96
 **Description:** Displays configuration information for the mod in general or a specific ore config  
 - use with no arguments to get the configId for each type of configured cluster  
 - also gives summary info about the period length and how far into the period the game is  
-- with a configId provided, gives detailed info on the ore's config  
+- with a configId provided, gives detailed info on the ore's config
+- adding 'true' to a particular biomes config will show the list of whitelisted biomes the config spawns in
 
 **Usage:**  
 `/hbOreClusters config [configId]`
+`/hbOreClusters config [configId] [showBiomes]`
 
 **Parameters:**  
 `configId` - (Optional) Specific configuration ID to view
+`showBiomes` - (Optional) Shows list of biomes this cluster spawns in
 
 **Examples:**
 ```
