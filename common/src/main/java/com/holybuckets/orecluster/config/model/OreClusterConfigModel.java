@@ -453,7 +453,7 @@ public class OreClusterConfigModel {
         String oreClusterTypeString = BlockUtil.blockToString(c.oreClusterType.getBlock());
         jsonObject.addProperty("oreClusterType", oreClusterTypeString);
         jsonObject.addProperty("oreClusterSpawnRate", c.oreClusterSpawnRate);
-        jsonObject.addProperty("oreClusterDimension", c.oreClusterDimensionId);
+        jsonObject.addProperty("oreClusterDimensionId", c.oreClusterDimensionId);
         JsonArray whitelistArray = new JsonArray();
         for (ResourceLocation biome : c.biomeWhitelist) {
             whitelistArray.add(biome.toString());
@@ -585,6 +585,8 @@ public class OreClusterConfigModel {
         try {
             if( jsonObject.get("oreClusterDimensionId") != null ) {
                 setOreClusterDimensionId(jsonObject.get("oreClusterDimensionId").getAsString());
+            } else if( jsonObject.get("oreClusterDimension") != null ) { //backwards compat
+                setOreClusterDimensionId(jsonObject.get("oreClusterDimension").getAsString());
             } else {
                 setOreClusterDimensionId(COreClusters.DEF_ORE_CLUSTER_DIMENSION);
             }
