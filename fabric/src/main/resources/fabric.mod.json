@@ -32,7 +32,7 @@
         "minecraft": "${minecraft_version}",
         "java": ">=17",
         "balm-fabric": ">=${balm_version}",
-        "hbs_foundation": ">=${foundation_version}"
+        "hbs_foundation": ">=${foundation_version_min}"
     },
     "suggests": {
         "another-mod": "*"

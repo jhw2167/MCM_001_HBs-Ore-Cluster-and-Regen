@@ -6,6 +6,7 @@ import com.holybuckets.foundation.HBUtil.*;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.orecluster.Constants;
 import com.holybuckets.orecluster.LoggerProject;
+import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.config.OreClusterConfigData;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 
 import com.holybuckets.orecluster.config.OreClusterConfigData.COreClusters;
 
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
@@ -414,6 +416,16 @@ public class OreClusterConfigModel {
         }
     }
 
+    void addOreClusterNonReplaceableBlocks(String list) {
+        Set<BlockState> blockStates = processStringIntoBlockStateList(list)
+            .stream().collect(Collectors.toSet());
+        this.oreClusterNonReplaceableBlocks.addAll(blockStates);
+    }
+
+    void addOreClusterNonReplaceableBlocks(Set blockStates) {
+        this.oreClusterNonReplaceableBlocks.addAll(blockStates);
+    }
+
     private static void logPropertyWarning(String message, BlockState ore, String defaultMessage, String defaultValue)
     {
         if( defaultMessage == null )
@@ -562,7 +574,21 @@ public class OreClusterConfigModel {
         }
 
         try {
+            if( !jsonObject.has("oreClusterDoesRegenerate") ) {
+                this.oreClusterDoesRegenerate = COreClusters.DEF_REGENERATE_ORE_CLUSTERS;
+            } else {
+                setOreClusterDoesRegenerate(jsonObject.get("oreClusterDoesRegenerate").getAsString());
+            }
+        } catch (Exception e) {
+            LoggerProject.logError("004013", "Error parsing oreClusterDoesRegenerate" +
+                " for ore: " + this.oreClusterType + ". " + e.getMessage());
+        }
+
+        try {
             setOreClusterNonReplaceableBlocks(jsonObject.get("oreClusterNonReplaceableBlocks").getAsString());
+            addOreClusterNonReplaceableBlocks(OreClusterConfig.getActive().cOreClusters.oreClusterNonreplaceableBlocks);
+            if(this.oreClusterDoesRegenerate)
+                this.oreClusterNonReplaceableBlocks.remove(Blocks.AIR.defaultBlockState());
         } catch (Exception e) {
             LoggerProject.logError("004011", "Error parsing oreClusterNonReplaceableBlocks" +
             " for ore: " + this.oreClusterType + ". " + e.getMessage());
@@ -572,13 +598,6 @@ public class OreClusterConfigModel {
             setOreClusterReplaceableEmptyBlocks(jsonObject.get("oreClusterReplaceableEmptyBlocks").getAsString());
         } catch (Exception e) {
             LoggerProject.logError("004012", "Error parsing oreClusterReplaceableEmptyBlocks" +
-            " for ore: " + this.oreClusterType + ". " + e.getMessage());
-        }
-
-        try {
-            setOreClusterDoesRegenerate(jsonObject.get("oreClusterDoesRegenerate").getAsString());
-        } catch (Exception e) {
-            LoggerProject.logError("004013", "Error parsing oreClusterDoesRegenerate" +
             " for ore: " + this.oreClusterType + ". " + e.getMessage());
         }
 

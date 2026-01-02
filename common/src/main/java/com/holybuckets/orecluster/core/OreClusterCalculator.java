@@ -585,7 +585,9 @@ public class OreClusterCalculator {
         //4. Determine if we are near an open cave and which side it is on
         //LoggerProject.logInfo("013009", "Determining air offset" );
         List<Pair<Integer,List<Integer>>> relativePosData = new ArrayList<>();
-        relativePosData.add(Pair.of(VOL.x, Xs)); relativePosData.add(Pair.of(VOL.y, Ys)); relativePosData.add(Pair.of(VOL.z, Zs));
+        relativePosData.add(Pair.of(VOL.x, Xs));
+        relativePosData.add(Pair.of(VOL.y, Ys));
+        relativePosData.add(Pair.of(VOL.z, Zs));
 
         OreClusterGeneratorUtility generator;
         try {
@@ -611,6 +613,19 @@ public class OreClusterCalculator {
             BlockState state = clusterBlockStates.get(i);
             BlockPos pos = blockPositions.get(i).offset(airOffset.x, airOffset.y, airOffset.z);
             clusterBlockStatePositions.add(Pair.of(state, pos));
+        }
+
+        //7. Remove any block update that alter a nonReplaceable block
+        //Iterate over clusterBlockStatePositions and use level.getBlockState to check if the block is non-replaceable
+        var it = clusterBlockStatePositions.iterator();
+        while (it.hasNext())
+        {
+            Pair<BlockState, BlockPos> pair = it.next();
+            if(pair == null || pair.getRight() == null) continue;
+            BlockState defaultBlockState = level.getBlockState(pair.getRight()).getBlock().defaultBlockState();
+            if( config.oreClusterNonReplaceableBlocks.contains(defaultBlockState) ) {
+                it.remove();
+            }
         }
 
 
@@ -661,6 +676,7 @@ public class OreClusterCalculator {
             //Config
             this.oreClusterId = id;
             this.config = C.getOreConfigModel(id);
+
             this.volume = config.oreClusterVolume;
             this.expectedOreDensity = config.oreClusterDensity;
 
@@ -884,9 +900,9 @@ public class OreClusterCalculator {
             List<BlockState> blockStatesZX = new ArrayList<>(blockWorldPositions.size());
 
             int size = blockWorldPositions.size();
-            Integer[] Xs = relativePositions.get(0).getRight().toArray(new Integer[0]);
-            Integer[] Ys = relativePositions.get(1).getRight().toArray(new Integer[0]);
-            Integer[] Zs = relativePositions.get(2).getRight().toArray(new Integer[0]);
+            //Integer[] Xs = relativePositions.get(0).getRight().toArray(new Integer[0]);
+            //Integer[] Ys = relativePositions.get(1).getRight().toArray(new Integer[0]);
+            //Integer[] Zs = relativePositions.get(2).getRight().toArray(new Integer[0]);
 
             //XZ Results
             for( int i = 0; i < size; i++ ) {

@@ -152,7 +152,7 @@ public class OreClusterManager {
     final ConcurrentHashMap<OreClusterId, Set<String>> existingClustersByType;
     final ConcurrentHashMap<OreClusterId, Set<String>> tentativeClustersByType;
     final ConcurrentHashMap<OreClusterId, Set<String>> removedClustersByType;
-    final ConcurrentHashMap<String, Map<OreClusterId, BlockPos>> addedClustersByType;
+    final ConcurrentHashMap<String, Map<OreClusterId, BlockPos>> addedClustersByType; //chunkId -> type, pos
     final ChunkGenerationOrderHandler mainSpiral;
     private OreClusterCalculator oreClusterCalculator;
 
@@ -377,7 +377,7 @@ public class OreClusterManager {
                         String id = chunk.getId();
                         LevelChunk levelChunk = chunkUtil.getChunk(id,false);
                         if( levelChunk != null) levelChunk.setUnsaved(true);
-                        sleep(SLEEP_TIME_PER_CHUNK_MILLIS ); //Sleep for chunks to write data out and unload
+                        //sleep(SLEEP_TIME_PER_CHUNK_MILLIS ); //Sleep for chunks to write data out and unload
                     }
 
                     for (ManagedOreClusterChunk chunk : expired_chunks) {
@@ -386,9 +386,7 @@ public class OreClusterManager {
                     }
 
                 }
-                catch (InterruptedException e) {
-                    //continue
-                }
+                //catch (InterruptedException e) { //for catching sleep }
                 catch (Exception e) {
                     e.printStackTrace();
                     //throw new RuntimeException("Uncaught", e);
@@ -1587,9 +1585,12 @@ public class OreClusterManager {
                 .map(Map.Entry::getKey).collect(Collectors.toSet());
             addedClustersByOreClusterId.put(ore, clusterIds);
         }
+        /*
         for( OreClusterId ore : addedClustersByOreClusterId.keySet()) {
             addedClusters.add( ore.getStringId(), toArray.apply(addedClustersByOreClusterId.get(ore)));
         }
+         */
+        //removed because its tracked by indibividual chunk data
         //levelData.addProperty("addedClusters", addedClusters);
 
         //save chunksPendingRegen
