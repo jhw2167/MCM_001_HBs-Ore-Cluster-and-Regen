@@ -411,8 +411,10 @@ public class OreClusterConfigModel {
         if (oreClusterDimensionId == null || oreClusterDimensionId.isEmpty()) {
             this.oreClusterDimensionId = COreClusters.DEF_ORE_CLUSTER_DIMENSION;
             logPropertyWarning("Invalid dimension", this.oreClusterType, null, this.oreClusterDimensionId);
-        } else {
+        } else if (oreClusterDimensionId.contains(":")) {
             this.oreClusterDimensionId = oreClusterDimensionId;
+        } else {
+            this.oreClusterDimensionId = "minecraft:" + oreClusterDimensionId;
         }
     }
 

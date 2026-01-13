@@ -122,7 +122,7 @@ public class OreClusterJsonConfig implements IStringSerializable
                 new ResourceLocation("minecraft:snowy_tundra"),
                 new ResourceLocation("minecraft:snowy_mountains")
             );
-            IRON.oreClusterDimensionId = "overworld";
+            IRON.oreClusterDimensionId = "minecraft:overworld";
 
         final OreClusterConfigModel COAL = new OreClusterConfigModel(Blocks.COAL_ORE.defaultBlockState());
             COAL.oreClusterSpawnRate = 32;
