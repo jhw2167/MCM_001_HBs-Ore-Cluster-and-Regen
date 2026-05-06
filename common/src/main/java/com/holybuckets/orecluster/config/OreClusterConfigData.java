@@ -27,7 +27,7 @@ public class OreClusterConfigData implements BalmConfigData {
         //Defaults
         public static final String DEF_SUB_SEED = "";
 
-        public static final String DEF_VALID_ORE_CLUSTER_ORE_BLOCKS = "minecraft:iron_ore";
+        public static final String DEF_VALID_ORE_CLUSTER_ORE_BLOCKS = "hbs_foundation:empty_block";
         public static final String DEF_ORE_CLUSTER_DIMENSION = "minecraft:overworld";
         public static final String DEF_ORE_CLUSTER_BIOME = "";
 
