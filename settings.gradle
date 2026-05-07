@@ -2,12 +2,12 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         maven {
-            name = 'Forge'
-            url = 'https://maven.minecraftforge.net/'
-        }
-        maven {
             name = 'Fabric'
             url = 'https://maven.fabricmc.net/'
+        }
+        maven {
+            name = 'NeoForge'
+            url = 'https://maven.neoforged.net/releases'
         }
         maven {
             name = 'Sponge Snapshots'
@@ -24,4 +24,4 @@ plugins {
 rootProject.name = 'MCM_001_HBs-Ore-Cluster-and-Regen'
 include("common")
 include("fabric")
-include("forge")
+//include("forge") // Forge not available for 1.21.1 - replaced by NeoForge (to be configured separately)

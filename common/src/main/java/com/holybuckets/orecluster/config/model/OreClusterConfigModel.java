@@ -677,7 +677,7 @@ public class OreClusterConfigModel {
         private final Level level;
         private final Biome biome;
         private final Block block;
-        static final ResourceLocation ORE_CLUSTERS = new ResourceLocation(Constants.MOD_ID, "cluster_configs");
+        static final ResourceLocation ORE_CLUSTERS = HBUtil.LOC(Constants.MOD_ID, "cluster_configs");
 
         private static final Map<String, OreClusterId> CACHE = new HashMap<>();
 

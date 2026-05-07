@@ -1,8 +1,8 @@
 plugins {
+    // see https://fabricmc.net/develop/ for new versions
     id 'fabric-loom' version "${loom_version}" apply(false)
-    id 'net.minecraftforge.gradle' version '[6.0,6.2)' apply(false)
-    id 'org.spongepowered.gradle.vanilla' version '0.2.1-SNAPSHOT' apply(false)
-    id("org.spongepowered.mixin") version "0.7-SNAPSHOT" apply(false)
+    // see https://projects.neoforged.net/neoforged/moddevgradle for new versions
+    id 'net.neoforged.moddev' version '2.0.49-beta' apply(false)
 }
 
 allprojects {
@@ -14,38 +14,9 @@ allprojects {
     }
 }
 
+version=mod_version
+
 subprojects {
-    apply plugin: 'java'
-
-    java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-    java.withSourcesJar()
-    java.withJavadocJar()
-        
-    jar {
-        from(rootProject.file("LICENSE")) {
-            rename { "${it}_${mod_name}" }
-        }
-        manifest {
-            attributes([
-                'Specification-Title'     : mod_name,
-                'Specification-Vendor'    : mod_author,
-                'Specification-Version'   : project.jar.archiveVersion,
-                'Implementation-Title'    : project.name,
-                'Implementation-Version'  : project.jar.archiveVersion,
-                'Implementation-Vendor'   : mod_author,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                'Timestamp'               : System.currentTimeMillis(),
-                'Built-On-Java'           : "${System.getProperty('java.vm.version')} (${System.getProperty('java.vm.vendor')})",
-                'Built-On-Minecraft'      : minecraft_version
-            ])
-        }
-    }
-
-    sourcesJar {
-        from(rootProject.file("LICENSE")) {
-            rename { "${it}_${mod_name}" }
-        }
-    }
 
     repositories {
         mavenLocal()
@@ -66,29 +37,53 @@ subprojects {
         }
     }
 
-    dependencies {
-        //custom
-        implementation "com.google.code.gson:gson:${gson_version}"
-        implementation "org.antlr:antlr4-runtime:${antlr_version}"
-        implementation "org.xerial:sqlite-jdbc:${sqlite_version}"
+    plugins.withType(JavaPlugin) {
+        java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+        java.withSourcesJar()
+        java.withJavadocJar()
 
-        //Common (mojmap): implementation "net.blay09.mods:balm-common:${balm_version}"
-        //Forge: implementation fg.deobf("net.blay09.mods:balm-forge:${balm_version}")
-        //Fabric: modImplementation "net.blay09.mods:balm-fabric:${balm_version}"
+        jar {
+            from(rootProject.file("LICENSE")) {
+                rename { "${it}_${mod_name}" }
+            }
+            manifest {
+                attributes([
+                    'Specification-Title'     : mod_name,
+                    'Specification-Vendor'    : mod_author,
+                    'Specification-Version'   : project.jar.archiveVersion,
+                    'Implementation-Title'    : project.name,
+                    'Implementation-Version'  : project.jar.archiveVersion,
+                    'Implementation-Vendor'   : mod_author,
+                    'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                    'Timestamp'               : System.currentTimeMillis(),
+                    'Built-On-Java'           : "${System.getProperty('java.vm.version')} (${System.getProperty('java.vm.vendor')})",
+                    'Built-On-Minecraft'      : minecraft_version
+                ])
+            }
+        }
+
+        sourcesJar {
+            from(rootProject.file("LICENSE")) {
+                rename { "${it}_${mod_name}" }
+            }
+        }
+
+        dependencies {
+            implementation "com.google.code.gson:gson:${gson_version}"
+            implementation "org.antlr:antlr4-runtime:${antlr_version}"
+            implementation "org.xerial:sqlite-jdbc:${sqlite_version}"
+        }
     }
 
     tasks.withType(JavaCompile).configureEach {
         it.options.encoding = 'UTF-8'
     }
 
-    processResources {
+    tasks.withType(ProcessResources).configureEach {
         def expandProps = [
                 "version": mod_version,
-                "group": project.group, //Else we target the task's group.
+                "group": project.group,
                 "minecraft_version": minecraft_version,
-                "forge_version": forge_version,
-                "forge_loader_version_range": forge_loader_version_range,
-                "forge_version_range": forge_version_range,
                 "minecraft_version_range": minecraft_version_range,
                 "fabric_version": fabric_version,
                 "fabric_loader_version": fabric_loader_version,
@@ -103,7 +98,7 @@ subprojects {
                 "foundation_version_min": project.foundation_version_min
         ]
 
-        filesMatching(['pack.mcmeta', 'fabric.mod.json', 'META-INF/mods.toml', '*.mixins.json']) {
+        filesMatching(['pack.mcmeta', 'fabric.mod.json', 'META-INF/neoforge.mods.toml', '*.mixins.json']) {
             expand expandProps
         }
         inputs.properties(expandProps)

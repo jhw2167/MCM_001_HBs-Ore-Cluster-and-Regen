@@ -10,7 +10,10 @@ base {
 }
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
-    mappings loom.officialMojangMappings()
+    mappings loom.layered {
+        officialMojangMappings()
+        parchment("org.parchmentmc.data:parchment-${parchment_minecraft}:${parchment_version}@zip")
+    }
     modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
 
@@ -18,12 +21,12 @@ dependencies {
 
     implementation project(":common")
 
-    modImplementation ("net.blay09.mods:balm-fabric:${balm_version}") {
+    modImplementation("net.blay09.mods:balm-fabric:${balm_version}") {
         transitive = false
         changing = true
     }
 
-    modImplementation ("com.holybuckets.foundation:HBs_Foundation-fabric-${minecraft_version}:${foundation_version}") {
+    modImplementation("com.holybuckets.foundation:hbs_foundation-fabric-${minecraft_version}:${foundation_version}") {
         transitive = false
         changing = true
     }
@@ -40,15 +43,15 @@ loom {
     runs {
         client {
             client()
-            setConfigName("Fabric Client")
+            setConfigName('Fabric Client')
             ideConfigGenerated(true)
-            runDir("run")
+            runDir('runs/client')
         }
         server {
             server()
-            setConfigName("Fabric Server")
+            setConfigName('Fabric Server')
             ideConfigGenerated(true)
-            runDir("run")
+            runDir('runs/server')
         }
     }
 }

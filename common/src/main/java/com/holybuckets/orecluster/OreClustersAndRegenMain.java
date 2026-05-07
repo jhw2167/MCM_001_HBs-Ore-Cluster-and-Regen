@@ -139,7 +139,7 @@ public class OreClustersAndRegenMain
     }
 
     public static ResourceLocation asResource(String path) {
-        return new ResourceLocation(ID, path);
+        return HBUtil.LOC(ID, path);
     }
     */
 }

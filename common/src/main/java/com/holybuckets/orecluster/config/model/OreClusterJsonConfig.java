@@ -104,23 +104,23 @@ public class OreClusterJsonConfig implements IStringSerializable
             IRON.oreClusterNonReplaceableBlocks = new HashSet<>(baseListNonReplaceable);
                 IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.AIR));
                 IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.DIRT));
-                IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.GRASS));
+                IRON.oreClusterNonReplaceableBlocks.add(bs(Blocks.GRASS_BLOCK));
             IRON.biomeWhitelist  = Set.of(
-                new ResourceLocation("minecraft:plains"),
-                new ResourceLocation("minecraft:forest"),
-                new ResourceLocation("minecraft:dark_forest"),
-                new ResourceLocation("minecraft:sunflower_plains"),
-                new ResourceLocation("minecraft:flower_forest"),
-                new ResourceLocation("minecraft:birch_forest"),
-                new ResourceLocation("minecraft:old_growth_birch_forest"),
-                new ResourceLocation("minecraft:wooded_hills"),
-                new ResourceLocation("minecraft:wooded_mountains"),
-                new ResourceLocation("minecraft:taiga"),
-                new ResourceLocation("minecraft:old_growth_pine_taiga"),
-                new ResourceLocation("minecraft:old_growth_spruce_taiga"),
-                new ResourceLocation("minecraft:snowy_taiga"),
-                new ResourceLocation("minecraft:snowy_tundra"),
-                new ResourceLocation("minecraft:snowy_mountains")
+                HBUtil.LOC("minecraft:plains"),
+                HBUtil.LOC("minecraft:forest"),
+                HBUtil.LOC("minecraft:dark_forest"),
+                HBUtil.LOC("minecraft:sunflower_plains"),
+                HBUtil.LOC("minecraft:flower_forest"),
+                HBUtil.LOC("minecraft:birch_forest"),
+                HBUtil.LOC("minecraft:old_growth_birch_forest"),
+                HBUtil.LOC("minecraft:wooded_hills"),
+                HBUtil.LOC("minecraft:wooded_mountains"),
+                HBUtil.LOC("minecraft:taiga"),
+                HBUtil.LOC("minecraft:old_growth_pine_taiga"),
+                HBUtil.LOC("minecraft:old_growth_spruce_taiga"),
+                HBUtil.LOC("minecraft:snowy_taiga"),
+                HBUtil.LOC("minecraft:snowy_tundra"),
+                HBUtil.LOC("minecraft:snowy_mountains")
             );
             IRON.oreClusterDimensionId = "minecraft:overworld";
 
@@ -140,7 +140,7 @@ public class OreClusterJsonConfig implements IStringSerializable
         COAL.oreClusterNonReplaceableBlocks = new HashSet<>(baseListNonReplaceable);
             COAL.oreClusterNonReplaceableBlocks.add(bs(Blocks.AIR));
             COAL.oreClusterNonReplaceableBlocks.add(bs(Blocks.DIRT));
-            COAL.oreClusterNonReplaceableBlocks.add(bs(Blocks.GRASS));
+            COAL.oreClusterNonReplaceableBlocks.add(bs(Blocks.GRASS_BLOCK));
 
         final OreClusterConfigModel DPSLT_DIAMOND = new OreClusterConfigModel(Blocks.DEEPSLATE_DIAMOND_ORE.defaultBlockState());
             DPSLT_DIAMOND.oreClusterSpawnRate = 2;
