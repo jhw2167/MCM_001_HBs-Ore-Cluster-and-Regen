@@ -5,19 +5,18 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.49-beta' apply(false)
 }
 
+version=mod_version
+
 allprojects {
     apply plugin: "idea"
 
     tasks.withType(Javadoc).configureEach {
-        options.addStringOption('Xdoclint:none', '-quiet') // Suppress all warnings
-        options.encoding = 'UTF-8' // Set proper encoding
+        options.addStringOption('Xdoclint:none', '-quiet')
+        options.encoding = 'UTF-8'
     }
 }
 
-version=mod_version
-
 subprojects {
-
     repositories {
         mavenLocal()
         mavenCentral()
@@ -38,36 +37,6 @@ subprojects {
     }
 
     plugins.withType(JavaPlugin) {
-        java.toolchain.languageVersion = JavaLanguageVersion.of(21)
-        java.withSourcesJar()
-        java.withJavadocJar()
-
-        jar {
-            from(rootProject.file("LICENSE")) {
-                rename { "${it}_${mod_name}" }
-            }
-            manifest {
-                attributes([
-                    'Specification-Title'     : mod_name,
-                    'Specification-Vendor'    : mod_author,
-                    'Specification-Version'   : project.jar.archiveVersion,
-                    'Implementation-Title'    : project.name,
-                    'Implementation-Version'  : project.jar.archiveVersion,
-                    'Implementation-Vendor'   : mod_author,
-                    'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                    'Timestamp'               : System.currentTimeMillis(),
-                    'Built-On-Java'           : "${System.getProperty('java.vm.version')} (${System.getProperty('java.vm.vendor')})",
-                    'Built-On-Minecraft'      : minecraft_version
-                ])
-            }
-        }
-
-        sourcesJar {
-            from(rootProject.file("LICENSE")) {
-                rename { "${it}_${mod_name}" }
-            }
-        }
-
         dependencies {
             implementation "com.google.code.gson:gson:${gson_version}"
             implementation "org.antlr:antlr4-runtime:${antlr_version}"
@@ -77,30 +46,5 @@ subprojects {
 
     tasks.withType(JavaCompile).configureEach {
         it.options.encoding = 'UTF-8'
-    }
-
-    tasks.withType(ProcessResources).configureEach {
-        def expandProps = [
-                "version": mod_version,
-                "group": project.group,
-                "minecraft_version": minecraft_version,
-                "minecraft_version_range": minecraft_version_range,
-                "fabric_version": fabric_version,
-                "fabric_loader_version": fabric_loader_version,
-                "mod_name": mod_name,
-                "mod_author": mod_author,
-                "mod_id": mod_id,
-                "license": license,
-                "description": project.description,
-                "balm_version": project.balm_version,
-                "balm_version_range": project.balm_version_range,
-                "foundation_version": project.foundation_version,
-                "foundation_version_min": project.foundation_version_min
-        ]
-
-        filesMatching(['pack.mcmeta', 'fabric.mod.json', 'META-INF/neoforge.mods.toml', '*.mixins.json']) {
-            expand expandProps
-        }
-        inputs.properties(expandProps)
     }
 }

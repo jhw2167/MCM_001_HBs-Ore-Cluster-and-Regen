@@ -101,7 +101,8 @@ processResources {
             'credits'                      : credits,
             'java_version'                 : java_version,
             'balm_version'                 : balm_version,
-            'balm_version_range'           : balm_version_range
+            'balm_version_range'           : balm_version_range,
+            'foundation_version_min'     : foundation_version_min,
     ]
 
     filesMatching(['pack.mcmeta', 'fabric.mod.json', 'META-INF/mods.toml', 'META-INF/neoforge.mods.toml', '*.mixins.json']) {

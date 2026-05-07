@@ -1,13 +1,8 @@
 plugins {
-    id 'fabric-loom' version "${loom_version}"
-    id 'java'
-    id 'idea'
-    id 'maven-publish'
+    id 'multiloader-loader'
+    id 'fabric-loom'
 }
-base {
-    version="${mod_version}"
-    archivesName = "${mod_name}-fabric-${minecraft_version}"
-}
+version = "${mod_version}"
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings loom.layered {
@@ -17,25 +12,21 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
 
-    implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
-
-    implementation project(":common")
-
     modImplementation("net.blay09.mods:balm-fabric:${balm_version}") {
         transitive = false
-        changing = true
     }
-
     modImplementation("com.holybuckets.foundation:hbs_foundation-fabric-${minecraft_version}:${foundation_version}") {
         transitive = false
         changing = true
     }
 
+    implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
 }
 
 loom {
-    if (project(":common").file("src/main/resources/${mod_id}.accesswidener").exists()) {
-        accessWidenerPath.set(project(":common").file("src/main/resources/${mod_id}.accesswidener"))
+    def aw = project(':common').file("src/main/resources/${mod_id}.accesswidener")
+    if (aw.exists()) {
+        accessWidenerPath.set(aw)
     }
     mixin {
         defaultRefmapName.set("${mod_id}.refmap.json")
@@ -56,34 +47,4 @@ loom {
     }
 }
 
-tasks.withType(JavaCompile).configureEach {
-    source(project(":common").sourceSets.main.allSource)
-}
-tasks.withType(Javadoc).configureEach {
-    source(project(":common").sourceSets.main.allJava)
-}
-tasks.named("sourcesJar", Jar) {
-    from(project(":common").sourceSets.main.allSource)
-}
 
-processResources {
-    from project(":common").sourceSets.main.resources
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            artifactId base.archivesName.get()
-            from components.java
-        }
-    }
-    repositories {
-        maven {
-            name = "flatDirRelease"
-            url = uri("${rootProject.findProperty("release_dir") ?: "$buildDir/published"}")
-            metadataSources {
-                artifact()
-            }
-        }
-    }
-}
