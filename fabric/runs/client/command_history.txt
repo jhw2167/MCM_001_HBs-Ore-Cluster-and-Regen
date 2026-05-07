@@ -1,5 +1,0 @@
-/hbOreClusters locateClusters
-/hbOreClusters locateClusters iron_ore
-/tp 592 12 -312
-/tp 596 12 -312
-/hbOreClusters triggerRegen
