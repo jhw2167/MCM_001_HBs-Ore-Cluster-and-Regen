@@ -4,6 +4,7 @@ out.txt
 out1.txt
 **/build/*
 **/run/*
+**/runs/*
 .idea/
 claudeProjFiles/*
 CLAUDE.md
