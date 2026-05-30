@@ -1,9 +1,11 @@
 plugins {
     // see https://fabricmc.net/develop/ for new versions
-    id 'fabric-loom' version "${loom_version}" apply(false)
+    id 'fabric-loom' version '1.8-SNAPSHOT' apply(false)
     // see https://projects.neoforged.net/neoforged/moddevgradle for new versions
     id 'net.neoforged.moddev' version '2.0.49-beta' apply(false)
 }
+
+version=mod_version
 
 allprojects {
     apply plugin: "idea"
@@ -16,17 +18,6 @@ allprojects {
 
 subprojects {
     repositories {
-        mavenLocal()
-        mavenCentral()
-        maven {
-            name = 'BlameJared Maven (JEI / CraftTweaker / Bookshelf)'
-            url = 'https://maven.blamejared.com'
-            content {
-                includeGroup 'mezz.jei'
-                includeGroup 'com.blamejared.crafttweaker'
-                includeGroup 'net.darkhax.bookshelf'
-            }
-        }
         maven {
             url "https://maven.twelveiterations.com/repository/maven-public/"
             content {

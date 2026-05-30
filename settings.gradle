@@ -24,4 +24,5 @@ plugins {
 rootProject.name = 'MCM_001_HBs-Ore-Cluster-and-Regen'
 include("common")
 include("fabric")
+include("neoforge")
 //include("forge") // Forge not available for 1.21.1 - replaced by NeoForge (to be configured separately)

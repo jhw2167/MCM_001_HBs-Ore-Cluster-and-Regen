@@ -2,6 +2,7 @@ plugins {
     id 'multiloader-loader'
     id 'fabric-loom'
 }
+version = "${mod_version}"
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings loom.layered {
@@ -14,11 +15,6 @@ dependencies {
     modImplementation("net.blay09.mods:balm-fabric:${balm_version}") {
         transitive = false
     }
-    modImplementation("com.holybuckets.foundation:hbs_foundation-fabric-${minecraft_version}:${foundation_version}") {
-        transitive = false
-        changing = true
-    }
-
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
 }
 
@@ -45,5 +41,3 @@ loom {
         }
     }
 }
-
-

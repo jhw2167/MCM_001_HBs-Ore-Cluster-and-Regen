@@ -3,8 +3,6 @@ plugins {
     id 'maven-publish'
 }
 
-version = mod_version
-
 base {
     archivesName = "${mod_id}-${project.name}-${minecraft_version}"
 }
@@ -85,8 +83,7 @@ jar {
 
 processResources {
     var expandProps = [
-            'version'                      : mod_version,
-            'mod_version'                  : mod_version,
+            'mod_version'                      : mod_version,
             'group'                        : project.group, //Else we target the task's group.
             'minecraft_version'            : minecraft_version,
             'minecraft_version_range'      : minecraft_version_range,
@@ -98,7 +95,6 @@ processResources {
             'license'                      : license,
             'description'                  : project.description,
             'neoforge_version'             : neoforge_version,
-            'neoforge_version_range':       neoforge_version_range,
             'neoforge_loader_version_range': neoforge_loader_version_range,
             "forge_version": forge_version,
             "forge_loader_version_range": forge_loader_version_range,
@@ -106,7 +102,7 @@ processResources {
             'java_version'                 : java_version,
             'balm_version'                 : balm_version,
             'balm_version_range'           : balm_version_range,
-            'foundation_version_min'     : foundation_version_min,
+            'foundation_version_min'     : foundation_version_min
     ]
 
     filesMatching(['pack.mcmeta', 'fabric.mod.json', 'META-INF/mods.toml', 'META-INF/neoforge.mods.toml', '*.mixins.json']) {

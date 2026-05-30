@@ -2,6 +2,7 @@ plugins {
     id 'multiloader-common'
     id 'net.neoforged.moddev'
 }
+
 neoForge {
     neoFormVersion = neo_form_version
     // Automatically enable AccessTransformers if the file exists
@@ -20,10 +21,6 @@ dependencies {
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
 
     implementation("net.blay09.mods:balm-common:${balm_version}") {
-        changing = true
-    }
-
-    implementation("com.holybuckets.foundation:hbs_foundation-common-${minecraft_version}:${foundation_version}") {
         changing = true
     }
 }
