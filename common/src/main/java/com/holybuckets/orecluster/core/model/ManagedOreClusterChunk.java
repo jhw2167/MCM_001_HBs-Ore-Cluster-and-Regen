@@ -526,20 +526,30 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     /** OVERRIDES **/
 
     @Override
-    public ManagedOreClusterChunk getStaticInstance(LevelAccessor level, String id)
+    public IMangedChunkData resolveSubData(LevelAccessor level, String id, @Nullable IMangedChunkData data) {
+        if(id == null || level == null ) return data;
+        ManagedOreClusterChunk managedChunk = (ManagedOreClusterChunk) data;
+        managedChunk = doResolve(level, id, managedChunk);
+        if(managedChunk != null) {
+            OreClusterManager.addManagedOreClusterChunk( this );
+        }
+        return managedChunk;
+    }
+
+    private ManagedOreClusterChunk doResolve(LevelAccessor level, String id, ManagedOreClusterChunk serialized)
     {
-        if(id == null || level == null )
-         return null;
 
         OreClusterManager manager = OreClustersAndRegenMain.getManagers().get(level);
         if(manager != null)
         {
-            if(manager.getLoadedChunk(id) != null)
-                return manager.getLoadedChunk(id);
+            ManagedOreClusterChunk memInstance = manager.getLoadedChunk(id);
+            if(memInstance == null) return serialized;
+            if(serialized == null) return memInstance;
+            //compare and return earliest tick loaded
+            if(memInstance.tickLoaded <= serialized.tickLoaded)
+                return memInstance;
         }
-
-        ManagedOreClusterChunk chunk = ManagedOreClusterChunk.getInstance(level, id);
-        return chunk;
+        return serialized;
     }
 
     @Override
@@ -661,6 +671,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         //LoggerProject.logDebug("003002", "Serializing ManagedOreClusterChunk");
 
         CompoundTag details = new CompoundTag();
+        if(this.id==null || this.id.isEmpty()) return null;
         details.putString("id", this.id);
         details.putLong("tickLoaded", this.tickLoaded);
 
@@ -692,36 +703,6 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
                 details.put("clusterTypes", clusterTypesTag);
             }
         }
-
-
-        //blockStateUpdates - dont serialize over 10KB
-        /*
-        {
-            if(this.blockStateUpdates == null || this.blockStateUpdates.size() == 0) {
-                details.putString("blockStateUpdates", "");
-            }
-            else
-            {
-                Map<Block, List<BlockPos>> blocks = new HashMap<>();
-                this.blockStateUpdates.forEach((pair) -> {
-                    Block block = pair.getLeft();
-                    if(!blocks.containsKey(block))
-                        blocks.put(block, new ArrayList<>());
-                });
-
-                for(Pair<Block, BlockPos> pair : this.blockStateUpdates)
-                {
-                    Block block = pair.getLeft();
-                    BlockPos pos = pair.getRight();
-                    blocks.get(block).add(pos);
-                }
-
-                String blockStateUpdates = BlockUtil.serializeBlockPairs(blocks);
-                details.putString("blockStateUpdates", blockStateUpdates);
-            }
-
-        }
-        */
 
         LoggerProject.logDebug("003007", "Serializing ManagedOreChunk: " + details);
 
@@ -769,31 +750,6 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
             //LoggerProject.logDebug("003008", "Deserializing clusterTypes: " + clusterTypes);
         }
 
-        //blockStateUpdates
-        /*
-        {
-            String blockStateUpdates = tag.getString("blockStateUpdates");
-            this.blockStateUpdates = new ConcurrentLinkedQueue<>();
-            if(blockStateUpdates == null || blockStateUpdates.isEmpty()) {
-               //add nothing
-            }
-            else {
-                Map<Block,List<BlockPos>> blocks =  BlockUtil.deserializeBlockPairs(blockStateUpdates);
-                for(Map.Entry<Block, List<BlockPos>> entry : blocks.entrySet())
-                {
-                    Block block = entry.getKey();
-                    List<BlockPos> positions = entry.getValue();
-                    for(BlockPos pos : positions)
-                    {
-                        this.blockStateUpdates.add( Pair.of(block, pos) );
-                    }
-                }
-            }
-            LoggerProject.logDebug("003009", "Deserializing blockStateUpdates: " + blockStateUpdates);
-        }
-        */
-
-        OreClusterManager.addManagedOreClusterChunk( this );
     }
 
 

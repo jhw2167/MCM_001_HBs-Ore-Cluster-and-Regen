@@ -17,8 +17,6 @@ public class CommonClass {
             Constants.LOG.info("Hello to " + Constants.MOD_NAME + "!");
         }
         mod = new OreClustersAndRegenMain();
-        BalmEventRegister.registerEvents();
-        BalmEventRegister.registerCommands();
         isInitialized = true;
     }
 
