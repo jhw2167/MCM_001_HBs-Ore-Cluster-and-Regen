@@ -341,7 +341,7 @@ public class OreClusterManager {
      //timeout
      private static final Long SLEEP_TIME_PER_CHUNK_MILLIS = (DEBUG)
         ? 100L : 100L;
-    private static final Long MAX_EXPIRATIONS = 100L;
+    private static final Long MAX_EXPIRATIONS = 500L;
     private void watchLoadedChunkExpiration()
     {
             boolean errorThrown = false;
@@ -401,7 +401,10 @@ public class OreClusterManager {
     {
         String chunkId = c.getId();
 
-        if( !ManagedOreClusterChunk.isComplete(c) ) {
+        if( ManagedOreClusterChunk.isComplete(c) ) {
+            determinedChunks.remove(chunkId);
+        }
+        else {
             Integer expiryCount = expiredChunks.get(chunkId);
             if( expiryCount == null ) {
                 expiredChunks.put(chunkId, 0);
@@ -475,19 +478,28 @@ public class OreClusterManager {
             int i = 0;
         }
 
+        if( completeChunks.contains(chunkId) )
+            return;
+
+        if( ManagedChunkUtility.getManagedChunk(level, chunkId)==null ) {
+            chunksPendingHandling.add(chunkId);
+            return;
+        }
+
+
         ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
         if( chunk == null )
         {
-            if( completeChunks.contains(chunkId) )
-                return;
             chunk = ManagedOreClusterChunk.getInstance(this.level, chunkId);
             loadedOreClusterChunks.put(chunkId, chunk);
 
             if( determinedChunks.contains(chunkId) )
                 chunk.setStatus(OreClusterStatus.DETERMINED);
-            handleChunkLoaded(chunkId);
+
+            chunksPendingHandling.add(chunkId);
             return;
-        } else if( chunk.hasClusters() ) {
+        }
+        else if( chunk.hasClusters() ) {
             chunk.getClusterTypes().forEach((oreType, pos) -> {
                 if(pos != null)
                     existingClustersByType.get(oreType).add(chunkId);

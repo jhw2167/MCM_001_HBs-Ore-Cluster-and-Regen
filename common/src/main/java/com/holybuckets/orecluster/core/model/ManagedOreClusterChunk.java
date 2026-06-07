@@ -527,11 +527,11 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
 
     @Override
     public IMangedChunkData resolveSubData(LevelAccessor level, String id, @Nullable IMangedChunkData data) {
-        if(id == null || level == null ) return data;
+        if(id == null || level == null ) return null;
         ManagedOreClusterChunk managedChunk = (ManagedOreClusterChunk) data;
         managedChunk = doResolve(level, id, managedChunk);
         if(managedChunk != null) {
-            OreClusterManager.addManagedOreClusterChunk( this );
+            OreClusterManager.addManagedOreClusterChunk( managedChunk );
         }
         return managedChunk;
     }
@@ -594,6 +594,11 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
      */
     public static ManagedOreClusterChunk getInstance(LevelAccessor level, String id)
     {
+        if(id == null || level == null) return null;
+        OreClusterManager manager = OreClustersAndRegenMain.getManagers().get(level);
+        if(manager != null && manager.getLoadedChunk(id) != null) {
+            return manager.getLoadedChunk(id);
+        }
 
         ManagedChunk parent = getParent(level, id);
         if(parent == null)
