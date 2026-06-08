@@ -144,6 +144,7 @@ public class OreClusterConfigModel {
                 .collect(Collectors.toList());
     }
 
+    private static String EMPTY_BLOCK = com.holybuckets.foundation.Constants.MOD_ID + ":empty_block";
     public static List<BlockState> processReplaceableEmptyBlocks(String replaceableBlocks) {
         List<BlockState> blocks = processStringIntoBlockStateList(replaceableBlocks);
         LoggerProject.logDebug("004000", "Blocks: " + blocks);
@@ -153,8 +154,9 @@ public class OreClusterConfigModel {
         if( blocks.isEmpty() || blocks.contains(null))
             blocks.remove(null);
 
-        if( blocks.isEmpty() )
-            blocks.add( blockNameToBlock(Constants.MOD_IDS.FOUNDATION + ":empty_block").defaultBlockState());
+        if( blocks.isEmpty() ) {
+            blocks.add( blockNameToBlock(EMPTY_BLOCK).defaultBlockState());
+        }
 
         return blocks;
     }
