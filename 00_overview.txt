@@ -90,3 +90,17 @@ A number of errors occur
 
 	- mods.toml missing metadata for modid
 
+
+
+Ok, @lordomerone and Mayo, I will look into this issue separately, but here is what you should do now to be able to run your event:
+
+1.  Turn off your server.
+2. Remove HB's Foundation and HB's Ore Clusters
+3. Run the server again and load in and make sure the chunks your using load and and unload ( this will make them lose any old ore cluster data that may interfere with data when we redownload the mod)
+4. Download these copies of foundations and Ore cluster:
+https://www.curseforge.com/minecraft/mc-mods/hbs-foundation/files/7310231/additional-files
+https://www.curseforge.com/minecraft/mc-mods/hbs-ore-clusters-and-regen/files/7409941
+5. Run these LOCALLY not on the server so they generate the default JSON for that version since it is probably different from the current json.
+6. Grab the json from your configs and configure it how you like.
+7. Put those into the server and start the servr. Use the addCluster command to place clusters where you want to .
+
