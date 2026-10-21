@@ -114,7 +114,7 @@ public class OreClusterConfigModel {
     private static Block blockNameToBlock(String blockName)
     {
         if( blockName == null || blockName.isEmpty() )
-            return ModBlocks.empty;
+            return ModBlocks.empty.get();
 
         if( blockName.contains(":") ) {
             String[] split = blockName.split(":");

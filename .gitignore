@@ -4,10 +4,11 @@ out.txt
 out1.txt
 **/build/*
 **/run/*
-**/runs/*
-.idea/
 claudeProjFiles/*
 CLAUDE.md
+.template-spec.md
+*.mp4
+
 
 # From https://github.com/github/gitignore/blob/master/Gradle.gitignore
 .gradle
@@ -62,7 +63,6 @@ hs_err_pid*
 .idea/uiDesigner.xml
 
 # Gradle:
-.idea/gradle.xml
 .idea/libraries
 
 # Mongo Explorer plugin:

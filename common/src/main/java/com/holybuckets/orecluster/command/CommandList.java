@@ -35,6 +35,7 @@ public class CommandList {
     private static final String PREFIX = "hbOreClusters";
 
     public static void register() {
+        LoggerProject.logInfo("010000", "Registering CommandList " + PREFIX);
         CommandRegistry.register(LocateClusters::noArgs);
         CommandRegistry.register(LocateClusters::limitCount);
         CommandRegistry.register(LocateClusters::limitCountSpecifyBlockType);
@@ -44,6 +45,7 @@ public class CommandList {
         CommandRegistry.register(AddCluster::register);
         CommandRegistry.register(TriggerRegen::register);
         CommandRegistry.register(HealthCheck::register);
+        LoggerProject.logInfo("010001", "Finished Registering CommandList " + PREFIX);
     }
 
     //1. Locate Clusters

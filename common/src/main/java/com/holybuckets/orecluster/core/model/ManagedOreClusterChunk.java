@@ -426,7 +426,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public void addBlockStateUpdate(BlockState block, BlockPos pos) {
-        if(block.equals(ModBlocks.empty.defaultBlockState())) return;
+        if(block.equals(ModBlocks.empty.get().defaultBlockState())) return;
 
         LinkedHashSet<BlockPos> positions = this.blockStateUpdates.get(block);
         if(positions == null) {
