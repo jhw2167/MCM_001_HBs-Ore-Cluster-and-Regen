@@ -3,17 +3,24 @@ package com.holybuckets.orecluster;
 //MC Imports
 
 //Forge Imports
+import com.google.gson.JsonParser;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.orecluster.config.OreClusterConfig;
 import com.holybuckets.orecluster.config.OreClusterConfigData;
+import com.holybuckets.orecluster.config.json.OreFeatureBiomeMatrixJsonConfig;
 import com.holybuckets.orecluster.config.model.OreClusterJsonConfig;
+import com.holybuckets.orecluster.config.model.OreFeatureBiomeMatrix;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -21,6 +28,7 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 
 //Java Imports
 import java.io.File;
@@ -56,6 +64,7 @@ public class ModRealTimeConfig
     private Map<String, OreClusterId> baseConfigIds;
 
     private Set<BlockState> validOreClusterBlocks;
+    private OreFeatureBiomeMatrix oreFeatureBiomeMatrix = OreFeatureBiomeMatrix.EMPTY;
 
     /** We will batch checks for which chunks have clusters by the next CHUNK_NORMALIZATION_TOTAL chunks at a time
      thus the spawnrate is normalized to 256 chunks */
@@ -145,6 +154,8 @@ public class ModRealTimeConfig
             CLUSTER_SEED = GeneralConfig.getInstance().getWorldSeed();
         }
 
+        this.oreFeatureBiomeMatrix = loadOreFeatureBiomeMatrix(event.getServer().registryAccess(), clusterConfig);
+
         //serializer for consistency
         OreClusterJsonConfig newJsonOreConfigs = new OreClusterJsonConfig(baseOreConfigs);
         HBUtil.FileIO.serializeJsonConfigs( configFile, newJsonOreConfigs.serialize() );
@@ -189,6 +200,7 @@ public class ModRealTimeConfig
         this.baseConfigIds.clear();
         this.baseOreConfigs.clear();
         this.validOreClusterBlocks.clear();
+        this.oreFeatureBiomeMatrix = OreFeatureBiomeMatrix.EMPTY;
     }
 
         /*
@@ -264,6 +276,10 @@ public class ModRealTimeConfig
             return defaultConfig;
         }
 
+        public OreFeatureBiomeMatrix getOreFeatureBiomeMatrix() {
+            return oreFeatureBiomeMatrix;
+        }
+
         /**
          *  Setters
          */
@@ -276,6 +292,62 @@ public class ModRealTimeConfig
     /**
      * Helper methods
      */
+
+    private OreFeatureBiomeMatrix loadOreFeatureBiomeMatrix(RegistryAccess registries, OreClusterConfigData.COreClusters clusterConfig)
+    {
+        File configFile = new File(clusterConfig.oreFeatureBiomeMatrixConfig);
+        File defaultConfigFile = new File(OreFeatureBiomeMatrixJsonConfig.DEF_CONFIG_FILE_PATH);
+        String json = HBUtil.FileIO.loadJsonConfigs(configFile, defaultConfigFile, OreFeatureBiomeMatrixJsonConfig.DEFAULT_CONFIG);
+
+        List<OreFeatureBiomeMatrixJsonConfig> entries;
+        try {
+            entries = OreFeatureBiomeMatrixJsonConfig.parse(JsonParser.parseString(json).getAsJsonObject());
+        } catch (RuntimeException e) {
+            String msg = String.format(
+                "Failed to parse ore feature biome matrix JSON: %s. Error:\n %s.\n\nDefault configs will be applied",
+                configFile.getAbsolutePath(), e.getMessage());
+            LoggerProject.logError("000002", msg);
+            entries = OreFeatureBiomeMatrixJsonConfig.buildDefaultConfig();
+        }
+
+        OreFeatureBiomeMatrix matrix = resolveOreFeatureBiomeMatrix(entries, registries);
+        LoggerProject.logInfo("000001", "Loaded ore feature frequencies for " + matrix.size() + " biome(s)");
+        return matrix;
+    }
+
+    private static OreFeatureBiomeMatrix resolveOreFeatureBiomeMatrix(List<OreFeatureBiomeMatrixJsonConfig> configs, RegistryAccess registries)
+    {
+        Registry<Biome> biomeRegistry = registries.registryOrThrow(Registries.BIOME);
+        Map<Biome, Map<Block, Float>> resolved = new HashMap<>();
+        int skipped = 0;
+
+        for (OreFeatureBiomeMatrixJsonConfig config : configs) {
+            ResourceLocation biomeId = ResourceLocation.tryParse(config.getBiomeId());
+            Biome biome = biomeId == null ? null : biomeRegistry.get(biomeId);
+            if (biome == null) {
+                LoggerProject.logWarning("000003", "Unknown biome '" + config.getBiomeId() + "' in ore feature biome matrix; skipping");
+                skipped++;
+                continue;
+            }
+
+            Map<Block, Float> ores = new HashMap<>();
+            for (Map.Entry<String, Float> entry : config.getFrequencies().entrySet()) {
+                ResourceLocation oreId = ResourceLocation.tryParse(entry.getKey());
+                Block ore = oreId == null ? Blocks.AIR : BuiltInRegistries.BLOCK.get(oreId);
+                if (ore == Blocks.AIR || entry.getValue() < 0f) {
+                    LoggerProject.logWarning("000004", "Invalid ore entry '" + entry.getKey() + "': " + entry.getValue()
+                        + " under biome '" + config.getBiomeId() + "'; skipping");
+                    skipped++;
+                    continue;
+                }
+                ores.put(ore, entry.getValue());
+            }
+            resolved.put(biome, ores);
+        }
+
+        LoggerProject.logInfo("000005", "Resolved ore feature biome matrix, skipped " + skipped + " invalid entrie(s)");
+        return new OreFeatureBiomeMatrix(resolved);
+    }
 
      private void validateClusterSpacingAndMinBlocks()
      {

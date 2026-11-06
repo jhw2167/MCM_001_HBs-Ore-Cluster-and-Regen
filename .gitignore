@@ -5,10 +5,11 @@ out1.txt
 **/build/*
 **/run/*
 **/runs/*
-.idea/
 claudeProjFiles/*
 CLAUDE.md
-
+.template-spec.md
+*.mp4
+.idea/*/
 
 # From https://github.com/github/gitignore/blob/master/Gradle.gitignore
 .gradle
@@ -53,6 +54,7 @@ hs_err_pid*
 .idea/dictionaries
 .idea/vcs.xml
 .idea/jsLibraryMappings.xml
+.idea/runConfigurations/*
 
 # Sensitive or high-churn files:
 .idea/dataSources.ids
@@ -63,7 +65,6 @@ hs_err_pid*
 .idea/uiDesigner.xml
 
 # Gradle:
-.idea/gradle.xml
 .idea/libraries
 
 # Mongo Explorer plugin:

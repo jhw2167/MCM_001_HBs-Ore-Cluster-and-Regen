@@ -3,6 +3,7 @@ package com.holybuckets.orecluster.config;
 import com.google.gson.JsonArray;
 import com.holybuckets.foundation.HBUtil.Validator.ConfigNumber;
 import com.holybuckets.orecluster.Constants;
+import com.holybuckets.orecluster.config.json.OreFeatureBiomeMatrixJsonConfig;
 import net.blay09.mods.balm.api.config.BalmConfigData;
 import net.blay09.mods.balm.api.config.Comment;
 import net.blay09.mods.balm.api.config.Config;
@@ -107,6 +108,9 @@ public class OreClusterConfigData implements BalmConfigData {
 
         @Comment("File path to .json file where the properties of one or more specific ore clusters are listed in a JSON array")
         public String oreClusterFileConfigPath = DEF_ORE_CLUSTER_FILE_CONFIG_PATH;
+
+        @Comment("File path to .json file where the relative frequency of vanilla style ore veins is set for each ore in each biome")
+        public String oreFeatureBiomeMatrixConfig = OreFeatureBiomeMatrixJsonConfig.DEF_CONFIG_FILE_PATH;
 
         @Comment("Comma separated list of integer days it takes for clusters to regenerate their ores. All clusters will regenerate on the same schedule. After sacrificing the specified item in the array below, the period length is reduced")
         public String regenerateOreClusterPeriodLengths = DEF_REGENERATE_ORE_CLUSTER_PERIOD_LENGTHS;

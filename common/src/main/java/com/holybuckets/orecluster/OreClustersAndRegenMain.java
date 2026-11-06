@@ -55,6 +55,7 @@ public class OreClustersAndRegenMain
         OreClusterManager.init( eventRegistrar );
         this.oreClusterManagers = OreClusterManager.MANAGERS;
         this.modRealTimeConfig = new ModRealTimeConfig(eventRegistrar);
+        OreFeaturePlacementManager.init(eventRegistrar, modRealTimeConfig);
         this.regenManager = new OreClusterRegenManager( eventRegistrar, modRealTimeConfig, oreClusterManagers);
         this.oreClusterApi = new OreClusterApi(oreClusterManagers, modRealTimeConfig, regenManager);
         this.oreClusterHealthCheck = new OreClusterHealthCheck( eventRegistrar, oreClusterApi, oreClusterManagers);

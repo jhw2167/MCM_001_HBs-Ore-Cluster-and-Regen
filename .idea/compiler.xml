@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Gradle Imported" enabled="true">
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.spongepowered/mixin/0.8.5-SNAPSHOT/98b6c982030c7e9d79d3e78b31d86b285f292146/mixin-0.8.5-SNAPSHOT-processor.jar" />
+        </processorPath>
+        <module name="MCM_001_HBs-Ore-Cluster-and-Regen.forge.main" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel target="17" />
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="MCM_001_HBs-Ore-Cluster-and-Regen.fabric" options="-AoutRefMapFile=C:\Users\jack\source\repos\Java\Minecraft\00_mod-dev\MCM_001_HBs-Ore-Cluster-and-Regen\fabric\build\classes\java\main\hbs_ore_cluster_and_regen.refmap.json -AdefaultObfuscationEnv=named:intermediary -Aquiet=true -AoutMapFileNamedIntermediary=C:\Users\jack\source\repos\Java\Minecraft\00_mod-dev\MCM_001_HBs-Ore-Cluster-and-Regen\fabric\build\loom-cache\mixin-map-loom.mappings.1_20_1.layered+hash.2198-v2.main.tiny -AinMapFileNamedIntermediary=C:\Users\jack\.gradle\caches\fabric-loom\1.20.1\loom.mappings.1_20_1.layered+hash.2198-v2\mappings.tiny" />
+      <module name="MCM_001_HBs-Ore-Cluster-and-Regen.fabric.main" options="-AoutRefMapFile=C:\Users\jack\source\repos\Java\Minecraft\00_mod-dev\MCM_001_HBs-Ore-Cluster-and-Regen\fabric\build\classes\java\main\hbs_ore_cluster_and_regen.refmap.json -AdefaultObfuscationEnv=named:intermediary -Aquiet=true -AoutMapFileNamedIntermediary=C:\Users\jack\source\repos\Java\Minecraft\00_mod-dev\MCM_001_HBs-Ore-Cluster-and-Regen\fabric\build\loom-cache\mixin-map-loom.mappings.1_20_1.layered+hash.2198-v2.main.tiny -AinMapFileNamedIntermediary=C:\Users\jack\.gradle\caches\fabric-loom\1.20.1\loom.mappings.1_20_1.layered+hash.2198-v2\mappings.tiny" />
+      <module name="MCM_001_HBs-Ore-Cluster-and-Regen.fabric.test" options="-AoutRefMapFile=C:\Users\jack\source\repos\Java\Minecraft\00_mod-dev\MCM_001_HBs-Ore-Cluster-and-Regen\fabric\build\classes\java\test\test-hbs_ore_cluster_and_regen.refmap.json -AdefaultObfuscationEnv=named:intermediary -Aquiet=true -AoutMapFileNamedIntermediary=C:\Users\jack\source\repos\Java\Minecraft\00_mod-dev\MCM_001_HBs-Ore-Cluster-and-Regen\fabric\build\loom-cache\mixin-map-loom.mappings.1_20_1.layered+hash.2198-v2.test.tiny -AinMapFileNamedIntermediary=C:\Users\jack\.gradle\caches\fabric-loom\1.20.1\loom.mappings.1_20_1.layered+hash.2198-v2\mappings.tiny" />
+    </option>
+  </component>
+</project>

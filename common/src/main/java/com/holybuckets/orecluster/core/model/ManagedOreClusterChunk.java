@@ -1,6 +1,7 @@
 package com.holybuckets.orecluster.core.model;
 
 import com.holybuckets.foundation.GeneralConfig;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.HBUtil.ChunkUtil;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.model.ManagedChunk;
@@ -15,9 +16,11 @@ import com.holybuckets.orecluster.core.OreClusterManager;
 import com.holybuckets.orecluster.core.OreClusterStatus;
 import io.netty.util.collection.IntObjectHashMap;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import net.minecraft.client.multiplayer.chat.report.ReportEnvironment;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -424,9 +427,9 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.clusterTypes.putAll( clusterMap );
         //LoggerProject.logDebug("003010", "Adding clusterTypes: " + this.clusterTypes);
     }
-
+    //blockUpdates, updateBlocks, updateblockStates
     public void addBlockStateUpdate(BlockState block, BlockPos pos) {
-        if(block.equals(ModBlocks.empty.defaultBlockState())) return;
+        if(block.equals(ModBlocks.empty.get().defaultBlockState())) return;
 
         LinkedHashSet<BlockPos> positions = this.blockStateUpdates.get(block);
         if(positions == null) {
@@ -442,8 +445,13 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public boolean loadBiomes(ChunkAccess chunk) {
-        if(chunk == null || chunk.getSections().length == 0 || chunk.getSections()[0] == null)
+        if(chunk == null || chunk.getSections().length == 0 || chunk.getSections()[0] == null) {
+            var b = HBUtil.LevelUtil.getBiomeAtPoint( (ServerLevel) level, chunk.getPos().getWorldPosition());
+            if(b != null) this.addBiome(b.value());
             return false;
+        }
+
+
         chunk.getSections()[0].getBiomes().getAll( hb -> {
             this.addBiome(hb.value());
         });

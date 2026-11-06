@@ -1064,7 +1064,7 @@ public class OreClusterManager {
 
     /**
      * Alters the chunk to place blocks in the world as necessary to build clusters or reduce
-     *
+     * addBlockStateUpdate, updateBlockState, blockupdate, setState
      * @param chunk
      * doEdit
      * editChunk
@@ -1092,14 +1092,15 @@ public class OreClusterManager {
         {
             LevelChunk levelChunk = chunk.getChunk(false);
             if (levelChunk == null) return;
-            BlockState state = chunk.getBlockStateUpdateType().orElse(null);
-            if( state == null ) return;
-            LinkedHashSet<BlockPos> positions = chunk.getBlockStateUpdates(state);
-            isSuccessful = ManagedChunk.updateChunkBlockStates(level, Map.of(state, new ArrayList<>(positions)));
-            if( isSuccessful ) {
-                chunk.removeBlockStateUpdates(state);
-                if( chunk.countUpdatesRemaining() > 0 )
-                    isSuccessful = false;
+            var updates = chunk.getBlockStateUpdates();
+            if( updates == null ) return;
+            for( var entry : updates.entrySet() ) {
+                isSuccessful = ManagedChunk.updateChunkBlockStates(level, entry.getKey(), entry.getValue());
+                if (isSuccessful) {
+                    chunk.removeBlockStateUpdates(entry.getKey());
+                    if (chunk.countUpdatesRemaining() > 0)
+                        isSuccessful = false;
+                }
             }
         }
 
