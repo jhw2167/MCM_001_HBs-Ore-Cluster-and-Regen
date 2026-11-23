@@ -187,69 +187,31 @@ public class OreClusterApi {
      */
     public List<OreClusterInfo> locateOreClusters(LevelAccessor level, BlockPos pos, Block oreType, int limit)
     {
-        //1. Check if level is valid and get OreClusterManager for the level
-        if(level == null) return null;
-        if(pos == null) return null;
-        if(limit <= 0) return null;
-
+        if(level == null || pos == null || limit <= 0) return null;
         OreClusterManager manager = managers.get(level);
         if(manager == null) return null;
 
-        //2. Get list of all oreClusters
-        Map<OreClusterId, Set<String>> clusters = manager.getExistingClustersByType();
-
-        LoggerProject.logInfo(null, "008000", "Found " + clusters.size() +
-         " clusters in level: " + HBUtil.LevelUtil.toLevelId(level) + " with oreType: " + ((oreType==null) ? "any" : oreType) );
-
-        //3. Create list of all valid Clusters from each chunk, filtering by oreType if necessary
-        Set<String> validClusterChunkIds = new HashSet<>();
-        if(oreType == null)
-        {
-            for(OreClusterId clusterType : clusters.keySet()) {
-                validClusterChunkIds.addAll(clusters.get(clusterType));
-            }
-        }
-        else
-        {
-            Set<OreClusterId> idsForOre = modConfig.getAllOreConfigIdsByOre(oreType);
-            clusters.forEach( (k,v) -> {
-                if(v == null) return;
-                if(idsForOre.contains(k)) validClusterChunkIds.addAll(v);
-            });
-        }
-
-        //4. Add clusters to clusterInfo
-        List<OreClusterInfo> clusterInfo = new ArrayList<>();
-        for(String chunkId : validClusterChunkIds)
-        {
-            ManagedOreClusterChunk clusterChunk = manager.getManagedOreClusterChunk(chunkId);
-            if(clusterChunk != null && clusterChunk.hasClusters()) {
-                clusterChunk.getClusterTypes().forEach((k,v) -> {
-                    if(v == null) return;
-                    if( oreType != null && !k.getBlock().equals(oreType) ) return;
-                    clusterInfo.add(new OreClusterInfo(clusterChunk, k));
-                });
+        Set<OreClusterId> validTypes = (oreType == null) ? null : modConfig.getAllOreConfigIdsByOre(oreType);
+        List<OreClusterInfo> clusters = new ArrayList<>();
+        for(Map.Entry<OreClusterId, Set<String>> entry : manager.getExistingClustersByType().entrySet()) {
+            if(validTypes != null && !validTypes.contains(entry.getKey())) continue;
+            for(String chunkId : entry.getValue()) {
+                OreClusterInfo info = getOreClusterInfo(level, chunkId, entry.getKey());
+                info.calcPointDistance(pos);
+                clusters.add(info);
             }
         }
 
-        LoggerProject.logInfo(null, "008001", "Found " + clusterInfo.size() + " clusters of type: " + oreType);
+        clusters.sort(Comparator.comparingDouble((OreClusterInfo c) -> c.pointDistance));
+        return new ArrayList<>(clusters.subList(0, Math.min(limit, clusters.size())));
+    }
 
-        //4. Determine distance of each cluster from pos
-        for(OreClusterInfo cluster : clusterInfo) {
-            cluster.calcPointDistance(pos);
-        }
-
-        //5. Sort clusters by distance
-
-        Comparator<OreClusterInfo> clusterComparator = Comparator.comparing(c -> c.pointDistance);
-        List<OreClusterInfo> sortedClusters = clusterInfo.stream()
-            .sorted( clusterComparator )
-            .limit(limit)
-            .toList();
-
-        LoggerProject.logInfo(null, "008002", "Sorted clusters by distance from: " + pos + " with limit  " + limit);
-
-        return sortedClusters;
+    private OreClusterInfo getOreClusterInfo(LevelAccessor level, String chunkId, OreClusterId oreType)
+    {
+        ManagedOreClusterChunk chunk = ManagedOreClusterChunk.getInstance(level, chunkId);
+        if(chunk != null && chunk.getClusterTypes().get(oreType) != null)
+            return new OreClusterInfo(chunk, oreType);
+        return new OreClusterInfo(HBUtil.ChunkUtil.getChunkPos(chunkId), oreType);
     }
 
     public JsonObject getManagedChunkDetails(LevelAccessor level, String chunkId) {
@@ -390,6 +352,15 @@ public class OreClusterApi {
         chunkTracking.addProperty("loadedOreClusterChunks", m.loadedOreClusterChunks.size());
         chunkTracking.addProperty("expiredChunks", m.expiredChunks.size());
         chunkTracking.addProperty("completeChunks", m.completeChunks.size());
+
+        JsonObject existingClusters = new JsonObject();
+        int totalExistingClusters = 0;
+        for(Map.Entry<OreClusterId, Set<String>> entry : m.existingClustersByType.entrySet()) {
+            existingClusters.addProperty(entry.getKey().getStringId(), entry.getValue().size());
+            totalExistingClusters += entry.getValue().size();
+        }
+        chunkTracking.addProperty("existingClusters", totalExistingClusters);
+        chunkTracking.add("existingClustersByType", existingClusters);
         health.add("chunkTracking", chunkTracking);
 
         return health;

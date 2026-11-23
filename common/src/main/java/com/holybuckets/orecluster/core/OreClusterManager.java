@@ -151,6 +151,10 @@ public class OreClusterManager {
     final Set<String> initializedOreClusterChunks;
 
     final ConcurrentHashMap<OreClusterId, Set<String>> existingClustersByType;
+    final ConcurrentHashMap<Long, Set<String>> regionCache;
+    private static final int REGION_SHIFT = 5;
+    private static final int NEIGHBOR_RADIUS = 50;
+    private static final int MAX_NEIGHBORS = 5;
     final ConcurrentHashMap<OreClusterId, Set<String>> tentativeClustersByType;
     final ConcurrentHashMap<OreClusterId, Set<String>> removedClustersByType;
     final ConcurrentHashMap<String, Map<OreClusterId, BlockPos>> addedClustersByType; //chunkId -> type, pos
@@ -200,6 +204,7 @@ public class OreClusterManager {
         MANAGERS.put(level, this);
 
         this.existingClustersByType = new ConcurrentHashMap<>();
+        this.regionCache = new ConcurrentHashMap<>();
         this.tentativeClustersByType = new ConcurrentHashMap<>();
         this.addedClustersByType = new ConcurrentHashMap<>();
         this.removedClustersByType = new ConcurrentHashMap<>();
@@ -276,6 +281,68 @@ public class OreClusterManager {
         return existingClustersByType;
     }
 
+    private static long toRegionKey(int chunkX, int chunkZ) {
+        return ChunkUtil.getChunkPos1DMap(chunkX >> REGION_SHIFT, chunkZ >> REGION_SHIFT);
+    }
+
+    void addExistingCluster(OreClusterId clusterType, String chunkId)
+    {
+        if(clusterType == null || chunkId == null) return;
+        Set<String> chunks = existingClustersByType.get(clusterType);
+        if(chunks == null) return;
+        chunks.add(chunkId);
+        ChunkPos pos = ChunkUtil.getChunkPos(chunkId);
+        regionCache.computeIfAbsent(toRegionKey(pos.x, pos.z), k -> ConcurrentHashMap.newKeySet()).add(chunkId);
+    }
+
+    public List<Pair<String, OreClusterId>> getClusterNeighbors(ChunkPos pos)
+    {
+        List<Pair<String, OreClusterId>> neighbors = new ArrayList<>();
+        if(pos == null) return neighbors;
+
+        String selfId = ChunkUtil.getId(pos);
+        int maxDistSq = NEIGHBOR_RADIUS * NEIGHBOR_RADIUS;
+        PriorityQueue<Pair<Integer, String>> nearest = new PriorityQueue<>((a, b) -> Integer.compare(b.getLeft(), a.getLeft()));
+
+        int minRx = (pos.x - NEIGHBOR_RADIUS) >> REGION_SHIFT;
+        int maxRx = (pos.x + NEIGHBOR_RADIUS) >> REGION_SHIFT;
+        int minRz = (pos.z - NEIGHBOR_RADIUS) >> REGION_SHIFT;
+        int maxRz = (pos.z + NEIGHBOR_RADIUS) >> REGION_SHIFT;
+        for(int rx = minRx; rx <= maxRx; rx++) {
+            for(int rz = minRz; rz <= maxRz; rz++) {
+                Set<String> region = regionCache.get(ChunkUtil.getChunkPos1DMap(rx, rz));
+                if(region == null) continue;
+                for(String id : region) {
+                    if(id.equals(selfId)) continue;
+                    ChunkPos other = ChunkUtil.getChunkPos(id);
+                    int dx = other.x - pos.x;
+                    int dz = other.z - pos.z;
+                    int distSq = dx * dx + dz * dz;
+                    if(distSq > maxDistSq) continue;
+                    nearest.offer(Pair.of(distSq, id));
+                    if(nearest.size() > MAX_NEIGHBORS) nearest.poll();
+                }
+            }
+        }
+
+        for(Pair<Integer, String> entry : nearest) {
+            String id = entry.getRight();
+            for(Map.Entry<OreClusterId, Set<String>> type : existingClustersByType.entrySet()) {
+                if(neighbors.size() >= MAX_NEIGHBORS) return neighbors;
+                if(type.getValue().contains(id)) neighbors.add(Pair.of(id, type.getKey()));
+            }
+        }
+        return neighbors;
+    }
+
+    public void loadOreClusterNeighbors(List<Pair<String, OreClusterId>> neighbors)
+    {
+        if(neighbors == null) return;
+        for(Pair<String, OreClusterId> neighbor : neighbors) {
+            addExistingCluster(neighbor.getRight(), neighbor.getLeft());
+        }
+    }
+
 
     public static void init(EventRegistrar reg) {
         MANAGERS = new HashMap<>();
@@ -349,6 +416,7 @@ public class OreClusterManager {
             //while(managerRunning)
             {
                 try {
+                    cullPendingDeterminations();
                     if (this.loadedOreClusterChunks.isEmpty())
                         return;
 
@@ -396,6 +464,24 @@ public class OreClusterManager {
             }
 
         int i = 0;
+    }
+
+    private void cullPendingDeterminations()
+    {
+        List<ChunkPos> playerPositions = HBUtil.PlayerUtil.getAllPlayers(level).stream()
+            .map(ServerPlayer::chunkPosition)
+            .toList();
+        int maxDistSq = DETERMINATION_PLAYER_RANGE_CHUNKS * DETERMINATION_PLAYER_RANGE_CHUNKS;
+
+        Set<String> farChunks = new HashSet<>();
+        for(String chunkId : chunksPendingDeterminations) {
+            if(chunkUtil.isLoaded(chunkId)) continue;
+            ChunkPos pos = ChunkUtil.getChunkPos(chunkId);
+            boolean near = playerPositions.stream().anyMatch(p -> ChunkUtil.chunkDistSquared(pos, p) <= maxDistSq);
+            if(!near) farChunks.add(chunkId);
+        }
+
+        chunksPendingDeterminations.removeAll(farChunks);
     }
 
     private void removeManagedChunk(ManagedOreClusterChunk c )
@@ -500,7 +586,7 @@ public class OreClusterManager {
         else if( chunk.hasClusters() ) {
             chunk.getClusterTypes().forEach((oreType, pos) -> {
                 if(pos != null)
-                    existingClustersByType.get(oreType).add(chunkId);
+                    addExistingCluster(oreType, chunkId);
             });
         }
 
@@ -1062,7 +1148,7 @@ public class OreClusterManager {
                 chunk.addBlockStateUpdate(pos.getLeft(), pos.getRight().offset(sourceOffset));
             }
             //add to existingClustersByType
-            existingClustersByType.get(oreType).add(chunk.getId());
+            addExistingCluster(oreType, chunk.getId());
         }
 
         if( SKIPPED == null )
@@ -1545,7 +1631,7 @@ public class OreClusterManager {
                 if(oreClusterId == null) continue;
                 JsonArray chunkIds = json.get(oreType).getAsJsonArray();
                 tentativeClustersByType.get(oreClusterId).addAll(chunkIds.asList().stream().map(JsonElement::getAsString).toList());
-                existingClustersByType.get(oreClusterId).addAll(chunkIds.asList().stream().map(JsonElement::getAsString).toList());
+                chunkIds.asList().forEach(e -> addExistingCluster(oreClusterId, e.getAsString()));
                 List<String> listIds = chunkIds.asList().stream().map(JsonElement::getAsString).toList();
                 for( String id : listIds ) {
                     addedClustersByType.put(id, new HashMap<>());

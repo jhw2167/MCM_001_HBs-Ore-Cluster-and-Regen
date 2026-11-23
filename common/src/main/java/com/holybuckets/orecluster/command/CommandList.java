@@ -122,9 +122,14 @@ public class CommandList {
                 List<OreClusterInfo> data = api.locateOreClusters(
                     player.level(), playerPos, block, count);
 
+                if(data == null || data.isEmpty()) {
+                    source.sendSuccess(() -> Component.literal("No clusters found"), true);
+                    return 0;
+                }
+
                 MutableComponent response = Component.literal("Found Clusters: ");
                 for(OreClusterInfo cluster : data) {
-                    response.append(formatClusterMessage(cluster));
+                    response.append("\n" + cluster.toString(playerPos));
                 }
 
                 source.sendSuccess(() -> response, true);
@@ -136,14 +141,6 @@ public class CommandList {
 
             LoggerProject.logDebug("010001", "Locate Clusters Command");
             return 0;
-        }
-
-        private static String formatClusterMessage(OreClusterInfo cluster)
-        {
-            String ore = HBUtil.BlockUtil.blockToString(cluster.oreType.getBlock());
-                ore = ore.substring( ore.lastIndexOf(":") + 1 );
-            String pos = HBUtil.BlockUtil.positionToString( cluster.position );
-            return "\n" + ore + " at " + pos;
         }
 
         private static Object getArgument(CommandContext<CommandSourceStack> context, String name, Class<?> type)

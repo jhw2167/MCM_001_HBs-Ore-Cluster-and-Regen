@@ -19,6 +19,8 @@ import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.minecraft.client.multiplayer.chat.report.ReportEnvironment;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
@@ -92,6 +94,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     private Map<BlockState, LinkedHashSet<BlockPos>> blockStateUpdates;
     private int updatesSize;
     private LinkedHashSet<Biome> biomes;
+    private List<Pair<String, OreClusterId>> clusterNeighbors;
 
     private Random managedRandom;
     private ReentrantLock lock = new ReentrantLock();
@@ -117,6 +120,7 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.updatesSize = 0;
         this.originalOres = new HashMap<>();
         this.biomes = new LinkedHashSet<>();
+        this.clusterNeighbors = new ArrayList<>();
 
     }
 
@@ -229,6 +233,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
     }
 
     public LevelAccessor getLevel() { return level; }
+
+    public List<Pair<String, OreClusterId>> getClusterNeighbors() { return clusterNeighbors; }
 
     public Long getTimeUnloaded() { return timeUnloaded; }
 
@@ -573,6 +579,8 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
         this.level = event.getLevel();
         this.pos = event.getChunkPos();
         this.timeUnloaded = -1;
+        OreClusterManager manager = OreClusterManager.getManager(this.level);
+        if(manager != null) manager.loadOreClusterNeighbors(this.clusterNeighbors);
         OreClusterManager.onChunkLoad(event);
     }
 
@@ -717,6 +725,20 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
             }
         }
 
+        OreClusterManager manager = (this.level == null) ? null : OreClusterManager.getManager(this.level);
+        if(manager != null && this.pos != null) {
+            List<Pair<String, OreClusterId>> neighbors = manager.getClusterNeighbors(this.pos);
+            if(!neighbors.isEmpty()) this.clusterNeighbors = neighbors;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for(Pair<String, OreClusterId> cluster : this.clusterNeighbors) {
+            String id = cluster.getLeft();
+            OreClusterId oreType = cluster.getRight();
+            sb.append(id).append(":").append(oreType.getId()).append("$");
+        }
+        details.putString("nearby", sb.toString());
+
         LoggerProject.logDebug("003007", "Serializing ManagedOreChunk: " + details);
 
         return details;
@@ -761,6 +783,19 @@ public class ManagedOreClusterChunk implements IMangedChunkData {
             }
 
             //LoggerProject.logDebug("003008", "Deserializing clusterTypes: " + clusterTypes);
+        }
+
+        String nearby = tag.getString("nearby");
+        if(nearby != null && !nearby.isEmpty()) {
+            String[] pairs = nearby.split("\\$");
+            for(String pair : pairs) {
+                if(pair.isEmpty()) continue;
+                String[] parts = pair.split(":");
+                if(parts.length != 2) continue;
+                String id = parts[0];
+                OreClusterId oreType = CONFIG.getOreConfigId(Integer.parseInt(parts[1]));
+                this.clusterNeighbors.add(Pair.of(id, oreType));
+            }
         }
 
     }
