@@ -5,8 +5,6 @@ out1.txt
 **/build/*
 **/run/*
 **/runs/*
-claudeProjFiles/*
-CLAUDE.md
 .template-spec.md
 *.mp4
 .idea/*/

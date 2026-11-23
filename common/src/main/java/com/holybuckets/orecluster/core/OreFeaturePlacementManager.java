@@ -10,12 +10,14 @@ import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.QuartPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -60,6 +62,13 @@ public class OreFeaturePlacementManager {
         return subSeed == null ? seed : seed ^ subSeed;
     }
 
+    public static boolean rejectAboveYLevel(BlockPos pos, RandomSource random) {
+        if (CONFIG == null) return false;
+        Pair<Integer, Float> cutoff = CONFIG.getOreFeatureFractionAboveYLevel();
+        if (cutoff == null || pos.getY() <= cutoff.getLeft()) return false;
+        return random.nextFloat() >= cutoff.getRight();
+    }
+
     public static OreFeaturePlacementManager getManager(ServerLevel level) {
         return MANAGERS.get(level);
     }
@@ -80,14 +89,13 @@ public class OreFeaturePlacementManager {
 
     public int rollPlacements(BlockPos origin, PlacedFeature feature) {
         float frequency = getFrequency(origin, feature);
-        if (frequency == 1f) return 1;
-        int whole = (int) frequency;
-        return random.nextFloat() < frequency - whole ? whole + 1 : whole;
+        int whole = (int) frequency; //0,1,2
+        return (random.nextFloat() < frequency-whole) ? whole + 1 : whole;
     }
 
     public float getFrequency(BlockPos origin, PlacedFeature feature) {
         if (!(feature.feature().value().config() instanceof OreConfiguration ore)) return 1f;
-        var b = HBUtil.LevelUtil.getBiomeAtPoint(this.level, origin);
+        var b = HBUtil.LevelUtil.getBiomeAtSurface(this.level, origin);
         Map<Block, Float> biomeFrequencies = frequencies.get(b.value());
         if (biomeFrequencies == null) return 1f;
         for (OreConfiguration.TargetBlockState target : ore.targetStates) {

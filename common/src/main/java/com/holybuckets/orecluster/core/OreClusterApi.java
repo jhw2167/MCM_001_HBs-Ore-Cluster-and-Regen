@@ -17,6 +17,8 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -320,6 +322,18 @@ public class OreClusterApi {
         return manager.addNewCluster(oreType, chunkId, pos);
     }
 
+
+    /**
+     * Generates cluster block states and positions without the managed chunk system, for use by other mods' worldgen.
+     */
+    public static List<Pair<BlockState, BlockPos>> generateStandaloneCluster(BlockPos sourcePos, String shape, HBUtil.TripleInt volume,
+        BlockState ore, BlockState filler, float oreDensity, Random rand) {
+        return OreClusterCalculator.generateStandaloneCluster(sourcePos, shape, volume, ore, filler, oreDensity, rand);
+    }
+
+    public static BlockPos findCaveFloor(LevelAccessor level, BlockPos sourcePos, int range) {
+        return OreClusterCalculator.findCaveFloor(level, sourcePos, range);
+    }
 
     /**
      * Triggers all clusters in the world to regenerate their clusters

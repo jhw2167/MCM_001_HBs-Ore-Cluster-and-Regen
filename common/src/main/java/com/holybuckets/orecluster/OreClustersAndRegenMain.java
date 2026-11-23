@@ -115,6 +115,7 @@ public class OreClustersAndRegenMain
             manager.shutdown();
         }
         oreClusterManagers.clear();
+        OreClusterBlockStateTracker.reset();
         
         // Shutdown other systems
         regenManager.shutdown();

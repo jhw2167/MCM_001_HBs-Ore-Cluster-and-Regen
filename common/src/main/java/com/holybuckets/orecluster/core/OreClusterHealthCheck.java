@@ -67,6 +67,7 @@ public class OreClusterHealthCheck {
         //LoggerProject.logInfo("016001", "Starting statistic healthCheck");
         try {
             for (OreClusterManager m : managers.values()) {
+                if(m.completeChunks.isEmpty()) continue;
                 JsonElement jsonHealthCheck = oreClusterApi.healthCheckStatistics(m);
                 StringBuilder message = new StringBuilder("Manager Health Check for level: ");
                 message.append(HBUtil.LevelUtil.toLevelId(m.getLevel()));

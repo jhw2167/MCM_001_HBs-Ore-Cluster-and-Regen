@@ -29,6 +29,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import org.apache.commons.lang3.tuple.Pair;
 
 //Java Imports
 import java.io.File;
@@ -65,6 +66,7 @@ public class ModRealTimeConfig
 
     private Set<BlockState> validOreClusterBlocks;
     private OreFeatureBiomeMatrix oreFeatureBiomeMatrix = OreFeatureBiomeMatrix.EMPTY;
+    private Pair<Integer, Float> oreFeatureFractionAboveYLevel;
 
     /** We will batch checks for which chunks have clusters by the next CHUNK_NORMALIZATION_TOTAL chunks at a time
      thus the spawnrate is normalized to 256 chunks */
@@ -155,6 +157,7 @@ public class ModRealTimeConfig
         }
 
         this.oreFeatureBiomeMatrix = loadOreFeatureBiomeMatrix(event.getServer().registryAccess(), clusterConfig);
+        this.oreFeatureFractionAboveYLevel = parseOreFeatureFractionAboveYLevel(clusterConfig.oreFeatureFractionAboveYLevel);
 
         //serializer for consistency
         OreClusterJsonConfig newJsonOreConfigs = new OreClusterJsonConfig(baseOreConfigs);
@@ -201,6 +204,7 @@ public class ModRealTimeConfig
         this.baseOreConfigs.clear();
         this.validOreClusterBlocks.clear();
         this.oreFeatureBiomeMatrix = OreFeatureBiomeMatrix.EMPTY;
+        this.oreFeatureFractionAboveYLevel = null;
     }
 
         /*
@@ -280,6 +284,10 @@ public class ModRealTimeConfig
             return oreFeatureBiomeMatrix;
         }
 
+        public @Nullable Pair<Integer, Float> getOreFeatureFractionAboveYLevel() {
+            return oreFeatureFractionAboveYLevel;
+        }
+
         /**
          *  Setters
          */
@@ -292,6 +300,21 @@ public class ModRealTimeConfig
     /**
      * Helper methods
      */
+
+    private static @Nullable Pair<Integer, Float> parseOreFeatureFractionAboveYLevel(String value)
+    {
+        if (value == null || value.isBlank()) return null;
+        try {
+            String[] parts = value.split("=");
+            int yLevel = Integer.parseInt(parts[0].trim());
+            float fraction = Float.parseFloat(parts[1].trim());
+            return Pair.of(yLevel, Math.max(0f, Math.min(1f, fraction)));
+        }
+        catch (Exception e) {
+            LoggerProject.logWarning("000006", "Invalid oreFeatureFractionAboveYLevel '" + value + "', expected <yLevel>=<fraction> such as 96=0.4");
+            return null;
+        }
+    }
 
     private OreFeatureBiomeMatrix loadOreFeatureBiomeMatrix(RegistryAccess registries, OreClusterConfigData.COreClusters clusterConfig)
     {

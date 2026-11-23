@@ -17,6 +17,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -31,6 +32,8 @@ import net.minecraft.world.level.levelgen.DensityFunction;
 import net.minecraft.world.level.levelgen.DensityFunctions;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
 import org.apache.commons.lang3.tuple.Pair;
+
+import com.holybuckets.foundation.AAA.ShapeGen;
 
 import static com.holybuckets.orecluster.config.model.OreClusterConfigModel.OreClusterId;
 
@@ -555,15 +558,10 @@ public class OreClusterCalculator {
             SHAPE = validShapes.get( randSeed % offset );
         }
 
-        Fast3DArray positions;
-       if( SHAPE.equals("SPHERE") ) {
-            int radius = Math.min(VOL.x, VOL.z);
-           positions = ShapeUtil.getSphere(radius, VOL.y);
-       }
-       else //(SHAPE.equals("CUBE"))
-       {
-            positions = ShapeUtil.getCube(VOL.x, VOL.z, VOL.y);
-       }
+        Fast3DArray positions = getShapePositions(SHAPE, VOL, new Random(randSeed));
+        boolean grounded = isGroundedShape(SHAPE);
+
+        if( grounded ) sourcePos = findCaveFloor(sourcePos, Math.max(4, VOL.y / 2));
 
 
 
@@ -597,7 +595,7 @@ public class OreClusterCalculator {
         }
 
         TripleInt airOffset = new TripleInt(0,0,0);
-        if( HBUtil.BlockUtil.blockToString(clusterId.getBlock()).toLowerCase().contains("ore") )
+        if( !grounded && HBUtil.BlockUtil.blockToString(clusterId.getBlock()).toLowerCase().contains("ore") )
             airOffset = generator.calculateAvoidAirOffset();
 
         //5. Apply Density function
@@ -632,6 +630,64 @@ public class OreClusterCalculator {
         return clusterBlockStatePositions;
     }
     //END GENERATE ORE CLUSTERS
+
+    private BlockPos findCaveFloor(BlockPos sourcePos, int range) {
+        return findCaveFloor(level, sourcePos, range);
+    }
+
+    //** STATIC CLUSTER UTILITIES
+
+    public static Fast3DArray getShapePositions(String shape, TripleInt volume, Random rand)
+    {
+        if( shape.equals("SPHERE") ) {
+            int radius = Math.min(volume.x, volume.z);
+            return ShapeGen.getSphere(radius, volume.y);
+        }
+        else if( shape.equals("MOUND") ) {
+            return OreClusterShapes.mound(volume, rand);
+        }
+        else if( shape.equals("SPIRE") ) {
+            return OreClusterShapes.spire(volume, rand);
+        }
+        return ShapeGen.getCube(volume.x, volume.z, volume.y);
+    }
+
+    public static boolean isGroundedShape(String shape) {
+        return shape.equals("MOUND") || shape.equals("SPIRE");
+    }
+
+    public static BlockPos findCaveFloor(LevelAccessor level, BlockPos sourcePos, int range)
+    {
+        if( isCaveFloor(level, sourcePos) ) return sourcePos;
+        for( int d = 1; d <= range; d++ ) {
+            if( isCaveFloor(level, sourcePos.below(d)) ) return sourcePos.below(d);
+            if( isCaveFloor(level, sourcePos.above(d)) ) return sourcePos.above(d);
+        }
+        return sourcePos;
+    }
+
+    public static boolean isCaveFloor(LevelAccessor level, BlockPos pos)
+    {
+        BlockState floor = level.getBlockState(pos);
+        if( floor.isAir() || !floor.getFluidState().isEmpty() ) return false;
+        return level.getBlockState(pos.above()).isAir();
+    }
+
+    /**
+     * Generates a cluster outside of the managed chunk system, each position is ore with probability oreDensity, otherwise filler.
+     */
+    public static List<Pair<BlockState, BlockPos>> generateStandaloneCluster(BlockPos sourcePos, String shape, TripleInt volume,
+        BlockState ore, BlockState filler, float oreDensity, Random rand)
+    {
+        Fast3DArray positions = getShapePositions(shape, volume, rand);
+        List<Pair<BlockState, BlockPos>> cluster = new ArrayList<>(positions.size);
+        for( int i = 0; i < positions.size; i++ )
+        {
+            BlockPos pos = sourcePos.offset(positions.getX(i), positions.getY(i), positions.getZ(i));
+            cluster.add(Pair.of(rand.nextFloat() < oreDensity ? ore : filler, pos));
+        }
+        return cluster;
+    }
 
 
     class OreClusterGeneratorUtility

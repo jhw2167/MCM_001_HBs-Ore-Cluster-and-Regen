@@ -7,7 +7,8 @@
     "mixins": [
         "MixinLevelChunkSection",
         "MixinLevel",
-        "PlacedFeatureMixin"
+        "PlacedFeatureMixin",
+        "ConfiguredFeatureMixin"
     ],
     "client": [
     ],

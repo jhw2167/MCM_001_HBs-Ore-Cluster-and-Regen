@@ -25,6 +25,7 @@ import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
 import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -129,11 +130,11 @@ public class OreClusterManager {
     //private Random randSeqClusterShapeGen;
 
 
-    final LinkedBlockingQueue<String> chunksPendingHandling;
-    final LinkedBlockingQueue<String> chunksPendingDeterminations;
-    final LinkedBlockingQueue<String> chunksPendingCleaning;
-    final LinkedBlockingQueue<String> chunksPendingPreGeneration;
-    final LinkedBlockingQueue<String> chunksPendingGeneration;
+    final ConcurrentLinkedSet<String> chunksPendingHandling;
+    final ConcurrentLinkedSet<String> chunksPendingDeterminations;
+    final ConcurrentLinkedSet<String> chunksPendingCleaning;
+    final ConcurrentLinkedSet<String> chunksPendingPreGeneration;
+    final ConcurrentLinkedSet<String> chunksPendingGeneration;
     final ConcurrentSet<String> chunksPendingRegeneration;
     //private final ConcurrentHashMap<String, ManagedOreClusterChunk> chunksPendingManifestation;
 
@@ -210,11 +211,11 @@ public class OreClusterManager {
         this.expiredChunks = new ConcurrentHashMap<>();
         this.forceLoadedChunks = new ConcurrentHashMap<>();
 
-        this.chunksPendingHandling = new LinkedBlockingQueue<>();
-        this.chunksPendingDeterminations = new LinkedBlockingQueue<>();
-        this.chunksPendingCleaning = new LinkedBlockingQueue<>();
-        this.chunksPendingPreGeneration = new LinkedBlockingQueue<>();
-        this.chunksPendingGeneration = new LinkedBlockingQueue<>();
+        this.chunksPendingHandling = new ConcurrentLinkedSet<>();
+        this.chunksPendingDeterminations = new ConcurrentLinkedSet<>();
+        this.chunksPendingCleaning = new ConcurrentLinkedSet<>();
+        this.chunksPendingPreGeneration = new ConcurrentLinkedSet<>();
+        this.chunksPendingGeneration = new ConcurrentLinkedSet<>();
         this.chunksPendingRegeneration = new ConcurrentSet<>();
 
         this.initializedOreClusterChunks = new ConcurrentSet<>();
@@ -436,7 +437,6 @@ public class OreClusterManager {
         }
 
         loadedOreClusterChunks.put(chunkId, managedChunk.getEarliest(loadedOreClusterChunks));
-        chunksPendingHandling.add(managedChunk.getId());
         //LoggerProject.logInfo("002001", "Chunk " + chunkId + " added to queue size " + chunksPendingHandling.size());
     }
 
@@ -481,10 +481,8 @@ public class OreClusterManager {
         if( completeChunks.contains(chunkId) )
             return;
 
-        if( ManagedChunkUtility.getManagedChunk(level, chunkId)==null ) {
-            chunksPendingHandling.add(chunkId);
+        if( ManagedChunkUtility.getManagedChunk(level, chunkId)==null )
             return;
-        }
 
 
         ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
@@ -513,7 +511,7 @@ public class OreClusterManager {
                 handleChunkLoaded(chunkId);
                 return;
             }
-            chunksPendingDeterminations.add(chunkId);
+            if( isPlayerNearChunk(chunkId) ) chunksPendingDeterminations.add(chunkId);
         }
         else if( ManagedOreClusterChunk.isDetermined(chunk) ) {
             if(chunk.hasClusters()) {
@@ -539,8 +537,9 @@ public class OreClusterManager {
         else if( this.chunksPendingRegeneration.contains(chunkId) ) {
             this.triggerRegen(chunkId, false);
         }
-        else if( ManagedOreClusterChunk.isGenerated(chunk) )
+        else if( ManagedOreClusterChunk.isGenerated(chunk) || ManagedOreClusterChunk.isHarvested(chunk) )
         {
+            OreClusterStructures.addClusterStructures(level, chunk);
             //LoggerProject.logDebug("002008","Chunk " + chunkId + " has been generated");
             //chunksPendingManifestation.add(chunkId);
         }
@@ -590,6 +589,17 @@ public class OreClusterManager {
 
     }
 
+    private static final int DETERMINATION_PLAYER_RANGE_CHUNKS = 50;
+    private boolean isPlayerNearChunk(String chunkId)
+    {
+        ChunkPos pos = ChunkUtil.getChunkPos(chunkId);
+        int maxDistSq = DETERMINATION_PLAYER_RANGE_CHUNKS * DETERMINATION_PLAYER_RANGE_CHUNKS;
+        for(ServerPlayer p : HBUtil.PlayerUtil.getAllPlayers(level)) {
+            if(ChunkUtil.chunkDistSquared(pos, p.chunkPosition()) <= maxDistSq) return true;
+        }
+        return false;
+    }
+
     private static final int MAX_LOADED_CHUNKS = 64_000;
     private static final int MAX_FAILURES = 64; //Skip unloaded chunks quickly
     private void workerThreadDetermineClusters()
@@ -605,12 +615,14 @@ public class OreClusterManager {
             {
                 tries++;
                 String chunkId = chunksPendingDeterminations.poll();
-                if(chunkId == null) continue;
+                if(chunkId == null) return;
+                ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
+                if(chunk == null || !isNoStatus(chunk) || !chunkUtil.isLoaded(chunkId)) continue;
                 handleChunkDetermination(chunkId);
                 if (this.determinedChunks.contains(chunkId)) {
                     break;
                 }
-                chunksPendingDeterminations.add(chunkId);
+                if(isPlayerNearChunk(chunkId)) chunksPendingDeterminations.add(chunkId);
             }
 
         } /*catch (InterruptedException e) {
@@ -650,8 +662,10 @@ public class OreClusterManager {
                 String chunkId = chunksPendingCleaning.poll();
                 if(chunkId == null) return;
                 ManagedOreClusterChunk chunk = loadedOreClusterChunks.get(chunkId);
-                if (chunk == null || !chunk.hasChunk()) {
-                    chunksPendingCleaning.add(chunkId); return;
+                if (chunk == null) return;
+                if (!chunk.hasChunk()) {
+                    if (chunkUtil.isLoaded(chunkId)) chunksPendingCleaning.add(chunkId);
+                    return;
                 }
 
                 editManagedChunk(chunk, this::handleChunkCleaning);
@@ -785,6 +799,7 @@ public class OreClusterManager {
         // 1. Get and validate chunk is loaded
         ManagedOreClusterChunk managedChunk = this.loadedOreClusterChunks.get(chunkId);
         if( managedChunk == null ) return;
+        if( !isNoStatus(managedChunk) ) return;
         if( !chunkUtil.isChunkFullyLoaded(chunkId) ) return;
 
         if( managedChunk.getBiomes().isEmpty() ) {
@@ -948,7 +963,7 @@ public class OreClusterManager {
                 if( chunk.hasClusters() )
                 {
                     oreClusterCalculator.cleanChunkSelectClusterPosition(chunk);
-                    this.chunksPendingPreGeneration.put(chunk.getId());
+                    this.chunksPendingPreGeneration.add(chunk.getId());
                 }
 
                 //3. Cleans chunk of all ores discovered in the findAllOres method and stored in chunk.getOriginalOres()
@@ -1112,6 +1127,7 @@ public class OreClusterManager {
             if( chunk.hasClusters() ) {
                 chunk.setStatus(OreClusterStatus.GENERATED);
                 chunksPendingRegeneration.remove(chunk.getId());
+                OreClusterStructures.addClusterStructures(level, chunk);
             }
             else {
                 chunk.setStatus(OreClusterStatus.COMPLETE);

@@ -50,11 +50,12 @@ public class OreClusterConfigData implements BalmConfigData {
         public static final String DEF_REGENERATE_ORE_CLUSTER_UPGRADE_ITEMS = "default,minecraft:blaze_powder," +
             "minecraft:dragon_egg,minecraft:nether_star";
         public static final String DEF_ORE_CLUSTER_FILE_CONFIG_PATH = "config/HBOreClustersAndRegenConfigs.json";
+        public static final String DEF_ORE_FEATURE_FRACTION_ABOVE_Y_LEVEL = "96=0.4";
 
         //Ranges
         public static final String DEF_MIN_ORE_CLUSTER_VOLUME = "0x0x0";
         public static final String DEF_MAX_ORE_CLUSTER_VOLUME = "64x64x64";
-        public static final HashSet<String> DEF_ORE_CLUSTER_VALID_SHAPES = new HashSet<>(Arrays.asList("CUBE", "SPHERE", "ANY"));
+        public static final HashSet<String> DEF_ORE_CLUSTER_VALID_SHAPES = new HashSet<>(Arrays.asList("CUBE", "SPHERE", "MOUND", "SPIRE", "ANY"));
         //BOWL, MOUND, TOWER, SHALE, ANVIL
 
 
@@ -78,7 +79,7 @@ public class OreClusterConfigData implements BalmConfigData {
         @Comment("Specifies the density of ore within a cluster. Blocks from 'oreClusterReplaceableEmptyBlocks' are mixed into this cluster randomly to reduce density")
         public float oreClusterDensity = DEF_ORE_CLUSTER_DENSITY.get();
 
-        @Comment("Defines the shape of the ore cluster. Options are 'SPHERE', 'CUBE', 'ANY'. Defaults to ANY, which takes a random shape each generation")
+        @Comment("Defines the shape of the ore cluster. Options are 'SPHERE', 'CUBE', 'MOUND', 'SPIRE', 'ANY'. MOUND and SPIRE rise from the nearest cave floor. Defaults to ANY, which takes a random shape each generation")
         public String oreClusterShape = DEF_ORE_CLUSTER_SHAPE;
 
         @Comment("Clusters will not spawn above this Y level")
@@ -111,6 +112,9 @@ public class OreClusterConfigData implements BalmConfigData {
 
         @Comment("File path to .json file where the relative frequency of vanilla style ore veins is set for each ore in each biome")
         public String oreFeatureBiomeMatrixConfig = OreFeatureBiomeMatrixJsonConfig.DEF_CONFIG_FILE_PATH;
+
+        @Comment("Ore features spawn much more frequently at high y levels, so this value specifies a y level, an equals, and a fractional value that reduces all feature spawns to this rate above the specified y level.")
+        public String oreFeatureFractionAboveYLevel = DEF_ORE_FEATURE_FRACTION_ABOVE_Y_LEVEL;
 
         @Comment("Comma separated list of integer days it takes for clusters to regenerate their ores. All clusters will regenerate on the same schedule. After sacrificing the specified item in the array below, the period length is reduced")
         public String regenerateOreClusterPeriodLengths = DEF_REGENERATE_ORE_CLUSTER_PERIOD_LENGTHS;

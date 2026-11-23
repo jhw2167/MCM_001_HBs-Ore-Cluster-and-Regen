@@ -4,134 +4,135 @@ import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.orecluster.ModRealTimeConfig;
 import com.holybuckets.orecluster.config.model.OreClusterConfigModel;
 import com.holybuckets.orecluster.core.model.ManagedOreClusterChunk;
-import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 import static com.holybuckets.orecluster.config.model.OreClusterConfigModel.OreClusterId;
 
-/**
- * Description: Tracks BlockState updates to a chunk before the chunk is full
- *  First collects all relevant ores placed in a chunk,
- * then attempts
- */
 public class OreClusterBlockStateTracker
 {
-    ChunkAccess currentChunk;
-    Map<LevelChunkSection, Integer> chunkSections;
-    String chunkId;
-    ServerLevel currentLevel;
-    ManagedOreClusterChunk currentManagedOreClusterChunk;
+    private static final ThreadLocal<TrackingContext> CURRENT = new ThreadLocal<>();
+    private static final Set<ManagedOreClusterChunk> BIOMES_LOADED =
+        Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
 
-    static ModRealTimeConfig CONFIG;
-    static Map<Integer, ServerLevel> LEVELCHUNKSECTION_LEVEL_REF_MAP;
-    static Map<ServerLevel, OreClusterBlockStateTracker> LEVEL_TRACKERS;
-    static Map<OreClusterId, OreClusterConfigModel> trackingOreConfig;
+    private static volatile ModRealTimeConfig CONFIG;
+    private static volatile Map<OreClusterId, OreClusterConfigModel> trackingOreConfig;
+    private static volatile long generation = 0;
+
+    private static final class TrackingContext
+    {
+        final ServerLevel level;
+        final ChunkAccess chunk;
+        final LevelChunkSection[] sections;
+        final ManagedOreClusterChunk managedChunk;
+        final TrackingContext previous;
+        final long generation;
+        int depth = 1;
+
+        TrackingContext(ServerLevel level, ChunkAccess chunk, ManagedOreClusterChunk managedChunk, TrackingContext previous, long generation) {
+            this.level = level;
+            this.chunk = chunk;
+            this.sections = chunk.getSections();
+            this.managedChunk = managedChunk;
+            this.previous = previous;
+            this.generation = generation;
+        }
+
+        int indexOf(LevelChunkSection section) {
+            for (int i = 0; i < sections.length; i++) {
+                if (sections[i] == section) return i;
+            }
+            return -1;
+        }
+    }
 
     public static void init(ModRealTimeConfig modRealTimeConfig) {
-        LEVEL_TRACKERS = new ConcurrentHashMap<>();
-        LEVELCHUNKSECTION_LEVEL_REF_MAP = Collections.synchronizedMap(new LinkedHashMap<>());
         CONFIG = modRealTimeConfig;
     }
 
-    public static void setTrackingChunk(ServerLevel level, ChunkAccess chunk, BlockPos pos) {
-        if( !LEVEL_TRACKERS.containsKey(level) ) {
-            LEVEL_TRACKERS.put(level, new OreClusterBlockStateTracker(level));
-        }
-        LEVEL_TRACKERS.get(level).setLevelTrackingChunk(chunk, pos);
+    public static void reset() {
+        generation++;
+        trackingOreConfig = null;
+        BIOMES_LOADED.clear();
+        CURRENT.remove();
     }
 
-    public static void trackBlockState(LevelChunkSection section, BlockState state, int x, int y, int z) {
-        if(LEVELCHUNKSECTION_LEVEL_REF_MAP.containsKey(section.hashCode()) == false) return;
-        ServerLevel level = LEVELCHUNKSECTION_LEVEL_REF_MAP.get(section.hashCode());
-        LEVEL_TRACKERS.get(level).trackLevelBlockState(section, state, x, y, z);
-    }
-
-    //** CORE
-
-    //write a constructor
-    public OreClusterBlockStateTracker(ServerLevel level) {
-        this.currentLevel = level;
-        this.chunkSections = new ConcurrentHashMap<>();
-        if( trackingOreConfig == null )
-            trackingOreConfig = CONFIG.getOreConfigs();
-    }
-
-    private static final int MAX_CHUNK_REFS = (int) Math.pow(2, 12); //16k
-    private static final int MAX_CHUNK_REFS_CLEAR = (int) Math.pow(2, 10); //1k
-    private static int chunkCount = 0;
-    public void setLevelTrackingChunk(ChunkAccess chunk, BlockPos pos)
+    public static void beginTracking(ServerLevel level, ChunkAccess chunk)
     {
-        chunkCount++;
-        currentChunk = chunk;
-        chunkSections.clear();
-        AtomicInteger count = new AtomicInteger(0);
-        Arrays.stream(chunk.getSections()).forEach((section) -> {
-            chunkSections.put(section, count.getAndIncrement());
-            LEVELCHUNKSECTION_LEVEL_REF_MAP.put(section.hashCode(), currentLevel);
-        });
+        if (CONFIG == null || level == null || chunk == null) return;
 
-        if( chunkCount > MAX_CHUNK_REFS ) {
-            chunkCount = 0;
-            //Clear out old entries
-            Iterator<Map.Entry<Integer, ServerLevel>> it = LEVELCHUNKSECTION_LEVEL_REF_MAP.entrySet().iterator();
-            int clearCount = 0;
-            while (it.hasNext() && clearCount < MAX_CHUNK_REFS_CLEAR) {
-                it.next();
-                it.remove();
-                clearCount++;
-            }
-        }
-
-        OreClusterManager manager = OreClusterManager.getManager(currentLevel);
-        if( manager == null ) return;
-        chunkId = HBUtil.ChunkUtil.getId(currentChunk);
-        currentManagedOreClusterChunk = manager.getManagedOreClusterChunk( chunkId );
-        if( currentManagedOreClusterChunk != null ) {
-            currentManagedOreClusterChunk.loadBiomes(chunk);
-        }
-    }
-
-
-    //This will be called before features start being placed, (before there is a chunk to track)
-    private static long blockCount=0;
-    public void trackLevelBlockState(LevelChunkSection section, BlockState state, int x, int y, int z)
-    {
-        if( trackingOreConfig == null ) return;
-        if( currentManagedOreClusterChunk == null ) return;
-
-        BlockState defaultState = state.getBlock().defaultBlockState();
-        if( !CONFIG.maybeHasBlock(defaultState) ) return;
-
-        ManagedOreClusterChunk chunk = currentManagedOreClusterChunk;
-        Biome localBiome = section.getNoiseBiome(x, 0, z).value();
-        OreClusterId configId = chunk.chooseConfigId(this.currentLevel,localBiome, defaultState, CONFIG);
-        if( configId == null ) return;
-        OreClusterConfigModel config = trackingOreConfig.get(configId);
-        if( !ModRealTimeConfig.doesLevelMatch(config, currentLevel) ) return;
-        if( !ModRealTimeConfig.clustersDoSpawn(config) ) return;
-
-        blockCount++;
-        int secIndex = 0;
-        if( chunkSections.containsKey(section) ) {
-            secIndex = chunkSections.get(section);
-        } else {
+        TrackingContext current = CURRENT.get();
+        if (current != null && current.generation != generation) current = null;
+        if (current != null && current.chunk == chunk) {
+            current.depth++;
             return;
         }
-        int secY = currentLevel.getSectionYFromSectionIndex(secIndex);
-        if( !chunk.sampleAddOre(configId, secY) ) return;
 
-        HBUtil.TripleInt relativePos = new HBUtil.TripleInt(x, y, z);
-        HBUtil.WorldPos pos = new HBUtil.WorldPos( relativePos, secIndex, currentChunk );
-        chunk.addOre(configId, pos.getWorldPos(), true);
+        if (trackingOreConfig == null) trackingOreConfig = CONFIG.getOreConfigs();
+        CURRENT.set(new TrackingContext(level, chunk, managedChunkFor(level, chunk), current, generation));
     }
 
+    public static void endTracking()
+    {
+        TrackingContext current = CURRENT.get();
+        if (current == null) return;
+        if (--current.depth > 0) return;
+
+        TrackingContext previous = current.previous;
+        if (previous == null || previous.generation != generation) CURRENT.remove();
+        else CURRENT.set(previous);
+    }
+
+    private static ManagedOreClusterChunk managedChunkFor(ServerLevel level, ChunkAccess chunk)
+    {
+        OreClusterManager manager = OreClusterManager.getManager(level);
+        if (manager == null) return null;
+
+        ManagedOreClusterChunk managed = manager.getManagedOreClusterChunk(HBUtil.ChunkUtil.getId(chunk));
+        if (managed != null && BIOMES_LOADED.add(managed)) managed.loadBiomes(chunk);
+        return managed;
+    }
+
+    public static void trackBlockState(LevelChunkSection section, BlockState state, int x, int y, int z)
+    {
+        TrackingContext ctx = CURRENT.get();
+        if (ctx == null || ctx.managedChunk == null) return;
+        if (ctx.generation != generation) {
+            CURRENT.remove();
+            return;
+        }
+
+        Map<OreClusterId, OreClusterConfigModel> oreConfigs = trackingOreConfig;
+        if (oreConfigs == null) return;
+
+        BlockState defaultState = state.getBlock().defaultBlockState();
+        if (!CONFIG.maybeHasBlock(defaultState)) return;
+
+        int secIndex = ctx.indexOf(section);
+        if (secIndex < 0) return;
+
+        ManagedOreClusterChunk chunk = ctx.managedChunk;
+        Biome localBiome = section.getNoiseBiome(x, 0, z).value();
+        OreClusterId configId = chunk.chooseConfigId(ctx.level, localBiome, defaultState, CONFIG);
+        if (configId == null) return;
+        OreClusterConfigModel config = oreConfigs.get(configId);
+        if (!ModRealTimeConfig.doesLevelMatch(config, ctx.level)) return;
+        if (!ModRealTimeConfig.clustersDoSpawn(config)) return;
+
+        int secY = ctx.level.getSectionYFromSectionIndex(secIndex);
+        if (!chunk.sampleAddOre(configId, secY)) return;
+
+        HBUtil.TripleInt relativePos = new HBUtil.TripleInt(x, y, z);
+        HBUtil.WorldPos pos = new HBUtil.WorldPos(relativePos, secIndex, ctx.chunk);
+        chunk.addOre(configId, pos.getWorldPos(), true);
+    }
 
 }
